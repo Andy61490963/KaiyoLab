@@ -4,7 +4,7 @@
 
 KaiyoLab 是可以自行部署的個人內容管理系統，結合公開文章網站與私人管理後台。以深海藍、青色與動漫科技視覺建立自己的品牌，透過 Markdown 管理文章與作品，發布後立即呈現在網站。
 
-[快速開始](#快速開始) · [功能](#功能) · [正式部署](docs/deployment.md) · [備份與還原](docs/backup-restore.md) · [參與開發](CONTRIBUTING.md)
+[快速開始](#快速開始) · [功能](#功能) · [正式部署](docs/deployment.md) · [Zeabur 與 CI/CD](docs/zeabur.md) · [備份與還原](docs/backup-restore.md) · [參與開發](CONTRIBUTING.md)
 
 ![KaiyoLab 公開首頁](docs/screenshots/home-dark.png)
 

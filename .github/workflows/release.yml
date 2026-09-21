@@ -8,7 +8,13 @@ permissions:
   packages: write
 
 jobs:
+  validate:
+    name: 發布前完整驗證
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
   publish:
+    needs: validate
     name: 發布 amd64 與 arm64
     runs-on: ubuntu-latest
     steps:

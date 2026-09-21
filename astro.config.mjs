@@ -38,6 +38,13 @@ export default defineConfig({
   },
   adapter: node({ mode: 'standalone', bodySizeLimit: 11 * 1024 * 1024 }),
   integrations: [react()],
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    define: {
+      'import.meta.env.KAIYO_BUILD_SHA': JSON.stringify(
+        process.env.ZEABUR_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'development',
+      ),
+    },
+  },
   server: { port: 4321 },
 });

@@ -5,7 +5,9 @@ RUN npm ci
 
 FROM dependencies AS build
 ARG SITE_URL=http://localhost:4321
+ARG ZEABUR_GIT_COMMIT_SHA=development
 ENV SITE_URL=${SITE_URL}
+ENV ZEABUR_GIT_COMMIT_SHA=${ZEABUR_GIT_COMMIT_SHA}
 COPY . .
 RUN npm run build && npm prune --omit=dev
 

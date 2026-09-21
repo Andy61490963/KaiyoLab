@@ -3,6 +3,16 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const secretsDirectory = process.env.SECRETS_DIR || '/run/kaiyo-secrets';
+// 平台沒有 Compose 初始化服務時，以獨立持久硬碟初始化一次。
+if (process.env.INITIALIZE_SECRETS === 'true') {
+  await import('./init-secrets.mjs');
+}
+// 某些平台會覆寫映像的 USER；網站與 migration 仍以 node 身分執行。
+if (process.getuid?.() === 0) {
+  process.setgroups([]);
+  process.setgid(1000);
+  process.setuid(1000);
+}
 async function secret(name) {
   const value = (await readFile(join(secretsDirectory, name), 'utf8')).trim();
   if (value.length < 32) throw new Error(`密鑰 ${name} 無效。`);

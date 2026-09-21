@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -79,6 +80,8 @@ jobs:
       - run: npm run test:e2e
       - name: 重建容器與備份還原驗證
         run: sh docs/operations/ci-roundtrip.sh
+      - name: 驗證平台初始化、降權與密鑰保存
+        run: sh docs/operations/ci-bootstrap.sh
       - name: 保存瀏覽器測試結果
         if: always()
         uses: actions/upload-artifact@v4
