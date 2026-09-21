@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" fill="none">
+  <defs>
+    <linearGradient id="backdrop" x1="100" y1="0" x2="1080" y2="720" gradientUnits="userSpaceOnUse"><stop stop-color="#171c39"/><stop offset="1" stop-color="#09141e"/></linearGradient>
+    <linearGradient id="paper" x1="385" y1="140" x2="820" y2="620" gradientUnits="userSpaceOnUse"><stop stop-color="#829ce0" stop-opacity=".23"/><stop offset="1" stop-color="#6ad9cc" stop-opacity=".03"/></linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" stroke="#b6c5ff" stroke-opacity=".055"/></pattern>
+  </defs>
+  <path fill="url(#backdrop)" d="M0 0h1200v720H0z"/>
+  <path fill="url(#grid)" d="M0 0h1200v720H0z"/>
+  <circle cx="640" cy="375" r="248" stroke="#8e9fff" stroke-opacity=".13"/>
+  <circle cx="640" cy="375" r="288" stroke="#8e9fff" stroke-opacity=".06"/>
+  <g transform="rotate(-9 600 360)">
+    <rect x="401" y="157" width="374" height="440" rx="22" fill="url(#paper)" stroke="#a5aff9" stroke-opacity=".5"/>
+    <path d="M458 239h119m-119 42h256M458 348h256m-256 32h205m-205 32h230M458 479h166m-166 32h256" stroke="#c2c9fb" stroke-opacity=".35" stroke-width="6" stroke-linecap="round"/>
+    <path d="M458 239h37" stroke="#8decdd" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <path d="m774 431 23 23 49-58" stroke="#73dccc" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M925 190v24m-12-12h24M295 506v24m-12-12h24" stroke="#a0aaf6" stroke-opacity=".55" stroke-width="2"/>
+  <circle cx="316" cy="227" r="5" fill="#73dccc"/>
+  <circle cx="902" cy="521" r="4" fill="#9897e8"/>
+  <path d="M67 655h129m16 0h28M977 65h153" stroke="#80b5c6" stroke-opacity=".3"/>
+</svg>

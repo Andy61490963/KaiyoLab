@@ -1,0 +1,20 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import AuthForm from '../components/admin/AuthForm';
+import { db, systemState } from '../lib/db';
+import { getAuth } from '../lib/auth';
+export const prerender = false;
+const [state] = await db().select().from(systemState);
+if (!state?.setupComplete) return Astro.redirect('/setup');
+const session = await getAuth().api.getSession({ headers: Astro.request.headers });
+if (session?.user.id === state.ownerId) return Astro.redirect('/admin');
+---
+
+<AdminLayout title="登入">
+  <AuthForm mode="login" client:only="react">
+    <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
+      正在開啟登入工作空間…
+    </div>
+  </AuthForm>
+  <noscript>登入需要啟用 JavaScript。</noscript>
+</AdminLayout>

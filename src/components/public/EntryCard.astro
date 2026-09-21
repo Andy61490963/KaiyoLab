@@ -1,0 +1,60 @@
+---
+import type { PublicEntry } from '../../lib/types';
+import Icon from './Icon.astro';
+interface Props {
+  entry: PublicEntry;
+  variant?: 'row' | 'card' | 'feature';
+  index?: number;
+}
+const { entry, variant = 'row', index = 0 } = Astro.props;
+const href = `/${entry.kind === 'project' ? 'projects' : 'articles'}/${encodeURIComponent(entry.slug)}`;
+const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
+---
+
+<article class:list={['entry', `entry-${variant}`]}>
+  <a class="entry-image" href={href} tabindex="-1" aria-hidden="true">
+    <img
+      src={entry.cover || '/images/cover-orbit.svg'}
+      alt=""
+      loading="lazy"
+      width="960"
+      height="600"
+    />
+    {entry.featured && <span class="image-label">精選紀錄</span>}
+    <span class="image-number">{String(index + 1).padStart(2, '0')}</span>
+  </a>
+  <div class="entry-content">
+    <div class="entry-meta">
+      <span class="category-label">
+        {entry.category || (entry.kind === 'project' ? '作品' : '隨筆')}
+      </span>
+      <span class="meta-dot">·</span>
+      <time datetime={entry.publishedAt}>{date}</time>
+      {entry.kind === 'article' && (
+        <>
+          <span class="meta-dot">·</span>
+          <span>{readTime} 分鐘閱讀</span>
+        </>
+      )}
+    </div>
+    <h3>
+      <a href={href}>{entry.title}</a>
+    </h3>
+    <p>{entry.excerpt}</p>
+    <div class="entry-bottom">
+      <div class="entry-tags">
+        {entry.tags.slice(0, 3).map((tag) => (
+          <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
+        ))}
+      </div>
+      <a class="entry-arrow" href={href} aria-label={`閱讀：${entry.title}`}>
+        <Icon name="diagonal" size={19} />
+      </a>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,21 @@
+---
+import Icon from './Icon.astro';
+interface Props {
+  title?: string;
+  description?: string;
+  icon?: string;
+}
+const {
+  title = '故事，正要開始。',
+  description = '新的想法正在醞釀，期待很快在這裡與你相遇。',
+  icon = 'file',
+} = Astro.props;
+---
+
+<div class="empty-state">
+  <span class="empty-orbit">
+    <Icon name={icon} size={27} />
+  </span>
+  <h3>{title}</h3>
+  <p>{description}</p>
+</div>

@@ -1,0 +1,233 @@
+---
+import '../styles/global.css';
+import Icon from '../components/public/Icon.astro';
+import type { SiteSettings } from '../lib/types';
+interface Props {
+  settings: SiteSettings;
+  title?: string;
+  description?: string;
+  image?: string;
+  article?: boolean;
+}
+const {
+  settings,
+  title,
+  description = settings.description,
+  image = settings.heroImage || '/images/kaiyo-hero.png',
+  article = false,
+} = Astro.props;
+const pageTitle = title
+  ? `${title} · ${settings.siteName}`
+  : `${settings.siteName} — ${settings.tagline}`;
+const siteUrl = settings.siteUrl || Astro.url.origin;
+const canonical = new URL(Astro.url.pathname, siteUrl).href;
+const navItems = [
+  { href: '/', label: '首頁' },
+  { href: '/articles', label: '文章' },
+  { href: '/projects', label: '作品' },
+  { href: '/about', label: '關於我' },
+];
+const active = (href: string) =>
+  href === '/' ? Astro.url.pathname === '/' : Astro.url.pathname.startsWith(href);
+---
+
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#090f19" />
+    <title>{pageTitle}</title>
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={`${settings.siteName} RSS`}
+      href="/rss.xml"
+    />
+    <meta property="og:type" content={article ? 'article' : 'website'} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(image || '/images/kaiyo-hero.png', siteUrl).href} />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:site_name" content={settings.siteName} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline>
+      (() => {
+        try {
+          const stored = localStorage.getItem('kaiyo-theme');
+          document.documentElement.dataset.theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+        } catch {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">
+      跳至主要內容
+    </a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/" aria-label={`${settings.siteName} 首頁`}>
+          <img src={settings.logo || '/favicon.svg'} alt="" width="34" height="34" />
+          <span>
+            {settings.siteName}
+            <span class="brand-period">.</span>
+          </span>
+        </a>
+        <nav class="desktop-nav" aria-label="主要導覽">
+          {navItems.map((item) => (
+            <a
+              class:list={{ active: active(item.href) }}
+              aria-current={active(item.href) ? 'page' : undefined}
+              href={item.href}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+        <div class="header-actions">
+          <a
+            class="icon-button header-search"
+            href="/articles#article-search"
+            aria-label="搜尋文章"
+          >
+            <Icon name="search" size={19} />
+          </a>
+          <span class="action-divider"></span>
+          <button class="icon-button theme-toggle" type="button" aria-label="切換明暗主題">
+            <span class="theme-sun">
+              <Icon name="sun" size={20} />
+            </span>
+            <span class="theme-moon">
+              <Icon name="moon" size={20} />
+            </span>
+          </button>
+          <button
+            class="icon-button mobile-menu-toggle"
+            type="button"
+            aria-label="開啟選單"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+          >
+            <Icon name="menu" size={21} />
+          </button>
+        </div>
+      </div>
+      <nav id="mobile-nav" class="mobile-nav" aria-label="行動版導覽" hidden>
+        {navItems.map((item) => (
+          <a class:list={{ active: active(item.href) }} href={item.href}>
+            {item.label}
+            <Icon name="diagonal" size={17} />
+          </a>
+        ))}
+      </nav>
+    </header>
+    <main id="main-content">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="footer-top">
+        <div>
+          <a class="brand" href="/">
+            <img src={settings.logo || '/favicon.svg'} alt="" width="29" height="29" />
+            <span>
+              {settings.siteName}
+              <span class="brand-period">.</span>
+            </span>
+          </a>
+          <p>{settings.description || '在技術與想像之間，留下自己的軌跡。'}</p>
+        </div>
+        <div class="footer-links">
+          <a href="/articles">探索文章</a>
+          <a href="/projects">作品紀錄</a>
+          <a href="/about">關於我</a>
+          <a href="/rss.xml" class="rss-link">
+            <Icon name="rss" size={15} /> RSS 訂閱
+          </a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>
+          © {new Date().getFullYear()} {settings.authorName || settings.siteName}{' '}
+          <span class="footer-credit">· 用好奇心持續創造</span>
+        </span>
+        <div class="footer-socials">
+          {settings.socialLinks.map((link) => (
+            <a href={link.url} target="_blank" rel="noopener noreferrer">
+              {link.label}
+              <Icon name="diagonal" size={13} />
+            </a>
+          ))}
+          <a href="/admin">
+            管理後台
+            <Icon name="diagonal" size={13} />
+          </a>
+        </div>
+      </div>
+    </footer>
+    <script>
+      const themeButton = document.querySelector<HTMLButtonElement>('.theme-toggle');
+      const updateThemeLabel = () => {
+        if (themeButton)
+          themeButton.setAttribute(
+            'aria-label',
+            document.documentElement.dataset.theme === 'dark' ? '切換淺色主題' : '切換深色主題',
+          );
+      };
+      updateThemeLabel();
+      themeButton?.addEventListener('click', () => {
+        const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+        try {
+          localStorage.setItem('kaiyo-theme', theme);
+        } catch {}
+        updateThemeLabel();
+      });
+      const menuButton = document.querySelector<HTMLButtonElement>('.mobile-menu-toggle');
+      const menu = document.getElementById('mobile-nav');
+      menuButton?.addEventListener('click', () => {
+        const open = menuButton.getAttribute('aria-expanded') !== 'true';
+        menuButton.setAttribute('aria-expanded', String(open));
+        menuButton.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
+        if (menu) menu.hidden = !open;
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && menu && !menu.hidden) {
+          menu.hidden = true;
+          menuButton?.setAttribute('aria-expanded', 'false');
+          menuButton?.setAttribute('aria-label', '開啟選單');
+          menuButton?.focus();
+        }
+      });
+      document.querySelectorAll<HTMLElement>('.prose pre').forEach((pre) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'copy-code';
+        button.textContent = '複製';
+        button.setAttribute('aria-label', '複製程式碼');
+        button.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(pre.querySelector('code')?.textContent || '');
+            button.textContent = '已複製';
+          } catch {
+            button.textContent = '無法複製';
+          }
+          setTimeout(() => {
+            button.textContent = '複製';
+          }, 2000);
+        });
+        pre.appendChild(button);
+      });
+    </script>
+  </body>
+</html>

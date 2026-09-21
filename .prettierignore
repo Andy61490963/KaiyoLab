@@ -1,0 +1,10 @@
+node_modules
+dist
+.astro
+.local
+data
+backups
+playwright-report
+test-results
+package-lock.json
+LICENSE
