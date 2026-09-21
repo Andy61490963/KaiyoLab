@@ -78,10 +78,10 @@ jobs:
           echo "PLAYWRIGHT_BASE_URL=http://localhost:4321" >> "$GITHUB_ENV"
           echo "E2E_EXTERNAL_SERVER=true" >> "$GITHUB_ENV"
       - run: npm run test:e2e
-      - name: 重建容器與備份還原驗證
-        run: sh docs/operations/ci-roundtrip.sh
       - name: 驗證平台初始化、降權與密鑰保存
         run: sh docs/operations/ci-bootstrap.sh
+      - name: 重建容器與備份還原驗證
+        run: sh docs/operations/ci-roundtrip.sh
       - name: 保存瀏覽器測試結果
         if: always()
         uses: actions/upload-artifact@v4
