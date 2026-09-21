@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS "user" (id text PRIMARY KEY,name text NOT NULL,email text NOT NULL UNIQUE,email_verified boolean NOT NULL DEFAULT false,image text,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),singleton boolean NOT NULL DEFAULT true UNIQUE CHECK(singleton));
+CREATE TABLE IF NOT EXISTS session (id text PRIMARY KEY,expires_at timestamptz NOT NULL,token text NOT NULL UNIQUE,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),ip_address text,user_agent text,user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS account (id text PRIMARY KEY,account_id text NOT NULL,provider_id text NOT NULL,user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,access_token text,refresh_token text,id_token text,access_token_expires_at timestamptz,refresh_token_expires_at timestamptz,scope text,password text,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(provider_id,account_id));
+CREATE TABLE IF NOT EXISTS verification (id text PRIMARY KEY,identifier text NOT NULL,value text NOT NULL,expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS rate_limit (id text PRIMARY KEY,key text NOT NULL UNIQUE,count integer NOT NULL,last_request bigint NOT NULL);
+CREATE TABLE IF NOT EXISTS system_state (id integer PRIMARY KEY CHECK(id=1),owner_id text REFERENCES "user"(id),setup_complete boolean NOT NULL DEFAULT false);
+INSERT INTO system_state(id) VALUES(1) ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS settings (id integer PRIMARY KEY CHECK(id=1),value jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS entries (id text PRIMARY KEY,kind text NOT NULL CHECK(kind IN ('article','project')),content jsonb NOT NULL,published jsonb,published_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,version integer NOT NULL DEFAULT 1);
+CREATE UNIQUE INDEX IF NOT EXISTS entry_draft_slug ON entries(kind,(content->>'slug')) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS entry_public_slug ON entries(kind,(published->>'slug')) WHERE published IS NOT NULL AND deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS entry_published_date ON entries(published_at DESC) WHERE published IS NOT NULL AND deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS taxonomies (id text PRIMARY KEY,kind text NOT NULL CHECK(kind IN ('category','tag')),name text NOT NULL,slug text NOT NULL,UNIQUE(kind,name),UNIQUE(kind,slug));
+CREATE TABLE IF NOT EXISTS media (id text PRIMARY KEY,name text NOT NULL,alt text NOT NULL DEFAULT '',mime text NOT NULL,size integer NOT NULL,width integer NOT NULL,height integer NOT NULL,created_at timestamptz NOT NULL DEFAULT now());

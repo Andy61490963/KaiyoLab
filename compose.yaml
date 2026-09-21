@@ -1,0 +1,118 @@
+name: kaiyolab
+
+services:
+  init-secrets:
+    image: node:24-bookworm-slim
+    user: '0:0'
+    restart: 'no'
+    network_mode: none
+    environment:
+      SECRETS_DIR: /run/kaiyo-secrets
+      UPLOAD_DIR: /app/data/uploads
+    volumes:
+      - ./scripts/init-secrets.mjs:/init-secrets.mjs:ro
+      - secrets:/run/kaiyo-secrets
+      - uploads:/app/data/uploads
+    command: ['node', '/init-secrets.mjs']
+
+  db:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kaiyo
+      POSTGRES_DB: kaiyolab
+      POSTGRES_PASSWORD_FILE: /run/kaiyo-secrets/pg-password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    depends_on:
+      init-secrets:
+        condition: service_completed_successfully
+    volumes:
+      - pg_data:/var/lib/postgresql
+      - secrets:/run/kaiyo-secrets:ro
+    networks: [database]
+    shm_size: 128mb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kaiyo -d kaiyolab']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  app:
+    build:
+      context: .
+      args:
+        SITE_URL: ${SITE_URL:-http://localhost:4321}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '4321'
+      SITE_URL: ${SITE_URL:-http://localhost:4321}
+      UPLOAD_DIR: /app/data/uploads
+      SECRETS_DIR: /run/kaiyo-secrets
+    ports:
+      - '127.0.0.1:${APP_PORT:-4321}:4321'
+    depends_on:
+      init-secrets:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/data/uploads
+      - secrets:/run/kaiyo-secrets:ro
+    networks: [default, database]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+
+  backup:
+    image: postgres:18-bookworm
+    profiles: [maintenance]
+    entrypoint: ['sh', '/operations/backup.sh']
+    environment:
+      PGHOST: db
+      PGUSER: kaiyo
+      PGDATABASE: kaiyolab
+    networks: [database]
+    volumes:
+      - ./docs/operations:/operations:ro
+      - ./backups:/backups
+      - uploads:/media:ro
+      - secrets:/secrets:ro
+
+  restore-files:
+    image: postgres:18-bookworm
+    profiles: [maintenance]
+    network_mode: none
+    entrypoint: ['sh', '/operations/restore-files.sh']
+    volumes:
+      - ./docs/operations:/operations:ro
+      - ./backups:/backups:ro
+      - uploads:/media
+      - secrets:/secrets
+
+  restore-db:
+    image: postgres:18-bookworm
+    profiles: [maintenance]
+    entrypoint: ['sh', '/operations/restore-db.sh']
+    environment:
+      PGHOST: db
+      PGUSER: kaiyo
+      PGDATABASE: kaiyolab
+    networks: [database]
+    volumes:
+      - ./docs/operations:/operations:ro
+      - ./backups:/backups:ro
+      - secrets:/secrets:ro
+
+volumes:
+  pg_data:
+  uploads:
+  secrets:
+
+networks:
+  database:
+    internal: true

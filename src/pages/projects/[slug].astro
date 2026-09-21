@@ -1,0 +1,102 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import Icon from '../../components/public/Icon.astro';
+import { getSettings, getPublished } from '../../lib/content';
+import { renderMarkdown } from '../../lib/markdown';
+const [settings, entry] = await Promise.all([
+  getSettings(),
+  getPublished('project', Astro.params.slug || ''),
+]);
+if (!entry) return Astro.rewrite('/404');
+const rendered = await renderMarkdown(entry.body);
+---
+
+<PublicLayout
+  settings={settings}
+  title={entry.seoTitle || entry.title}
+  description={entry.seoDescription || entry.excerpt}
+  image={entry.cover || undefined}
+>
+  <article class="page-shell project-detail">
+    <a class="back-link" href="/projects">
+      <Icon name="back" size={17} /> 返回作品實驗室
+    </a>
+    <header class="project-detail-heading">
+      <div>
+        <span class="eyebrow">A PROJECT BY {settings.authorName || settings.siteName}</span>
+        <h1>{entry.title}</h1>
+        <p>{entry.excerpt}</p>
+        <div class="entry-tags">
+          {entry.tags.map((tag) => (
+            <span class="technology-tag">{tag}</span>
+          ))}
+        </div>
+      </div>
+      <div class="project-external-links">
+        {entry.demoUrl && (
+          <a
+            class="button button-primary"
+            href={entry.demoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            探索作品 <Icon name="diagonal" size={18} />
+          </a>
+        )}
+        {entry.repoUrl && (
+          <a
+            class="button button-secondary"
+            href={entry.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="code" size={18} /> 原始碼 <Icon name="diagonal" size={16} />
+          </a>
+        )}
+      </div>
+    </header>
+    <figure class="project-cover">
+      <img
+        src={entry.cover || '/images/cover-orbit.svg'}
+        alt={entry.coverAlt || entry.title}
+        width="1280"
+        height="720"
+      />
+    </figure>
+    <div class="reading-layout">
+      <div class="article-body">
+        <div class="prose" set:html={rendered.html} />
+        <div class="article-end">
+          <span class="status-light"></span>
+          <span>每個作品，都是一場新的探索。</span>
+        </div>
+      </div>
+      <aside class="article-toc">
+        <div class="toc-inner">
+          <h2>作品紀錄</h2>
+          <dl class="project-facts">
+            <dt>發布日期</dt>
+            <dd>{new Date(entry.publishedAt).toLocaleDateString('zh-TW')}</dd>
+            <dt>最近更新</dt>
+            <dd>{new Date(entry.updatedAt).toLocaleDateString('zh-TW')}</dd>
+            {entry.category && (
+              <>
+                <dt>作品分類</dt>
+                <dd>{entry.category}</dd>
+              </>
+            )}
+          </dl>
+          {rendered.toc.length > 0 && (
+            <nav aria-label="作品目錄">
+              {rendered.toc.map((item) => (
+                <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
+                  {item.text}
+                </a>
+              ))}
+            </nav>
+          )}
+        </div>
+      </aside>
+    </div>
+  </article>
+</PublicLayout>

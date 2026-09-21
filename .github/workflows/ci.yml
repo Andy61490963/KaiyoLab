@@ -1,0 +1,105 @@
+name: 持續整合
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: 型別、核心規則與資料庫
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-bookworm
+        env:
+          POSTGRES_USER: kaiyo
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: kaiyolab
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kaiyo -d kaiyolab"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://kaiyo:ci-only-password@localhost:5432/kaiyolab
+      BETTER_AUTH_SECRET: ci-only-auth-secret-000000000000000000000000
+      SETUP_TOKEN: ci-only-setup-token-000000000000000000000000
+      SITE_URL: http://localhost:4321
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run db:migrate
+      - run: npm run test:integration
+      - run: npm run build
+      - name: 建置精確 HTTPS 代理網域
+        run: npm run build
+        env:
+          SITE_URL: https://ci.example.test
+      - name: 驗證 HTTPS 代理標頭與 multipart 上傳
+        run: sh docs/operations/ci-https.sh
+
+  docker:
+    name: Docker、瀏覽器與備份還原
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: kaiyolab-ci
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: docker/setup-buildx-action@v3
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: 驗證一般與正式部署設定
+        run: |
+          docker compose config --quiet
+          DOMAIN=ci.example.test docker compose -f compose.yaml -f compose.production.yaml config --quiet
+      - name: 全新環境一行啟動
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: 載入測試用初始化碼
+        shell: bash
+        run: |
+          token="$(docker compose exec -T app cat /run/kaiyo-secrets/setup-token)"
+          echo "::add-mask::$token"
+          echo "SETUP_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "PLAYWRIGHT_BASE_URL=http://localhost:4321" >> "$GITHUB_ENV"
+          echo "E2E_EXTERNAL_SERVER=true" >> "$GITHUB_ENV"
+      - run: npm run test:e2e
+      - name: 驗證平台初始化、降權與密鑰保存
+        run: sh docs/operations/ci-bootstrap.sh
+      - name: 重建容器與備份還原驗證
+        run: sh docs/operations/ci-roundtrip.sh
+      - name: 保存瀏覽器測試結果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 瀏覽器測試結果
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+      - name: 顯示部署診斷
+        if: failure()
+        run: |
+          docker compose ps -a || true
+          docker compose logs --no-color --tail=120 app db || true
+          docker compose -p kaiyolab-ci-restore ps -a || true
+          docker compose -p kaiyolab-ci-restore logs --no-color --tail=120 app db || true
+      - name: 清理獨立測試環境
+        if: always()
+        run: |
+          docker compose down -v --remove-orphans
+          docker compose -p kaiyolab-ci-restore down -v --remove-orphans

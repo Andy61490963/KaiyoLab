@@ -1,0 +1,17 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import AuthForm from '../components/admin/AuthForm';
+import { db, systemState } from '../lib/db';
+export const prerender = false;
+const [state] = await db().select().from(systemState);
+if (state?.setupComplete) return Astro.redirect('/login');
+---
+
+<AdminLayout title="首次設定">
+  <AuthForm mode="setup" client:only="react">
+    <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
+      正在開啟首次設定…
+    </div>
+  </AuthForm>
+  <noscript>首次設定需要啟用 JavaScript。</noscript>
+</AdminLayout>

@@ -1,0 +1,18 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import ErrorView from '../components/public/ErrorView.astro';
+import { defaultSettings } from '../lib/defaults';
+Astro.response.status = 500;
+---
+
+<PublicLayout
+  settings={defaultSettings}
+  title="暫時無法載入"
+  description="KaiyoLab 目前暫時無法載入，請稍後再試。"
+>
+  <ErrorView
+    code="500"
+    title="暫時離線，很快再相遇。"
+    description="觀測站目前無法取得資料。請稍後重新整理頁面，我們的探索還會繼續。"
+  />
+</PublicLayout>

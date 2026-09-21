@@ -1,0 +1,132 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import EntryCard from '../../components/public/EntryCard.astro';
+import Icon from '../../components/public/Icon.astro';
+import { getSettings, getPublished, listPublished } from '../../lib/content';
+import { renderMarkdown } from '../../lib/markdown';
+const [settings, entry] = await Promise.all([
+  getSettings(),
+  getPublished('article', Astro.params.slug || ''),
+]);
+if (!entry) return Astro.rewrite('/404');
+const rendered = await renderMarkdown(entry.body);
+const related = await listPublished({
+  kind: 'article',
+  category: entry.category || undefined,
+  pageSize: 4,
+});
+const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<PublicLayout
+  settings={settings}
+  title={entry.seoTitle || entry.title}
+  description={entry.seoDescription || entry.excerpt}
+  image={entry.cover || undefined}
+  article
+>
+  <article class="page-shell article-page">
+    <a class="back-link" href="/articles">
+      <Icon name="back" size={17} /> 返回文章紀錄
+    </a>
+    <header class="article-heading">
+      <div class="entry-meta">
+        <a class="category-label" href={`/articles?category=${encodeURIComponent(entry.category)}`}>
+          {entry.category || '隨筆'}
+        </a>
+        <span class="meta-dot">·</span>
+        <time datetime={entry.publishedAt}>{date}</time>
+        <span class="meta-dot">·</span>
+        <span>{rendered.readingMinutes} 分鐘閱讀</span>
+      </div>
+      <h1>{entry.title}</h1>
+      {entry.excerpt && <p class="article-lead">{entry.excerpt}</p>}
+      <div class="article-byline">
+        <img src={settings.avatar || '/favicon.svg'} alt="" width="34" height="34" />
+        <span>{settings.authorName || settings.siteName}</span>
+        <span class="byline-line"></span>
+        <div class="entry-tags">
+          {entry.tags.map((tag) => (
+            <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
+          ))}
+        </div>
+      </div>
+    </header>
+    {entry.cover && (
+      <figure class="article-cover">
+        <img src={entry.cover} alt={entry.coverAlt || entry.title} width="1280" height="720" />
+      </figure>
+    )}
+    {rendered.toc.length > 0 && (
+      <details class="mobile-toc">
+        <summary>這篇文章的路線</summary>
+        <nav aria-label="行動版文章目錄">
+          {rendered.toc.map((item) => (
+            <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
+              {item.text}
+            </a>
+          ))}
+        </nav>
+      </details>
+    )}
+    <div class="reading-layout">
+      <div class="article-body">
+        <div class="prose" set:html={rendered.html} />
+        <div class="article-end">
+          <span class="status-light"></span>
+          <span>謝謝你，讀到這裡。</span>
+          <a href="/rss.xml">
+            訂閱後續紀錄 <Icon name="rss" size={16} />
+          </a>
+        </div>
+      </div>
+      <aside class="article-toc">
+        <div class="toc-inner">
+          <h2>這篇文章的路線</h2>
+          <span class="eyebrow">ON THIS PAGE</span>
+          {rendered.toc.length ? (
+            <nav aria-label="文章目錄">
+              {rendered.toc.map((item) => (
+                <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
+                  {item.text}
+                </a>
+              ))}
+            </nav>
+          ) : (
+            <p class="sidebar-empty">一段值得慢慢閱讀的紀錄。</p>
+          )}
+          <a class="toc-top" href="#main-content">
+            回到頂端 ↑
+          </a>
+        </div>
+      </aside>
+    </div>
+  </article>
+  {related.items.some((item) => item.id !== entry.id) && (
+    <section class="related-section page-shell">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">KEEP EXPLORING</span>
+          <h2>
+            也許你會喜歡<span class="heading-dot">.</span>
+          </h2>
+        </div>
+        <a class="text-link" href="/articles">
+          所有文章 <Icon size={17} />
+        </a>
+      </div>
+      <div class="related-grid">
+        {related.items
+          .filter((item) => item.id !== entry.id)
+          .slice(0, 3)
+          .map((item, index) => (
+            <EntryCard entry={item} variant="card" index={index} />
+          ))}
+      </div>
+    </section>
+  )}
+</PublicLayout>

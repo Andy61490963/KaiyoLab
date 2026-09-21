@@ -1,0 +1,138 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import EntryCard from '../../components/public/EntryCard.astro';
+import EmptyState from '../../components/public/EmptyState.astro';
+import Pagination from '../../components/public/Pagination.astro';
+import Icon from '../../components/public/Icon.astro';
+import { getSettings, listPublished, listTaxonomies } from '../../lib/content';
+const q = Astro.url.searchParams.get('q') || '';
+const category = Astro.url.searchParams.get('category') || '';
+const tag = Astro.url.searchParams.get('tag') || '';
+const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+const [settings, result, taxonomy] = await Promise.all([
+  getSettings(),
+  listPublished({ kind: 'article', q, category, tag, page, pageSize: 8 }),
+  listTaxonomies(),
+]);
+const categoryLink = (name: string) => {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (name) params.set('category', name);
+  if (tag) params.set('tag', tag);
+  return `/articles${params.size ? `?${params}` : ''}`;
+};
+---
+
+<PublicLayout
+  settings={settings}
+  title="文章"
+  description="探索技術筆記、生活紀錄與創作途中的每一個發現。"
+>
+  <div class="page-shell">
+    <header class="collection-header">
+      <div>
+        <span class="eyebrow">EXPLORATION LOG / 文章紀錄</span>
+        <h1>
+          思考的<span class="text-accent">軌跡</span>
+          <span class="heading-dot">.</span>
+        </h1>
+        <p>把學到的、想到的，以及正在探索的，好好留下來。</p>
+      </div>
+      <span class="collection-mark" aria-hidden="true">
+        ↙
+      </span>
+    </header>
+    <div class="collection-layout">
+      <aside class="collection-sidebar">
+        <h2>內容分類</h2>
+        <nav class="category-nav" aria-label="文章分類">
+          <a href={categoryLink('')} class:list={{ active: !category }}>
+            <span>所有文章</span>
+            <Icon name="layers" size={17} />
+          </a>
+          {taxonomy.categories.map((item) => (
+            <a href={categoryLink(item.name)} class:list={{ active: category === item.name }}>
+              <span>{item.name}</span>
+              <Icon name="chevron" size={15} />
+            </a>
+          ))}
+        </nav>
+        {taxonomy.tags.length > 0 && (
+          <div class="tag-cloud">
+            <h2>主題標籤</h2>
+            <div>
+              {taxonomy.tags.map((item) => (
+                <a
+                  href={`/articles?tag=${encodeURIComponent(item.name)}`}
+                  class:list={{ active: tag === item.name }}
+                >
+                  #{item.name}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        <div class="collection-side-note">
+          <span>STAY CURIOUS</span>
+          <p>
+            每一篇紀錄，都是
+            <br />
+            通往下一個發現的起點。
+          </p>
+          <span aria-hidden="true">✳</span>
+        </div>
+      </aside>
+      <div class="collection-content">
+        <form id="article-search" class="search-form" method="get" action="/articles" role="search">
+          <label class="sr-only" for="q">
+            搜尋文章
+          </label>
+          <Icon name="search" size={19} />
+          <input
+            id="q"
+            type="search"
+            name="q"
+            value={q}
+            placeholder="搜尋標題、內容或靈感…"
+            autocomplete="off"
+          />
+          {category && <input type="hidden" name="category" value={category} />}
+          {tag && <input type="hidden" name="tag" value={tag} />}
+          <button type="submit">
+            搜尋
+            <Icon name="arrow" size={16} />
+          </button>
+        </form>
+        <div class="collection-results">
+          <span>
+            {q ? `「${q}」的搜尋結果` : category || (tag ? `#${tag}` : '所有文章')}
+            <span class="result-count">{result.total}</span>
+          </span>
+          {(q || tag || category) && (
+            <a href="/articles">
+              清除篩選 <Icon name="close" size={14} />
+            </a>
+          )}
+          <span class="result-order">依發布時間排列</span>
+        </div>
+        <div class="article-list">
+          {result.items.length ? (
+            result.items.map((entry, index) => (
+              <EntryCard entry={entry} index={index + (result.page - 1) * 8} />
+            ))
+          ) : (
+            <EmptyState
+              title={q || tag || category ? '暫時沒有符合的紀錄。' : '第一篇故事，值得期待。'}
+              description={
+                q || tag || category
+                  ? '試試其他關鍵字，或清除篩選，尋找下一個靈感。'
+                  : '新的思考與發現，將很快在這裡相遇。'
+              }
+            />
+          )}
+        </div>
+        <Pagination page={result.page} pages={result.pages} />
+      </div>
+    </div>
+  </div>
+</PublicLayout>

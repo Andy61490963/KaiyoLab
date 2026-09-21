@@ -1,0 +1,241 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import EntryCard from '../components/public/EntryCard.astro';
+import EmptyState from '../components/public/EmptyState.astro';
+import Icon from '../components/public/Icon.astro';
+import { getSettings, listPublished, listTaxonomies } from '../lib/content';
+const [settings, recent, featured, projects, taxonomy] = await Promise.all([
+  getSettings(),
+  listPublished({ kind: 'article', pageSize: 4 }),
+  listPublished({ kind: 'article', featured: true, pageSize: 1 }),
+  listPublished({ kind: 'project', featured: true, pageSize: 2 }),
+  listTaxonomies(),
+]);
+const heroImage = settings.heroImage || '/images/kaiyo-hero.png';
+---
+
+<PublicLayout settings={settings}>
+  <section class="home-hero page-shell" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <div class="eyebrow">
+        <span class="status-light"></span> 個人創作與技術觀測站 <span class="eyebrow-line"></span>
+      </div>
+      <h1 id="hero-title">
+        保持好奇。
+        <br />
+        讓想法<span class="text-accent">發生。</span>
+        <span class="title-spark" aria-hidden="true">
+          ✳
+        </span>
+      </h1>
+      <p class="hero-tagline">
+        {settings.tagline || '探索技術，記錄生活，把腦海中的想像變成作品。'}
+      </p>
+      <p class="hero-description">
+        {settings.description ||
+          '歡迎來到我的數位基地。這裡收藏學習的軌跡、實作的靈感，以及那些值得被留下的日常。'}
+      </p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="/articles">
+          探索所有文章 <Icon size={17} />
+        </a>
+        <a class="text-link" href="/about">
+          認識 {settings.authorName || '我'} <Icon name="diagonal" size={17} />
+        </a>
+      </div>
+      <div class="hero-caption">
+        <span class="caption-cross" aria-hidden="true">
+          ＋
+        </span>
+        <span>持續探索 · 自由創作 · 分享所知</span>
+      </div>
+    </div>
+    <div class="hero-art">
+      <div class="hero-image-frame">
+        <img
+          class="hero-image"
+          src={heroImage}
+          alt={`${settings.siteName} 的海洋科技觀測站主視覺`}
+          width="1200"
+          height="900"
+          fetchpriority="high"
+        />
+        <div class="hero-image-shade"></div>
+        <div class="art-topline">
+          <span>
+            <span class="status-light"></span> KAIYO OBSERVATORY
+          </span>
+          <span>01 / ∞</span>
+        </div>
+        <div class="art-bottomline">
+          <span>想像力，不設邊界。</span>
+          <span class="art-coordinate">25° N · 121° E</span>
+        </div>
+      </div>
+      <div class="art-orbit-label">
+        <span class="orbit-symbol" aria-hidden="true">
+          ◎
+        </span>
+        <div>
+          <strong>OPEN TO EXPLORE</strong>
+          <span>下一個靈感，正在路上</span>
+        </div>
+        <Icon name="diagonal" size={21} />
+      </div>
+      <span class="art-side-label" aria-hidden="true">
+        A LITTLE SPACE FOR BIG IDEAS
+      </span>
+    </div>
+  </section>
+  <div class="horizon-strip">
+    <div class="page-shell horizon-inner">
+      <span class="horizon-title">
+        <span class="status-light"></span> 探索紀錄
+      </span>
+      <span>
+        <strong>{String(recent.total).padStart(2, '0')}</strong> 篇思考與筆記
+      </span>
+      <span>
+        <strong>{String(projects.total).padStart(2, '0')}</strong> 個精選作品
+      </span>
+      <span class="horizon-end">
+        BUILD. LEARN. REPEAT. <span>↗</span>
+      </span>
+    </div>
+  </div>
+  <section class="home-journal page-shell section-space" aria-labelledby="journal-title">
+    <div class="journal-main">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">
+            THE JOURNAL <span class="section-index">/ 01</span>
+          </span>
+          <h2 id="journal-title">
+            最近的<span class="serif-accent">一些想法</span>
+            <span class="heading-dot">.</span>
+          </h2>
+        </div>
+        <a class="text-link" href="/articles">
+          所有文章 <Icon size={18} />
+        </a>
+      </div>
+      {featured.items[0] && (
+        <div class="home-feature">
+          <EntryCard entry={featured.items[0]} variant="feature" />
+        </div>
+      )}
+      <div class="journal-entries">
+        {recent.items.length ? (
+          recent.items
+            .filter((entry) => entry.id !== featured.items[0]?.id)
+            .map((entry, index) => <EntryCard entry={entry} index={index} />)
+        ) : (
+          <EmptyState
+            title="每個好故事，都從一個想法開始。"
+            description="這座觀測站剛剛啟航。新的技術筆記與生活紀錄，將陸續在這裡相遇。"
+          />
+        )}
+      </div>
+    </div>
+    <aside class="journal-sidebar">
+      <div class="author-note">
+        <div class="author-note-top">
+          <span class="eyebrow">BEHIND THE SCREEN</span>
+          <span class="small-star" aria-hidden="true">
+            ✳
+          </span>
+        </div>
+        <div class="author-identity">
+          <img
+            src={settings.avatar || '/favicon.svg'}
+            alt={settings.authorName || settings.siteName}
+            width="50"
+            height="50"
+          />
+          <div>
+            <span>嗨，我是</span>
+            <h3>{settings.authorName || settings.siteName}</h3>
+          </div>
+        </div>
+        <p>
+          {settings.bio ||
+            '一個對世界保持好奇的創作者。喜歡寫程式、做點小東西，也喜歡記錄過程中的發現。'}
+        </p>
+        <a class="text-link" href="/about">
+          更多關於我 <Icon name="diagonal" size={16} />
+        </a>
+      </div>
+      <div class="sidebar-topics">
+        <h3>
+          <span class="sidebar-title-mark"></span> 探索主題
+        </h3>
+        {taxonomy.categories.length ? (
+          <ul>
+            {taxonomy.categories.map((category) => (
+              <li>
+                <a href={`/articles?category=${encodeURIComponent(category.name)}`}>
+                  <span>{category.name}</span>
+                  <Icon name="diagonal" size={15} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="sidebar-empty">主題隨著故事慢慢累積。</p>
+        )}
+      </div>
+      <a class="rss-note" href="/rss.xml">
+        <span class="rss-icon">
+          <Icon name="rss" size={22} />
+        </span>
+        <div>
+          <h3>讓靈感，不錯過。</h3>
+          <p>透過 RSS，接收最新紀錄。</p>
+        </div>
+        <Icon name="diagonal" size={18} />
+      </a>
+    </aside>
+  </section>
+  <section class="projects-home section-space">
+    <div class="page-shell">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">
+            BUILT WITH CURIOSITY <span class="section-index">/ 02</span>
+          </span>
+          <h2>
+            從想像，<span class="serif-accent">到實作</span>
+            <span class="heading-dot">.</span>
+          </h2>
+        </div>
+        <a class="text-link" href="/projects">
+          所有作品 <Icon size={18} />
+        </a>
+      </div>
+      <div class="project-grid">
+        {projects.items.length ? (
+          projects.items.map((entry, index) => (
+            <EntryCard entry={entry} variant="card" index={index} />
+          ))
+        ) : (
+          <EmptyState
+            icon="code"
+            title="下一個作品，正在成形。"
+            description="從一個小小的好奇出發，將想法逐步變成可以觸碰的事物。"
+          />
+        )}
+      </div>
+    </div>
+  </section>
+  <section class="closing-note page-shell">
+    <span class="closing-star" aria-hidden="true">
+      ✳
+    </span>
+    <p>
+      世界很大，<span>一起保持好奇。</span>
+    </p>
+    <a class="text-link" href="/about">
+      打個招呼 <Icon name="diagonal" size={19} />
+    </a>
+  </section>
+</PublicLayout>

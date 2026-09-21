@@ -1,0 +1,54 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import EntryCard from '../../components/public/EntryCard.astro';
+import EmptyState from '../../components/public/EmptyState.astro';
+import Pagination from '../../components/public/Pagination.astro';
+import { getSettings, listPublished } from '../../lib/content';
+const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+const [settings, result] = await Promise.all([
+  getSettings(),
+  listPublished({ kind: 'project', page, pageSize: 8 }),
+]);
+---
+
+<PublicLayout
+  settings={settings}
+  title="作品"
+  description="從想像到實作，探索個人作品、開源專案與創作實驗。"
+>
+  <div class="page-shell projects-page">
+    <header class="collection-header">
+      <div>
+        <span class="eyebrow">THE LAB / 作品實驗室</span>
+        <h1>
+          讓點子，<span class="text-accent">真實發生</span>
+          <span class="heading-dot">.</span>
+        </h1>
+        <p>一些解決問題的小工具，一些純粹因為喜歡而做的事。</p>
+      </div>
+      <span class="collection-mark" aria-hidden="true">
+        ✳
+      </span>
+    </header>
+    <div class="collection-results">
+      <span>
+        所有作品<span class="result-count">{result.total}</span>
+      </span>
+      <span class="result-order">持續創造，持續打磨</span>
+    </div>
+    <div class="project-grid">
+      {result.items.length ? (
+        result.items.map((entry, index) => (
+          <EntryCard entry={entry} variant="card" index={index + (result.page - 1) * 8} />
+        ))
+      ) : (
+        <EmptyState
+          title="好奇心，是一切的起點。"
+          description="正在把想法化為作品，敬請期待第一份創作紀錄。"
+          icon="code"
+        />
+      )}
+    </div>
+    <Pagination page={result.page} pages={result.pages} />
+  </div>
+</PublicLayout>

@@ -1,0 +1,30 @@
+services:
+  app:
+    build:
+      args:
+        SITE_URL: https://${DOMAIN:?請在 .env 設定 DOMAIN}
+    environment:
+      SITE_URL: https://${DOMAIN:?請在 .env 設定 DOMAIN}
+    ports: !reset []
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?請在 .env 設定 DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./docs/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [default]
+    security_opt: [no-new-privileges:true]
+
+volumes:
+  caddy_data:
+  caddy_config:

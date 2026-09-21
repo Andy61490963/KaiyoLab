@@ -1,0 +1,17 @@
+node_modules
+dist
+.astro
+.git
+.github
+.env
+.env.*
+!.env.example
+data
+backups
+test-results
+playwright-report
+coverage
+*.log
+docs/screenshots
+
+.local
