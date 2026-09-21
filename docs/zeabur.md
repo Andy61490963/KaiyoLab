@@ -7,14 +7,14 @@ Zeabur 使用專案根目錄的 Dockerfile 建置應用程式，PostgreSQL 18 �
 1. 建立 PostgreSQL 18，保留範本的資料硬碟，並在「網路」關閉 TCP 公網轉送。
 2. 將應用程式連結到自己的 GitHub 儲存庫 `main` 分支，根目錄 `/`、監控路徑 `*`。
 3. 掛載兩個獨立硬碟：`kaiyolab-uploads` 到 `/app/data/uploads`、`kaiyolab-secrets` 到 `/app/data/secrets`。不要掛載整個 `/app`，以免遮住程式。
-4. 設定下表環境變數，啟用 HTTP 健康檢查 `/api/health`，服務連接埠為 `4321`。
+4. 設定下表環境變數，啟用 HTTP 健康檢查 `/api/health`，Zeabur 的 `web` 服務連接埠為 `8080`。
 
 | 變數                 | 值                                                     |
 | -------------------- | ------------------------------------------------------ |
 | `DATABASE_URL`       | `${POSTGRES_URI}`，引用同專案 PostgreSQL 的私有連線    |
 | `SITE_URL`           | 自己的完整 HTTPS 網址，例如 `https://kaiyo.zeabur.app` |
 | `HOST`               | `0.0.0.0`                                              |
-| `PORT`               | `4321`                                                 |
+| `PORT`               | `8080`                                                 |
 | `UPLOAD_DIR`         | `/app/data/uploads`                                    |
 | `SECRETS_DIR`        | `/app/data/secrets`                                    |
 | `INITIALIZE_SECRETS` | `true`                                                 |

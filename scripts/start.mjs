@@ -48,7 +48,7 @@ function run(file, args) {
       process.off('SIGTERM', onTerm);
       process.off('SIGINT', onInt);
       if (code === 0) resolve();
-      else reject(new Error(`程序 ${file} 失敗（${signal || code}）。`));
+      else reject(new Error(`程序 ${args[0] || file} 失敗（${signal || code}）。`));
     });
   });
 }
