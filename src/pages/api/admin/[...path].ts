@@ -29,7 +29,7 @@ const slugify = (name: string) =>
     .replace(/^-|-$/g, '') || randomUUID();
 async function getEntry(id: string) {
   const [e] = await db().select().from(entries).where(eq(entries.id, id));
-  if (!e) throw new HttpError(404, '找不到這筆內容。');
+  if (!e) throw new HttpError(404, '找不到這筆內容');
   return e;
 }
 async function syncTaxonomies(database: ReturnType<typeof db>, content: EntryContent) {
@@ -52,9 +52,9 @@ async function syncTaxonomies(database: ReturnType<typeof db>, content: EntryCon
 async function upload(request: Request) {
   const max = 10 * 1024 * 1024;
   if (Number(request.headers.get('content-length') || 0) > max + 65536)
-    throw new HttpError(413, '圖片最大為 10 MB。');
+    throw new HttpError(413, '圖片最大為 10 MB');
   const reader = request.body?.getReader();
-  if (!reader) throw new HttpError(400, '請選擇圖片。');
+  if (!reader) throw new HttpError(400, '請選擇圖片');
   let size = 0;
   const chunks: Uint8Array[] = [];
   while (true) {
@@ -63,7 +63,7 @@ async function upload(request: Request) {
     size += part.value.length;
     if (size > max + 65536) {
       await reader.cancel();
-      throw new HttpError(413, '圖片最大為 10 MB。');
+      throw new HttpError(413, '圖片最大為 10 MB');
     }
     chunks.push(part.value);
   }
@@ -74,15 +74,15 @@ async function upload(request: Request) {
   }).formData();
   const file = parsed.get('file');
   if (!(file instanceof File) || file.size > max)
-    throw new HttpError(400, '請上傳 10 MB 以下的圖片。');
+    throw new HttpError(400, '請上傳 10 MB 以下的圖片');
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
-    throw new HttpError(400, '支援 PNG、JPEG 與 WebP 圖片。');
+    throw new HttpError(400, '支援 PNG、JPEG 與 WebP 圖片');
   const input = Buffer.from(await file.arrayBuffer());
   try {
     const output = await sharp(input, { limitInputPixels: 40_000_000 }).metadata();
     if (!['png', 'jpeg', 'webp'].includes(output.format || '')) throw new Error();
   } catch {
-    throw new HttpError(400, '圖片格式不正確或像素過大。');
+    throw new HttpError(400, '圖片格式不正確或像素過大');
   }
   const result = await sharp(input, { limitInputPixels: 40_000_000 })
     .rotate()
@@ -202,25 +202,25 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           const database = tx as unknown as ReturnType<typeof db>;
           await lockContent(database);
           const [old] = await tx.select().from(entries).where(eq(entries.id, id));
-          if (!old) throw new HttpError(404, '找不到這筆內容。');
+          if (!old) throw new HttpError(404, '找不到這筆內容');
           if (old.version !== input.version)
             throw new HttpError(
               409,
-              '內容已在其他分頁更新。請複製目前編輯內容後重新載入，避免覆蓋較新的版本。',
+              '內容已在其他分頁更新，請複製目前編輯內容後重新載入，避免覆蓋較新的版本',
             );
           let changes: Partial<typeof entries.$inferInsert> = {
             version: old.version + 1,
             updatedAt: new Date(),
           };
           if ('content' in input) {
-            if (old.deletedAt) throw new HttpError(409, '請先還原內容再編輯。');
+            if (old.deletedAt) throw new HttpError(409, '請先還原內容再編輯');
             await ensureMedia(database, input.content);
             await syncTaxonomies(database, input.content);
             changes.content = input.content;
           } else if (input.action === 'publish') {
-            if (old.deletedAt) throw new HttpError(409, '請先還原內容。');
+            if (old.deletedAt) throw new HttpError(409, '請先還原內容');
             const content = contentSchema.parse(old.content);
-            if (!content.body.trim()) throw new HttpError(400, '請先撰寫內容再發布。');
+            if (!content.body.trim()) throw new HttpError(400, '請先撰寫內容再發布');
             await ensureMedia(database, content);
             changes.published = content;
             changes.publishedAt = new Date();
@@ -238,7 +238,7 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
             .set(changes)
             .where(and(eq(entries.id, id), eq(entries.version, input.version)))
             .returning();
-          if (!updated) throw new HttpError(409, '內容版本衝突，請重新載入。');
+          if (!updated) throw new HttpError(409, '內容版本衝突，請重新載入');
           return updated;
         });
         return json(serializeEntry(result));
@@ -267,7 +267,7 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
       if (method === 'PATCH' && id) {
         const input = z.object({ alt: z.string().max(300) }).parse(await body(request));
         const [m] = await db().update(media).set(input).where(eq(media.id, id)).returning();
-        if (!m) throw new HttpError(404, '找不到圖片。');
+        if (!m) throw new HttpError(404, '找不到圖片');
         return json({
           ...m,
           url: mediaUrl(id),
@@ -280,9 +280,9 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           const database = tx as unknown as ReturnType<typeof db>;
           await lockContent(database);
           const [m] = await tx.select().from(media).where(eq(media.id, id));
-          if (!m) throw new HttpError(404, '找不到圖片。');
+          if (!m) throw new HttpError(404, '找不到圖片');
           if ((await mediaUsages(database, id)).length)
-            throw new HttpError(409, '圖片仍被內容或網站設定使用，請先移除引用。');
+            throw new HttpError(409, '圖片仍被內容或網站設定使用，請先移除引用');
           await tx.delete(media).where(eq(media.id, id));
         });
         await unlink(path.join(uploadDir(), `${id}.webp`)).catch(() => {});
@@ -319,13 +319,13 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           const database = tx as unknown as ReturnType<typeof db>;
           await lockContent(database);
           const [old] = await tx.select().from(taxonomies).where(eq(taxonomies.id, id));
-          if (!old) throw new HttpError(404, '找不到分類或標籤。');
+          if (!old) throw new HttpError(404, '找不到分類或標籤');
           const all = await tx.select().from(entries);
           const uses = (c: EntryContent | null) =>
             c && (old.kind === 'category' ? c.category === old.name : c.tags.includes(old.name));
           if (!input) {
             if (all.some((e) => uses(e.content) || uses(e.published)))
-              throw new HttpError(409, '仍有內容使用此分類或標籤，請先移除引用。');
+              throw new HttpError(409, '仍有內容使用此分類或標籤，請先移除引用');
             await tx.delete(taxonomies).where(eq(taxonomies.id, id));
             return { ok: true };
           }
@@ -355,7 +355,7 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
         return json(result);
       }
     }
-    return json({ error: '找不到此操作。' }, 404);
+    return json({ error: '找不到此操作' }, 404);
   } catch (error) {
     return errorResponse(error);
   }

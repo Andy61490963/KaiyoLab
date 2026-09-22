@@ -9,7 +9,6 @@ import {
   LockKeyhole,
   Orbit,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import { api, errorMessage, json } from './api';
 
@@ -55,7 +54,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
             <Orbit size={24} />
           </span>
           <span>
-            KaiyoLab<small>你的靈感，有了自己的座標</small>
+            KaiyoLab<small>個人網站內容管理</small>
           </span>
         </a>
         <div className="admin-auth-art" aria-hidden="true">
@@ -73,23 +72,17 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
           <span className="auth-cross cross-b">+</span>
         </div>
         <div className="admin-auth-copy">
-          <div className="admin-eyebrow">
-            <Sparkles size={14} /> 自由探索，自在創作
-          </div>
-          <h1>
-            記錄此刻的想法，
-            <br />
-            抵達更遠的地方。
-          </h1>
+          <div className="admin-eyebrow">KAIYOLAB CMS</div>
+          <h1>內容管理後台</h1>
           <p>
-            一個屬於你的內容基地。
+            文章、作品與網站設定
             <br />
-            讓每次探索，成為下一段旅程的起點。
+            登入後即可編輯與發布
           </p>
         </div>
         <div className="admin-auth-visual-footer">
-          <span>獨立創作 · 自由掌握</span>
-          <span>KAIYOLAB / 創作工作室</span>
+          <span>文章 · 作品 · 媒體</span>
+          <span>KAIYOLAB / ADMIN</span>
         </div>
       </div>
       <main className="admin-auth-main">
@@ -100,15 +93,15 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
           <span className="admin-auth-form-icon">
             {setup ? <Orbit size={25} /> : <LockKeyhole size={25} />}
           </span>
-          <div className="admin-eyebrow">{setup ? '開啟你的創作旅程' : '歡迎回來'}</div>
-          <h2>{setup ? '建立你的創作基地' : '登入工作空間'}</h2>
+          <div className="admin-eyebrow">{setup ? '首次設定' : '管理後台'}</div>
+          <h2>{setup ? '建立管理帳號' : '登入 KaiyoLab'}</h2>
           <p className="admin-auth-description">
-            {setup ? '完成一次設定，開始管理你的文章與作品。' : '今天的新想法，值得好好記錄。'}
+            {setup ? '設定網站名稱與站長帳號，完成後即可開始使用' : '使用站長帳號登入'}
           </p>
           {!setup && setupComplete && (
             <div className="admin-alert success" role="status">
               <Check size={17} />
-              設定完成，請使用剛建立的帳號登入。
+              設定完成，請使用剛建立的帳號登入
             </div>
           )}
           {error && (
@@ -133,7 +126,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
                     />
                   </div>
                   <small>
-                    在終端機執行 <code>docker compose logs app</code> 取得。
+                    在終端機執行 <code>docker compose logs app</code> 取得
                   </small>
                 </label>
                 <div className="admin-auth-row">
@@ -194,14 +187,14 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-              {setup && <small>建議使用多個單字組成的密碼，至少 12 個字元。</small>}
+              {setup && <small>建議使用多個單字組成的密碼，至少 12 個字元</small>}
             </label>
             <button
               className="admin-button primary admin-auth-submit"
               disabled={busy}
               type="submit"
             >
-              {busy ? '處理中…' : setup ? '建立網站與管理帳號' : '進入工作空間'}
+              {busy ? '處理中…' : setup ? '建立網站與管理帳號' : '登入後台'}
               <ArrowRight size={17} />
             </button>
           </form>
@@ -209,12 +202,12 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
             <ShieldCheck size={17} />
             <p>
               {setup
-                ? '這是私人管理空間。完成設定後，初始化入口會自動關閉。'
-                : '僅供網站管理者登入。忘記密碼時，可依 README 使用容器帳號復原指令。'}
+                ? '完成設定後，初始化入口會自動關閉'
+                : '僅供站長登入；忘記密碼時，請依 README 的帳號復原步驟操作'}
             </p>
           </div>
         </div>
-        <footer className="admin-auth-footer">KaiyoLab · 讓每個值得記錄的想法，都有歸屬。</footer>
+        <footer className="admin-auth-footer">KaiyoLab · 內容管理系統</footer>
       </main>
     </div>
   );

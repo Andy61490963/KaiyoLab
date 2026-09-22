@@ -17,9 +17,9 @@ export function json(value: unknown, status = 200) {
 export async function body(request: Request) {
   const limit = 2_000_000;
   if (Number(request.headers.get('content-length') || 0) > limit)
-    throw new HttpError(413, '內容超過大小限制。');
+    throw new HttpError(413, '內容超過大小限制');
   const reader = request.body?.getReader();
-  if (!reader) throw new HttpError(400, '請送出 JSON 資料。');
+  if (!reader) throw new HttpError(400, '請送出 JSON 資料');
   const chunks: Uint8Array[] = [];
   let length = 0;
   while (true) {
@@ -28,14 +28,14 @@ export async function body(request: Request) {
     length += result.value.length;
     if (length > limit) {
       await reader.cancel();
-      throw new HttpError(413, '內容超過大小限制。');
+      throw new HttpError(413, '內容超過大小限制');
     }
     chunks.push(result.value);
   }
   try {
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch {
-    throw new HttpError(400, '無法讀取送出的資料。');
+    throw new HttpError(400, '無法讀取送出的資料');
   }
 }
 export function errorResponse(error: unknown) {
@@ -46,9 +46,9 @@ export function errorResponse(error: unknown) {
       400,
     );
   if ((error as { code?: string })?.code === '23505')
-    return json({ error: '網址代稱或名稱已經存在。' }, 409);
+    return json({ error: '網址代稱或名稱已經存在' }, 409);
   console.error('處理請求失敗', error instanceof Error ? error.message : error);
-  return json({ error: '處理失敗，請稍後再試。' }, 500);
+  return json({ error: '處理失敗，請稍後再試' }, 500);
 }
 export const safeUrl = z
   .string()

@@ -107,8 +107,9 @@ const active = (href: string) =>
         </div>
       </div>
       <p class="public-intro">
-        嗨，我是 <a href="/about">{settings.authorName || settings.siteName}</a>。
-        {settings.bio || '在這裡分享技術筆記、開源作品，以及生活裡值得記錄的發現。'}
+        嗨，我是 <a href="/about">{settings.authorName || settings.siteName}</a>
+        <br />
+        {settings.bio || '在這裡分享技術筆記、開源作品，以及生活裡值得記錄的發現'}
       </p>
       <nav class="public-nav" aria-label="主要導覽">
         {navItems.map((item) => (
@@ -172,7 +173,7 @@ const active = (href: string) =>
         </div>
         <p>
           © {new Date().getFullYear()} {settings.authorName || settings.siteName}
-          <span>以好奇心記錄，以程式創作。</span>
+          <span>以好奇心記錄，以程式創作</span>
         </p>
       </footer>
     </div>

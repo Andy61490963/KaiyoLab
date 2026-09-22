@@ -12,21 +12,21 @@ export const onRequest = defineMiddleware(async (context, next) => {
   ) {
     const origin = context.request.headers.get('origin');
     const expected = new URL(process.env.SITE_URL || 'http://localhost:4321').origin;
-    if (origin !== expected) return json({ error: '請從本站頁面送出操作。' }, 403);
+    if (origin !== expected) return json({ error: '請從本站頁面送出操作' }, 403);
   }
   if (privateRoute) {
     try {
       const session = await getAuth().api.getSession({ headers: context.request.headers });
       const [state] = await db().select().from(systemState);
       if (!session || session.user.id !== state?.ownerId) {
-        if (pathname.startsWith('/api/')) return json({ error: '請先登入站長帳號。' }, 401);
+        if (pathname.startsWith('/api/')) return json({ error: '請先登入站長帳號' }, 401);
         return context.redirect('/login');
       }
       context.locals.user = session.user;
     } catch {
       return pathname.startsWith('/api/')
-        ? json({ error: '無法連線至登入服務。' }, 503)
-        : new Response('服務暫時無法使用，請稍後再試。', { status: 503 });
+        ? json({ error: '無法連線至登入服務' }, 503)
+        : new Response('服務暫時無法使用，請稍後再試', { status: 503 });
     }
   }
   const response = await next();

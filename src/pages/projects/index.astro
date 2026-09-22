@@ -15,7 +15,7 @@ const [settings, result] = await Promise.all([
 <PublicLayout
   settings={settings}
   title="作品"
-  description="個人作品、開源專案與創作實驗，記錄從想法到實作的過程。"
+  description="個人作品、開源專案與創作實驗，記錄從想法到實作的過程"
 >
   <div class="page-shell projects-page">
     <header class="collection-header">
@@ -23,15 +23,19 @@ const [settings, result] = await Promise.all([
         <Icon name="code" size={36} />
         作品
       </h1>
-      <p>一些解決問題的小工具，一些純粹因為喜歡而做的事。這裡記錄我的作品、開源專案與創作實驗。</p>
+      <p>
+        一些解決問題的小工具，一些純粹因為喜歡而做的事
+        <br />
+        這裡記錄我的作品、開源專案與創作實驗
+      </p>
     </header>
     <section class="project-grid" aria-label="作品列表">
       {result.items.length ? (
         result.items.map((entry) => <ProjectCard entry={entry} />)
       ) : (
         <EmptyState
-          title="好奇心，是一切的起點。"
-          description="正在把想法化為作品，敬請期待第一份創作紀錄。"
+          title="好奇心，是一切的起點"
+          description="正在把想法化為作品，敬請期待第一份創作紀錄"
           icon="code"
         />
       )}

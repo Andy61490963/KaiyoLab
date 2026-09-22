@@ -16,7 +16,7 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   }
   await page.getByLabel('電子郵件').fill(email);
   await page.getByLabel('密碼', { exact: true }).fill(password);
-  await page.getByRole('button', { name: '進入工作空間' }).click();
+  await page.getByRole('button', { name: '登入後台' }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole('heading', { name: '歡迎回到你的創作宇宙' })).toBeVisible();
   await page.getByRole('link', { name: '撰寫文章', exact: true }).click();
@@ -34,7 +34,7 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
     .fill('把零散的想法整理成文字，將每一次探索，留在自己的數位空間。');
   await page.getByRole('button', { name: '發布內容', exact: true }).click();
   await expect(
-    page.getByText('已發布，讀者現在可以在公開網站閱讀最新內容。', { exact: true }),
+    page.getByText('已發布，讀者現在可以在公開網站閱讀最新內容', { exact: true }),
   ).toBeVisible();
   const entryPath = new URL(page.url()).pathname;
   const id = entryPath.split('/').at(-1)!;
@@ -243,7 +243,7 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   }
   await page.goto(entryPath);
   await page.getByRole('button', { name: '下架內容', exact: true }).click();
-  await expect(page.getByText('已下架，內容保留為私人草稿。', { exact: true })).toBeVisible();
+  await expect(page.getByText('已下架，內容保留為私人草稿', { exact: true })).toBeVisible();
   expect((await request.get(`/articles/${slug}`)).status()).toBe(404);
   current = await api(`/api/admin/entries/${id}`, 'GET');
   await api(`/api/admin/entries/${id}/action`, 'POST', {

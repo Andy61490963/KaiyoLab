@@ -40,7 +40,7 @@ export async function ensureMedia(database: ReturnType<typeof db>, value: unknow
   if (!ids.length) return;
   const known = new Set((await database.select({ id: media.id }).from(media)).map((m) => m.id));
   if (ids.some((id) => !known.has(id)))
-    throw new HttpError(400, '內容引用了不存在的媒體，請重新選擇圖片。');
+    throw new HttpError(400, '內容引用了不存在的媒體，請重新選擇圖片');
 }
 export async function lockContent(database: ReturnType<typeof db>) {
   await database.execute(sql`SELECT pg_advisory_xact_lock(620215)`);
