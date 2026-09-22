@@ -1,0 +1,144 @@
+---
+import type { PublicEntry } from '../../lib/types';
+
+interface Props {
+  entry: PublicEntry;
+  headingLevel?: 'h2' | 'h3';
+}
+
+const { entry, headingLevel = 'h2' } = Astro.props;
+const Heading = headingLevel;
+const href = `/projects/${encodeURIComponent(entry.slug)}`;
+const year = new Date(entry.publishedAt).getFullYear();
+---
+
+<article class="project-card">
+  <time class="project-year" datetime={entry.publishedAt}>
+    {year}
+  </time>
+  <Heading class="project-title">
+    <a href={href}>{entry.title}</a>
+  </Heading>
+  {entry.excerpt && <p class="project-description">{entry.excerpt}</p>}
+  {entry.tags.length > 0 && (
+    <ul class="project-technologies" aria-label="使用技術">
+      {entry.tags.slice(0, 4).map((tag) => (
+        <li>{tag}</li>
+      ))}
+    </ul>
+  )}
+  <div class="project-links">
+    <a href={href} aria-label={`${entry.title}：詳細介紹`}>
+      詳細介紹
+    </a>
+    {entry.demoUrl && (
+      <a
+        href={entry.demoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${entry.title}：展示（開啟新分頁）`}
+      >
+        展示<span aria-hidden="true">↗</span>
+      </a>
+    )}
+    {entry.repoUrl && (
+      <a
+        href={entry.repoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${entry.title}：原始碼（開啟新分頁）`}
+      >
+        原始碼<span aria-hidden="true">↗</span>
+      </a>
+    )}
+  </div>
+</article>
+
+<style>
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+  }
+
+  .project-year {
+    margin-bottom: 0.375rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .project-title a {
+    color: var(--accent);
+    text-decoration: none;
+    text-underline-offset: 0.2em;
+  }
+
+  .project-title a:hover {
+    text-decoration: underline;
+  }
+
+  .project-description {
+    margin: 0 0 0.5rem;
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+  }
+
+  .project-technologies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.625rem;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    list-style: none;
+  }
+
+  .project-technologies li {
+    overflow-wrap: anywhere;
+  }
+
+  .project-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: auto;
+  }
+
+  .project-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-height: 2.75rem;
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .project-links a:hover {
+    color: var(--accent);
+    text-decoration-thickness: 2px;
+  }
+</style>
