@@ -418,4 +418,52 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
       '0',
     );
   });
+
+  it('預設文案遷移只更新舊版預設值，保留自訂內容且可重複執行', async () => {
+    const client = await database.getPool().connect();
+    try {
+      await client.query('BEGIN');
+      const original = await client.query<{ value: Record<string, unknown> }>(
+        'SELECT value FROM settings WHERE id = 1 FOR UPDATE',
+      );
+      expect(original.rows).toHaveLength(1);
+      const previousSettings = {
+        ...original.rows[0].value,
+        siteName: '預設文案遷移驗收站',
+        tagline: '在想像與技術之間，探索更多可能。',
+        about:
+          '## 嗨，歡迎來到我的實驗室\n\n這裡記錄我的學習、創作，以及對世界的好奇。\n\n你可以在管理後台編輯這段介紹。',
+        bio: '這是站長自行撰寫的介紹。保留原本的句號。',
+        description: '自訂的網站介紹。請原樣保留。',
+        socialLinks: [{ label: '原始碼。', url: 'https://example.test/source' }],
+      };
+      await client.query('UPDATE settings SET value = $1::jsonb WHERE id = 1', [
+        JSON.stringify(previousSettings),
+      ]);
+      const migration = await readFile(
+        new URL('../../db/migrations/002_default_copy.sql', import.meta.url),
+        'utf8',
+      );
+      const expected = {
+        ...previousSettings,
+        tagline: '在想像與技術之間，探索更多可能',
+        about:
+          '## 嗨，歡迎來到我的實驗室\n\n這裡記錄我的學習、創作，以及對世界的好奇\n\n你可以在管理後台編輯這段介紹',
+      };
+
+      await client.query(migration);
+      const first = await client.query('SELECT value FROM settings WHERE id = 1');
+      expect(first.rows[0].value).toEqual(expected);
+
+      await client.query(migration);
+      const second = await client.query('SELECT value FROM settings WHERE id = 1');
+      expect(second.rows[0].value).toEqual(first.rows[0].value);
+    } finally {
+      try {
+        await client.query('ROLLBACK');
+      } finally {
+        client.release();
+      }
+    }
+  });
 });

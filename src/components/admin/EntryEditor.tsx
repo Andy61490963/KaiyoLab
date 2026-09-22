@@ -224,7 +224,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
   async function act(action: 'publish' | 'unpublish' | 'trash' | 'restore') {
     if (
       action === 'trash' &&
-      !window.confirm('將這份內容移至垃圾桶？公開版本也會下架，之後可以還原。')
+      !window.confirm('將這份內容移至垃圾桶？公開版本也會下架，之後可以還原')
     )
       return;
     setActing(true);
@@ -240,10 +240,10 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
       setEntry(result);
       setNotice(
         {
-          publish: '已發布，讀者現在可以在公開網站閱讀最新內容。',
-          unpublish: '已下架，內容保留為私人草稿。',
-          trash: '已移至垃圾桶，可以隨時還原。',
-          restore: '已還原為草稿，確認內容後即可重新發布。',
+          publish: '已發布，讀者現在可以在公開網站閱讀最新內容',
+          unpublish: '已下架，內容保留為私人草稿',
+          trash: '已移至垃圾桶，可以隨時還原',
+          restore: '已還原為草稿，確認內容後即可重新發布',
         }[action],
       );
     } catch (e) {
@@ -426,7 +426,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
         <div className="admin-recovery">
           <div>
             <strong>發現尚未送出的本機草稿</strong>
-            <p>上次編輯於 {dateLabel(recovery.at)}。恢復後會以這份內容繼續編輯。</p>
+            <p>上次編輯於 {dateLabel(recovery.at)}，恢復後會以這份內容繼續編輯</p>
           </div>
           <button
             className="admin-button primary small"
@@ -456,7 +456,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
         <div className="admin-recovery">
           <div>
             <strong>這份內容已在其他分頁修改</strong>
-            <p>目前輸入已保留。你可以另存新草稿，或先下載內容再重新載入。</p>
+            <p>目前輸入已保留，你可以另存新草稿，或先下載內容再重新載入</p>
           </div>
           <button className="admin-button primary small" disabled={acting} onClick={saveCopy}>
             另存新草稿
@@ -472,7 +472,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
       {entry.published && !entry.deletedAt && (
         <div className="admin-editor-info">
           <span className="admin-status-dot" />
-          <span>修改會先保留為私人草稿，按「發布更新」後才會公開。</span>
+          <span>修改會先保留為私人草稿，按「發布更新」後才會公開</span>
           <a href={publicUrl} target="_blank" rel="noreferrer">
             查看公開版本 <ArrowUpRight size={14} />
           </a>
@@ -573,7 +573,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
                   <p>
                     開始寫下第一行文字，
                     <br />
-                    你的內容會在這裡展開。
+                    你的內容會在這裡展開
                   </p>
                 </div>
               ) : (
@@ -597,7 +597,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
               <span className="admin-badge">v{entry.version}</span>
             </div>
             <div className="admin-form-body">
-              {formField('slug', '網址代稱', { help: '用於公開網址，需保持唯一。' })}
+              {formField('slug', '網址代稱', { help: '用於公開網址，需保持唯一' })}
               <label className="admin-field">
                 分類
                 <select
@@ -642,7 +642,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
               <label className="admin-toggle-row">
                 <span>
                   <strong>設為精選</strong>
-                  <small>優先展示在首頁與列表。</small>
+                  <small>優先展示在首頁與列表</small>
                 </span>
                 <input
                   type="checkbox"
@@ -685,7 +685,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
               {formField('coverAlt', '封面替代文字')}
               {formField('excerpt', '內容摘要', {
                 multiline: true,
-                help: '顯示於文章卡片，讓讀者快速了解內容。',
+                help: '顯示於文章卡片，讓讀者快速了解內容',
               })}
             </div>
           </section>
@@ -705,10 +705,10 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
               搜尋引擎設定 <Plus size={15} />
             </summary>
             <div className="admin-form-body">
-              {formField('seoTitle', 'SEO 標題', { help: '留空時使用內容標題。' })}
+              {formField('seoTitle', 'SEO 標題', { help: '留空時使用內容標題' })}
               {formField('seoDescription', 'SEO 描述', {
                 multiline: true,
-                help: '留空時使用內容摘要。',
+                help: '留空時使用內容摘要',
               })}
             </div>
           </details>

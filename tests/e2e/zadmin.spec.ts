@@ -19,7 +19,7 @@ async function signIn(page: Page) {
   await page.goto('/login');
   await page.getByLabel('電子郵件').fill(email);
   await page.getByLabel('密碼', { exact: true }).fill(password);
-  await page.getByRole('button', { name: '進入工作空間' }).click();
+  await page.getByRole('button', { name: '登入後台' }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole('heading', { name: '歡迎回到你的創作宇宙' })).toBeVisible();
 }
@@ -95,7 +95,7 @@ test('媒體上傳、替代文字、個人設定與使用中圖片保護', async
         '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>',
       ),
     });
-    await expect(page.getByRole('alert')).toContainText('支援 PNG、JPEG 與 WebP 圖片。');
+    await expect(page.getByRole('alert')).toContainText('支援 PNG、JPEG 與 WebP 圖片');
     const buffer = await sharp({
       create: { width: 96, height: 96, channels: 3, background: '#74e2ce' },
     })
@@ -220,10 +220,10 @@ test('儲存失敗可復原，多分頁衝突保留輸入且可另存新草稿',
   expect(copy.content.title).toBe(`${conflictingTitle}（復原副本）`);
   second.once('dialog', (dialog) => dialog.accept());
   await second.getByRole('button', { name: '移至垃圾桶', exact: true }).click();
-  await expect(second.getByText('已移至垃圾桶，可以隨時還原。', { exact: true })).toBeVisible();
+  await expect(second.getByText('已移至垃圾桶，可以隨時還原', { exact: true })).toBeVisible();
   await second.getByRole('button', { name: '還原內容', exact: true }).click();
   await expect(
-    second.getByText('已還原為草稿，確認內容後即可重新發布。', { exact: true }),
+    second.getByText('已還原為草稿，確認內容後即可重新發布', { exact: true }),
   ).toBeVisible();
   for (const id of [created.id, copyId]) {
     const latest = await requestJson<Entry>(page.request, baseURL!, `/api/admin/entries/${id}`);

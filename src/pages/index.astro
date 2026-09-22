@@ -19,11 +19,11 @@ const authorName = settings.authorName || settings.siteName;
 <PublicLayout settings={settings}>
   <div class="page-shell home-content">
     <header class="home-introduction">
-      <h1>嗨，我是 {authorName}。</h1>
-      <p class="home-tagline">{settings.tagline || '寫程式、做作品，也記錄學習過程中的發現。'}</p>
+      <h1>嗨，我是 {authorName}</h1>
+      <p class="home-tagline">{settings.tagline || '寫程式、做作品，也記錄學習過程中的發現'}</p>
       <p>
         {settings.description ||
-          '歡迎來到我的個人網站。這裡分享技術筆記、開發經驗，以及把想法變成作品的過程。'}
+          '歡迎來到我的個人網站，這裡分享技術筆記、開發經驗，以及把想法變成作品的過程'}
       </p>
       <a class="home-inline-link" href="/about">
         更多關於我 <span aria-hidden="true">→</span>
@@ -54,7 +54,7 @@ const authorName = settings.authorName || settings.siteName;
           ))}
         </div>
       ) : (
-        <p class="home-empty">還沒有公開文章。新的筆記將會出現在這裡。</p>
+        <p class="home-empty">還沒有公開文章，新的筆記將會出現在這裡</p>
       )}
     </section>
 
@@ -85,7 +85,7 @@ const authorName = settings.authorName || settings.siteName;
           ))}
         </div>
       ) : (
-        <p class="home-empty">目前沒有精選作品。完成的專案會陸續整理在這裡。</p>
+        <p class="home-empty">目前沒有精選作品，完成的專案會陸續整理在這裡</p>
       )}
     </section>
 
@@ -107,7 +107,7 @@ const authorName = settings.authorName || settings.siteName;
     <p class="home-subscribe">
       <Icon name="rss" size={18} />
       <span>
-        喜歡這裡的內容？<a href="/rss.xml">透過 RSS 訂閱最新文章</a>。
+        喜歡這裡的內容？<a href="/rss.xml">透過 RSS 訂閱最新文章</a>
       </span>
     </p>
   </div>

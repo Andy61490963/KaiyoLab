@@ -53,7 +53,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
     <div className="admin-empty">
       <Orbit size={36} strokeWidth={1.2} />
       <h3>{title}</h3>
-      <p>{children || '從第一筆內容開始，慢慢建立你的創作宇宙。'}</p>
+      <p>{children || '從第一筆內容開始，慢慢建立你的創作宇宙'}</p>
     </div>
   );
 }
@@ -273,7 +273,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
           {page}
         </main>
         <footer className="admin-footer">
-          <span>KaiyoLab · 為每個值得記錄的想法而造。</span>
+          <span>KaiyoLab · 為每個值得記錄的想法而造</span>
           <a href="/" target="_blank" rel="noreferrer">
             查看網站 <ArrowUpRight size={13} />
           </a>
@@ -292,7 +292,7 @@ function Dashboard() {
       <PageTitle
         label="創作控制中心"
         title="歡迎回到你的創作宇宙"
-        description="整理靈感、記錄探索，讓每一份作品被看見。"
+        description="整理靈感、記錄探索，讓每一份作品被看見"
       >
         <a className="admin-button primary" href="/admin/articles/new">
           <Plus size={17} /> 撰寫文章
@@ -309,9 +309,9 @@ function Dashboard() {
           <span className="admin-eyebrow">每個想法，都有自己的軌道</span>
           <h2>今天，想記錄什麼？</h2>
           <p>
-            從一段筆記到一篇文章。把腦中的星點，
+            從一段筆記到一篇文章，把腦中的星點，
             <br className="desktop-break" />
-            收進屬於你的知識與作品集。
+            收進屬於你的知識與作品集
           </p>
           <a href="/admin/articles/new">
             開始新的草稿 <ArrowRight size={17} />
@@ -379,7 +379,7 @@ function Dashboard() {
           <div className="admin-panel-heading">
             <div>
               <h2>最近編輯</h2>
-              <p>接著上次的靈感，繼續創作。</p>
+              <p>接著上次的靈感，繼續創作</p>
             </div>
             <a href="/admin/articles">
               全部內容 <ArrowRight size={15} />
@@ -388,7 +388,7 @@ function Dashboard() {
           {loading ? (
             <p className="admin-loading">正在載入你的工作空間…</p>
           ) : !data?.recent.length ? (
-            <Empty title="故事，從這裡開始">新增第一篇文章或作品，最近的編輯會出現在這裡。</Empty>
+            <Empty title="故事，從這裡開始">新增第一篇文章或作品，最近的編輯會出現在這裡</Empty>
           ) : (
             <div className="admin-recent-list">
               {data.recent.map((entry) => (
@@ -415,7 +415,7 @@ function Dashboard() {
           <div className="admin-panel-heading">
             <div>
               <h2>打造你的空間</h2>
-              <p>讓網站多一點你的樣子。</p>
+              <p>讓網站多一點你的樣子</p>
             </div>
           </div>
           <a href="/admin/about">
@@ -450,7 +450,7 @@ function Dashboard() {
           </a>
           <div className="admin-note">
             <ShieldCheck size={17} />
-            <p>草稿只屬於你。完成編輯後，點選「發布」才會在公開網站顯示。</p>
+            <p>草稿只屬於你；完成編輯後，點選「發布」才會在公開網站顯示</p>
           </div>
         </section>
       </div>
@@ -480,7 +480,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
     if (
       actionName === 'trash' &&
       !window.confirm(
-        `將「${entry.content.title || '未命名草稿'}」移至垃圾桶？公開內容也會下架，之後可以還原。`,
+        `將「${entry.content.title || '未命名草稿'}」移至垃圾桶？公開內容也會下架，之後可以還原`,
       )
     )
       return;
@@ -505,8 +505,8 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
         title={`${name}管理`}
         description={
           kind === 'article'
-            ? '把零散的想法，整理成值得分享的內容。'
-            : '收集你的實作、實驗，以及一路走來的成果。'
+            ? '把零散的想法，整理成值得分享的內容'
+            : '收集你的實作、實驗，以及一路走來的成果'
         }
       >
         <a
@@ -577,10 +577,10 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             }
           >
             {query || category
-              ? '試著換個關鍵字或調整分類。'
+              ? '試著換個關鍵字或調整分類'
               : status === 'trash'
-                ? '移除的內容會保留在這裡，隨時可以還原。'
-                : `點選右上方「新增${name}」，開始你的第一份內容。`}
+                ? '移除的內容會保留在這裡，隨時可以還原'
+                : `點選右上方「新增${name}」，開始你的第一份內容`}
           </Empty>
         ) : (
           <div className="admin-table-scroll">
@@ -699,7 +699,7 @@ export function MediaPicker({
           <div className="admin-dialog-heading">
             <div>
               <Dialog.Title>選擇圖片</Dialog.Title>
-              <Dialog.Description>從媒體庫選擇，或上傳新的圖片。</Dialog.Description>
+              <Dialog.Description>從媒體庫選擇，或上傳新的圖片</Dialog.Description>
             </div>
             <Dialog.Close className="admin-icon-button" aria-label="關閉圖片選擇">
               <X size={20} />
@@ -742,7 +742,7 @@ function MediaLibrary({
     try {
       await api<Media>('/api/admin/media', { method: 'POST', body: form });
       refresh();
-      setMessage('圖片已加入媒體庫。');
+      setMessage('圖片已加入媒體庫');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -769,7 +769,7 @@ function MediaLibrary({
         <PageTitle
           label="素材工作室"
           title="媒體庫"
-          description="集中管理圖片，讓每份內容都有適合的視覺。"
+          description="集中管理圖片，讓每份內容都有適合的視覺"
         >
           {uploadButton}
         </PageTitle>
@@ -794,7 +794,7 @@ function MediaLibrary({
         <p className="admin-loading">正在載入媒體庫…</p>
       ) : !data?.items.length ? (
         <Empty title="給你的內容一些色彩">
-          上傳封面、頭像或文章插圖。所有圖片都會保存在你的伺服器。
+          上傳封面、頭像或文章插圖，所有圖片都會保存在你的伺服器
         </Empty>
       ) : (
         <div className={`admin-media-grid ${picker ? 'picker' : ''}`}>
@@ -842,7 +842,7 @@ function MediaCard({
     }
   }
   async function remove() {
-    if (!window.confirm(`永久刪除圖片「${media.name}」？此動作無法還原。`)) return;
+    if (!window.confirm(`永久刪除圖片「${media.name}」？此動作無法還原`)) return;
     setBusy(true);
     onError('');
     try {
@@ -930,7 +930,7 @@ function TaxonomyManager() {
       <PageTitle
         label="內容架構"
         title="分類與標籤"
-        description="替內容建立清楚的脈絡，讓讀者更容易找到想看的主題。"
+        description="替內容建立清楚的脈絡，讓讀者更容易找到想看的主題"
       />
       <Alert message={error} />
       <div className="admin-taxonomy-columns">
@@ -983,7 +983,7 @@ function TaxonomySection({
     }
   }
   async function remove(item: Taxonomy) {
-    if (!window.confirm(`刪除${label}「${item.name}」？若仍被內容使用，系統會阻止刪除。`)) return;
+    if (!window.confirm(`刪除${label}「${item.name}」？若仍被內容使用，系統會阻止刪除`)) return;
     onError('');
     setBusy(true);
     try {
@@ -1000,7 +1000,7 @@ function TaxonomySection({
       <div className="admin-panel-heading">
         <div>
           <h2>{label}</h2>
-          <p>{kind === 'category' ? '每份內容的主要歸屬。' : '串連靈感與主題的關鍵字。'}</p>
+          <p>{kind === 'category' ? '每份內容的主要歸屬' : '串連靈感與主題的關鍵字'}</p>
         </div>
         <span className="admin-count">{items.length}</span>
       </div>
@@ -1075,7 +1075,7 @@ function TaxonomySection({
             </div>
           ))
         ) : (
-          <p className="admin-subtle">還沒有{label}，從上方新增。</p>
+          <p className="admin-subtle">還沒有{label}，從上方新增</p>
         )}
       </div>
     </section>
@@ -1101,7 +1101,7 @@ function SettingsForm({ about }: { about: boolean }) {
       const snapshot = JSON.stringify(data);
       const result = await api<SiteSettings>('/api/admin/settings', json('PUT', data));
       setData((current) => (current && JSON.stringify(current) === snapshot ? result : current));
-      setMessage('已儲存送出的設定。若送出期間繼續編輯，請再儲存一次。');
+      setMessage('已儲存送出的設定；若送出期間繼續編輯，請再儲存一次');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -1170,9 +1170,7 @@ function SettingsForm({ about }: { about: boolean }) {
         label={about ? '個人檔案' : '網站控制台'}
         title={about ? '讓讀者認識你' : '網站設定'}
         description={
-          about
-            ? '你的故事、想法，以及可以找到你的地方。'
-            : '調整品牌與網站資訊，打造自己的創作基地。'
+          about ? '你的故事、想法，以及可以找到你的地方' : '調整品牌與網站資訊，打造自己的創作基地'
         }
       />
       <Alert message={error} />
@@ -1189,8 +1187,8 @@ function SettingsForm({ about }: { about: boolean }) {
                     <h2>{about ? '個人介紹' : '品牌與搜尋資訊'}</h2>
                     <p>
                       {about
-                        ? '這些資訊會顯示在首頁及「關於我」。'
-                        : '讓公開網站與搜尋結果清楚表達你的風格。'}
+                        ? '這些資訊會顯示在首頁及「關於我」'
+                        : '讓公開網站與搜尋結果清楚表達你的風格'}
                     </p>
                   </div>
                 </div>
@@ -1200,11 +1198,11 @@ function SettingsForm({ about }: { about: boolean }) {
                       {field('authorName', '顯示名稱', { required: true })}
                       {field('bio', '個人簡介', {
                         multiline: true,
-                        help: '顯示在首頁與作者資訊。',
+                        help: '顯示在首頁與作者資訊',
                       })}
                       {field('about', '關於我', {
                         multiline: true,
-                        help: '支援 Markdown，可加入小標題、清單與連結。',
+                        help: '支援 Markdown，可加入小標題、清單與連結',
                       })}
                     </>
                   ) : (
@@ -1213,11 +1211,11 @@ function SettingsForm({ about }: { about: boolean }) {
                       {field('tagline', '一句話介紹')}
                       {field('description', '網站描述', {
                         multiline: true,
-                        help: '用於首頁與搜尋引擎摘要。',
+                        help: '用於首頁與搜尋引擎摘要',
                       })}
                       {field('siteUrl', '網站公開網址', {
                         type: 'url',
-                        help: '例如 https://your-domain.com。影響 canonical、RSS 與 sitemap；部署時的 SITE_URL 也須一致。',
+                        help: '例如 https://your-domain.com，影響 canonical、RSS 與 sitemap；部署時的 SITE_URL 也須一致',
                       })}
                     </>
                   )}
@@ -1228,7 +1226,7 @@ function SettingsForm({ about }: { about: boolean }) {
                   <div className="admin-panel-heading">
                     <div>
                       <h2>社群連結</h2>
-                      <p>讓讀者在其他地方找到你。</p>
+                      <p>讓讀者在其他地方找到你</p>
                     </div>
                     <button
                       className="admin-button small"
@@ -1291,7 +1289,7 @@ function SettingsForm({ about }: { about: boolean }) {
                         </button>
                       </div>
                     ))}
-                    {!data.socialLinks.length && <p className="admin-subtle">尚未設定社群連結。</p>}
+                    {!data.socialLinks.length && <p className="admin-subtle">尚未設定社群連結</p>}
                   </div>
                 </section>
               )}
@@ -1312,7 +1310,7 @@ function SettingsForm({ about }: { about: boolean }) {
                   )}
                   <div className="admin-note">
                     <Image size={17} />
-                    <p>使用媒體庫中的圖片，方便日後管理與備份。</p>
+                    <p>使用媒體庫中的圖片，方便日後管理與備份</p>
                   </div>
                 </div>
               </section>
@@ -1351,7 +1349,7 @@ function PasswordForm() {
     setError('');
     setMessage('');
     if (newPassword !== confirm) {
-      setError('兩次輸入的新密碼不相同。');
+      setError('兩次輸入的新密碼不相同');
       return;
     }
     setBusy(true);
@@ -1363,7 +1361,7 @@ function PasswordForm() {
       setCurrent('');
       setNew('');
       setConfirm('');
-      setMessage('密碼已更新，其他裝置的登入已登出。');
+      setMessage('密碼已更新，其他裝置的登入已登出');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -1375,7 +1373,7 @@ function PasswordForm() {
       <div className="admin-panel-heading">
         <div>
           <h2>登入與安全</h2>
-          <p>變更密碼後，其他裝置需要重新登入。</p>
+          <p>變更密碼後，其他裝置需要重新登入</p>
         </div>
         <ShieldCheck size={22} />
       </div>
@@ -1404,7 +1402,7 @@ function PasswordForm() {
               value={newPassword}
               onChange={(e) => setNew(e.target.value)}
             />
-            <small>至少 12 個字元。</small>
+            <small>至少 12 個字元</small>
           </label>
           <label>
             再次輸入新密碼
