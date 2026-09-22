@@ -14,23 +14,15 @@ const rendered = await renderMarkdown(
   <div class="page-shell about-page">
     <header class="collection-header">
       <div>
-        <span class="eyebrow">BEHIND THE SCREEN / 關於我</span>
         <h1>
-          嗨，很高興<span class="text-accent">認識你</span>
-          <span class="heading-dot">.</span>
+          <Icon name="user" size={34} />
+          關於我
         </h1>
         <p>這是我的一小片網路空間，也是故事開始的地方。</p>
       </div>
-      <span class="collection-mark" aria-hidden="true">
-        ✳
-      </span>
     </header>
     <div class="about-layout">
       <aside class="about-profile">
-        <div class="profile-decoration" aria-hidden="true">
-          <span>CREATOR'S PROFILE</span>
-          <span>↗</span>
-        </div>
         <img
           class="profile-avatar"
           src={settings.avatar || '/favicon.svg'}

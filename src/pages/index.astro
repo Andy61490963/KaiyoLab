@@ -1,241 +1,247 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
 import EntryCard from '../components/public/EntryCard.astro';
-import EmptyState from '../components/public/EmptyState.astro';
+import ProjectCard from '../components/public/ProjectCard.astro';
 import Icon from '../components/public/Icon.astro';
 import { getSettings, listPublished, listTaxonomies } from '../lib/content';
 const [settings, recent, featured, projects, taxonomy] = await Promise.all([
   getSettings(),
-  listPublished({ kind: 'article', pageSize: 4 }),
-  listPublished({ kind: 'article', featured: true, pageSize: 1 }),
-  listPublished({ kind: 'project', featured: true, pageSize: 2 }),
+  listPublished({ kind: 'article', pageSize: 5 }),
+  listPublished({ kind: 'article', featured: true, pageSize: 3 }),
+  listPublished({ kind: 'project', featured: true, pageSize: 3 }),
   listTaxonomies(),
 ]);
-const heroImage = settings.heroImage || '/images/kaiyo-hero.png';
+const recentIds = new Set(recent.items.map((entry) => entry.id));
+const additionalFeatured = featured.items.filter((entry) => !recentIds.has(entry.id));
+const authorName = settings.authorName || settings.siteName;
 ---
 
 <PublicLayout settings={settings}>
-  <section class="home-hero page-shell" aria-labelledby="hero-title">
-    <div class="hero-copy">
-      <div class="eyebrow">
-        <span class="status-light"></span> 個人創作與技術觀測站 <span class="eyebrow-line"></span>
-      </div>
-      <h1 id="hero-title">
-        保持好奇。
-        <br />
-        讓想法<span class="text-accent">發生。</span>
-        <span class="title-spark" aria-hidden="true">
-          ✳
-        </span>
-      </h1>
-      <p class="hero-tagline">
-        {settings.tagline || '探索技術，記錄生活，把腦海中的想像變成作品。'}
-      </p>
-      <p class="hero-description">
+  <div class="page-shell home-content">
+    <header class="home-introduction">
+      <h1>嗨，我是 {authorName}。</h1>
+      <p class="home-tagline">{settings.tagline || '寫程式、做作品，也記錄學習過程中的發現。'}</p>
+      <p>
         {settings.description ||
-          '歡迎來到我的數位基地。這裡收藏學習的軌跡、實作的靈感，以及那些值得被留下的日常。'}
+          '歡迎來到我的個人網站。這裡分享技術筆記、開發經驗，以及把想法變成作品的過程。'}
       </p>
-      <div class="hero-actions">
-        <a class="button button-primary" href="/articles">
-          探索所有文章 <Icon size={17} />
-        </a>
-        <a class="text-link" href="/about">
-          認識 {settings.authorName || '我'} <Icon name="diagonal" size={17} />
-        </a>
-      </div>
-      <div class="hero-caption">
-        <span class="caption-cross" aria-hidden="true">
-          ＋
-        </span>
-        <span>持續探索 · 自由創作 · 分享所知</span>
-      </div>
-    </div>
-    <div class="hero-art">
-      <div class="hero-image-frame">
+      <a class="home-inline-link" href="/about">
+        更多關於我 <span aria-hidden="true">→</span>
+      </a>
+      {settings.heroImage && settings.heroImage !== '/images/kaiyo-hero.png' && (
         <img
-          class="hero-image"
-          src={heroImage}
-          alt={`${settings.siteName} 的海洋科技觀測站主視覺`}
-          width="1200"
-          height="900"
+          class="home-custom-image"
+          src={settings.heroImage}
+          alt={`${settings.siteName} 的首頁圖片`}
+          width="960"
+          height="400"
           fetchpriority="high"
         />
-        <div class="hero-image-shade"></div>
-        <div class="art-topline">
-          <span>
-            <span class="status-light"></span> KAIYO OBSERVATORY
-          </span>
-          <span>01 / ∞</span>
-        </div>
-        <div class="art-bottomline">
-          <span>想像力，不設邊界。</span>
-          <span class="art-coordinate">25° N · 121° E</span>
-        </div>
-      </div>
-      <div class="art-orbit-label">
-        <span class="orbit-symbol" aria-hidden="true">
-          ◎
-        </span>
-        <div>
-          <strong>OPEN TO EXPLORE</strong>
-          <span>下一個靈感，正在路上</span>
-        </div>
-        <Icon name="diagonal" size={21} />
-      </div>
-      <span class="art-side-label" aria-hidden="true">
-        A LITTLE SPACE FOR BIG IDEAS
-      </span>
-    </div>
-  </section>
-  <div class="horizon-strip">
-    <div class="page-shell horizon-inner">
-      <span class="horizon-title">
-        <span class="status-light"></span> 探索紀錄
-      </span>
-      <span>
-        <strong>{String(recent.total).padStart(2, '0')}</strong> 篇思考與筆記
-      </span>
-      <span>
-        <strong>{String(projects.total).padStart(2, '0')}</strong> 個精選作品
-      </span>
-      <span class="horizon-end">
-        BUILD. LEARN. REPEAT. <span>↗</span>
-      </span>
-    </div>
-  </div>
-  <section class="home-journal page-shell section-space" aria-labelledby="journal-title">
-    <div class="journal-main">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">
-            THE JOURNAL <span class="section-index">/ 01</span>
-          </span>
-          <h2 id="journal-title">
-            最近的<span class="serif-accent">一些想法</span>
-            <span class="heading-dot">.</span>
-          </h2>
-        </div>
-        <a class="text-link" href="/articles">
-          所有文章 <Icon size={18} />
-        </a>
-      </div>
-      {featured.items[0] && (
-        <div class="home-feature">
-          <EntryCard entry={featured.items[0]} variant="feature" />
-        </div>
       )}
-      <div class="journal-entries">
-        {recent.items.length ? (
-          recent.items
-            .filter((entry) => entry.id !== featured.items[0]?.id)
-            .map((entry, index) => <EntryCard entry={entry} index={index} />)
-        ) : (
-          <EmptyState
-            title="每個好故事，都從一個想法開始。"
-            description="這座觀測站剛剛啟航。新的技術筆記與生活紀錄，將陸續在這裡相遇。"
-          />
-        )}
-      </div>
-    </div>
-    <aside class="journal-sidebar">
-      <div class="author-note">
-        <div class="author-note-top">
-          <span class="eyebrow">BEHIND THE SCREEN</span>
-          <span class="small-star" aria-hidden="true">
-            ✳
-          </span>
-        </div>
-        <div class="author-identity">
-          <img
-            src={settings.avatar || '/favicon.svg'}
-            alt={settings.authorName || settings.siteName}
-            width="50"
-            height="50"
-          />
-          <div>
-            <span>嗨，我是</span>
-            <h3>{settings.authorName || settings.siteName}</h3>
-          </div>
-        </div>
-        <p>
-          {settings.bio ||
-            '一個對世界保持好奇的創作者。喜歡寫程式、做點小東西，也喜歡記錄過程中的發現。'}
-        </p>
-        <a class="text-link" href="/about">
-          更多關於我 <Icon name="diagonal" size={16} />
+    </header>
+
+    <section class="home-section" aria-labelledby="recent-articles-title">
+      <div class="home-section-heading">
+        <h2 id="recent-articles-title">最新文章</h2>
+        <a href="/articles">
+          所有文章 <span aria-hidden="true">→</span>
         </a>
       </div>
-      <div class="sidebar-topics">
-        <h3>
-          <span class="sidebar-title-mark"></span> 探索主題
-        </h3>
-        {taxonomy.categories.length ? (
-          <ul>
-            {taxonomy.categories.map((category) => (
-              <li>
-                <a href={`/articles?category=${encodeURIComponent(category.name)}`}>
-                  <span>{category.name}</span>
-                  <Icon name="diagonal" size={15} />
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p class="sidebar-empty">主題隨著故事慢慢累積。</p>
-        )}
-      </div>
-      <a class="rss-note" href="/rss.xml">
-        <span class="rss-icon">
-          <Icon name="rss" size={22} />
-        </span>
-        <div>
-          <h3>讓靈感，不錯過。</h3>
-          <p>透過 RSS，接收最新紀錄。</p>
+      {recent.items.length ? (
+        <div class="home-article-list">
+          {recent.items.map((entry) => (
+            <EntryCard entry={entry} />
+          ))}
         </div>
-        <Icon name="diagonal" size={18} />
-      </a>
-    </aside>
-  </section>
-  <section class="projects-home section-space">
-    <div class="page-shell">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">
-            BUILT WITH CURIOSITY <span class="section-index">/ 02</span>
-          </span>
-          <h2>
-            從想像，<span class="serif-accent">到實作</span>
-            <span class="heading-dot">.</span>
-          </h2>
+      ) : (
+        <p class="home-empty">還沒有公開文章。新的筆記將會出現在這裡。</p>
+      )}
+    </section>
+
+    {additionalFeatured.length > 0 && (
+      <section class="home-section" aria-labelledby="featured-articles-title">
+        <div class="home-section-heading">
+          <h2 id="featured-articles-title">精選文章</h2>
         </div>
-        <a class="text-link" href="/projects">
-          所有作品 <Icon size={18} />
+        <div class="home-article-list">
+          {additionalFeatured.map((entry) => (
+            <EntryCard entry={entry} />
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="home-section" aria-labelledby="featured-projects-title">
+      <div class="home-section-heading">
+        <h2 id="featured-projects-title">精選作品</h2>
+        <a href="/projects">
+          所有作品 <span aria-hidden="true">→</span>
         </a>
       </div>
-      <div class="project-grid">
-        {projects.items.length ? (
-          projects.items.map((entry, index) => (
-            <EntryCard entry={entry} variant="card" index={index} />
-          ))
-        ) : (
-          <EmptyState
-            icon="code"
-            title="下一個作品，正在成形。"
-            description="從一個小小的好奇出發，將想法逐步變成可以觸碰的事物。"
-          />
-        )}
-      </div>
-    </div>
-  </section>
-  <section class="closing-note page-shell">
-    <span class="closing-star" aria-hidden="true">
-      ✳
-    </span>
-    <p>
-      世界很大，<span>一起保持好奇。</span>
+      {projects.items.length ? (
+        <div class="home-project-list">
+          {projects.items.map((entry) => (
+            <ProjectCard entry={entry} headingLevel="h3" />
+          ))}
+        </div>
+      ) : (
+        <p class="home-empty">目前沒有精選作品。完成的專案會陸續整理在這裡。</p>
+      )}
+    </section>
+
+    {taxonomy.categories.length > 0 && (
+      <section class="home-section home-topics" aria-labelledby="topics-title">
+        <h2 id="topics-title">依主題閱讀</h2>
+        <ul>
+          {taxonomy.categories.map((category) => (
+            <li>
+              <a href={`/articles?category=${encodeURIComponent(category.name)}`}>
+                {category.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <p class="home-subscribe">
+      <Icon name="rss" size={18} />
+      <span>
+        喜歡這裡的內容？<a href="/rss.xml">透過 RSS 訂閱最新文章</a>。
+      </span>
     </p>
-    <a class="text-link" href="/about">
-      打個招呼 <Icon name="diagonal" size={19} />
-    </a>
-  </section>
+  </div>
 </PublicLayout>
+
+<style>
+  .home-content {
+    padding-block: 64px 48px;
+  }
+  .home-introduction {
+    max-width: 820px;
+    margin-bottom: 52px;
+  }
+  .home-introduction h1 {
+    margin-bottom: 24px;
+    font-size: clamp(30px, 3.2vw, 42px);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.035em;
+  }
+  .home-introduction p {
+    margin-bottom: 16px;
+    font-size: 18px;
+    line-height: 1.9;
+  }
+  .home-introduction .home-tagline {
+    font-size: 21px;
+    line-height: 1.75;
+  }
+  .home-inline-link,
+  .home-section-heading a,
+  .home-topics a,
+  .home-subscribe a {
+    color: var(--accent);
+    font-weight: 600;
+    text-underline-offset: 4px;
+  }
+  .home-inline-link:hover,
+  .home-section-heading a:hover,
+  .home-topics a:hover,
+  .home-subscribe a:hover {
+    text-decoration: underline;
+  }
+  .home-custom-image {
+    width: 100%;
+    max-height: 300px;
+    margin-top: 28px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+  .home-section {
+    margin-block: 42px;
+  }
+  .home-section-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .home-section h2 {
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: -0.025em;
+  }
+  .home-section-heading a {
+    flex-shrink: 0;
+    font-size: 15px;
+  }
+  .home-article-list {
+    border-top: 1px solid var(--border);
+  }
+  .home-project-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .home-empty {
+    padding: 24px;
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .home-topics ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    padding: 0;
+    margin: 18px 0 0;
+    list-style: none;
+    font-size: 16px;
+  }
+  .home-subscribe {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 24px;
+    margin-top: 48px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+  }
+  @media (max-width: 1199px) {
+    .home-project-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 600px) {
+    .home-project-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .home-content {
+      padding-block: 32px;
+    }
+    .home-introduction {
+      margin-bottom: 36px;
+    }
+    .home-introduction p {
+      font-size: 16px;
+    }
+    .home-introduction .home-tagline {
+      font-size: 18px;
+    }
+    .home-section {
+      margin-block: 32px;
+    }
+    .home-section h2 {
+      font-size: 23px;
+    }
+    .home-section-heading a {
+      font-size: 14px;
+    }
+  }
+</style>

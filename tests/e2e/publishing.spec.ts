@@ -95,6 +95,22 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
       excerpt: '一個能夠自己掌握資料、自由部署的內容管理系統。',
       cover: '/images/kaiyo-hero.png',
     },
+    {
+      kind: 'project',
+      title: 'Markdown 筆記工具',
+      category: '開源專案',
+      tags: ['TypeScript', 'Markdown'],
+      excerpt: '把靈感整理成文字，專注寫作的小工具。',
+      cover: '/images/cover-grid.svg',
+    },
+    {
+      kind: 'project',
+      title: '色彩工作室',
+      category: '創作實驗',
+      tags: ['CSS', '設計'],
+      excerpt: '探索配色、對比與介面裡的細節。',
+      cover: '/images/cover-orbit.svg',
+    },
   ]) {
     let draft = await api('/api/admin/entries', 'POST', { kind: item.kind, title: item.title });
     draft = await api(`/api/admin/entries/${draft.id}`, 'PATCH', {
@@ -199,6 +215,16 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
             await expect(page.getByLabel('文章標題')).toBeVisible();
             await page.screenshot({ path: 'docs/screenshots/editor-mobile.png', fullPage: true });
           }
+        }
+        if (
+          process.env.CAPTURE_DOCS &&
+          route === '/projects' &&
+          (width === 1440 || width === 375)
+        ) {
+          await page.screenshot({
+            path: `docs/screenshots/projects-${theme}-${width}.png`,
+            fullPage: true,
+          });
         }
       }
     }

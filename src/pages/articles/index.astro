@@ -31,16 +31,12 @@ const categoryLink = (name: string) => {
   <div class="page-shell">
     <header class="collection-header">
       <div>
-        <span class="eyebrow">EXPLORATION LOG / 文章紀錄</span>
         <h1>
-          思考的<span class="text-accent">軌跡</span>
-          <span class="heading-dot">.</span>
+          <Icon name="file" size={34} />
+          文章
         </h1>
-        <p>把學到的、想到的，以及正在探索的，好好留下來。</p>
+        <p>關於程式開發、持續學習，以及生活中的一些想法。</p>
       </div>
-      <span class="collection-mark" aria-hidden="true">
-        ↙
-      </span>
     </header>
     <div class="collection-layout">
       <aside class="collection-sidebar">
@@ -118,7 +114,7 @@ const categoryLink = (name: string) => {
         <div class="article-list">
           {result.items.length ? (
             result.items.map((entry, index) => (
-              <EntryCard entry={entry} index={index + (result.page - 1) * 8} />
+              <EntryCard entry={entry} headingLevel="h2" index={index + (result.page - 1) * 8} />
             ))
           ) : (
             <EmptyState

@@ -2,11 +2,13 @@
 
 **把想法寫成文章，讓作品有自己的位置。**
 
-KaiyoLab 是可以自行部署的個人內容管理系統，結合公開文章網站與私人管理後台。以深海藍、青色與動漫科技視覺建立自己的品牌，透過 Markdown 管理文章與作品，發布後立即呈現在網站。
+KaiyoLab 是可以自行部署的個人內容管理系統，結合公開文章網站與私人管理後台。公開網站採奶油白與炭灰明暗主題，搭配莓紅連結、桌面側欄及以文字為主的作品卡，讓文章與作品成為閱讀焦點。透過 Markdown 管理內容，發布後立即呈現在網站。
 
 [快速開始](#快速開始) · [功能](#功能) · [正式部署](docs/deployment.md) · [Zeabur 與 CI/CD](docs/zeabur.md) · [備份與還原](docs/backup-restore.md) · [參與開發](CONTRIBUTING.md)
 
 ![KaiyoLab 公開首頁](docs/screenshots/home-dark.png)
+
+![KaiyoLab 作品頁：奶油白背景與文字卡片](docs/screenshots/projects-light-1440.png)
 
 ![KaiyoLab 私人管理後台](docs/screenshots/admin.png)
 
@@ -56,6 +58,8 @@ docker compose logs --tail=100 app
 | RSS、sitemap、canonical 與 Open Graph | 網站品牌、社群連結、SEO 與密碼管理     |
 
 文章的「正在編輯的草稿」與「公開版本」分開保存。修改已發布文章時，訪客會繼續看到上一個發布版本，直到你按下「發布更新」。未發布內容、私人預覽與管理 API 都要求站長登入。
+
+公開網站以簡潔個人開發者網站為設計方向：桌面以固定側欄呈現品牌與導覽，手機則收合導覽；首頁從文字自介、最新文章與精選作品展開。作品卡清楚呈現介紹、技術標籤、展示與原始碼連結，不依賴大幅裝飾插畫。明暗主題首次依系統偏好，切換結果會保留。
 
 Markdown 支援表格、任務清單與程式碼區塊，文章不執行 JavaScript 或 MDX。圖片保存於 Docker volume，媒體庫會防止刪除仍被內容使用的圖片。
 
@@ -207,6 +211,6 @@ npm run test:e2e
 
 程式碼採 [MIT 授權](LICENSE)，保留原有授權聲明。歡迎閱讀[貢獻指南](CONTRIBUTING.md)。
 
-設計方向參考 [Codfisher 的 cod-aquarium](https://github.com/Codfisher/cod-aquarium) 的閱讀感與留白，KaiyoLab 的介面與素材獨立實作，未直接複製其品牌或文章。字體及套件保留各自授權；詳見[素材與第三方授權](docs/credits.md)及[視覺素材來源](docs/assets.md)。
+目前公開網站的排版與色彩參考 [Tania Rascia 的作品頁](https://www.taniarascia.com/projects/)，介面自行實作，保留 KaiyoLab 的品牌與內容，未使用對方的文章、圖像或程式碼。初版視覺曾參考 [Codfisher 的 cod-aquarium](https://github.com/Codfisher/cod-aquarium)，相關歷史素材來源仍保留記錄。字體及套件適用各自授權；詳見[素材與第三方授權](docs/credits.md)及[視覺素材來源](docs/assets.md)。
 
 相關官方文件：[Astro Node adapter](https://docs.astro.build/en/guides/integrations-guide/node/)、[PostgreSQL 容器](https://hub.docker.com/_/postgres)、[Compose 啟動順序](https://docs.docker.com/compose/how-tos/startup-order/)。

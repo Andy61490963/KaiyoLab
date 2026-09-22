@@ -1,46 +1,33 @@
 ---
 import PublicLayout from '../../layouts/PublicLayout.astro';
-import EntryCard from '../../components/public/EntryCard.astro';
+import ProjectCard from '../../components/public/ProjectCard.astro';
 import EmptyState from '../../components/public/EmptyState.astro';
 import Pagination from '../../components/public/Pagination.astro';
+import Icon from '../../components/public/Icon.astro';
 import { getSettings, listPublished } from '../../lib/content';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
 const [settings, result] = await Promise.all([
   getSettings(),
-  listPublished({ kind: 'project', page, pageSize: 8 }),
+  listPublished({ kind: 'project', page, pageSize: 12 }),
 ]);
 ---
 
 <PublicLayout
   settings={settings}
   title="作品"
-  description="從想像到實作，探索個人作品、開源專案與創作實驗。"
+  description="個人作品、開源專案與創作實驗，記錄從想法到實作的過程。"
 >
   <div class="page-shell projects-page">
     <header class="collection-header">
-      <div>
-        <span class="eyebrow">THE LAB / 作品實驗室</span>
-        <h1>
-          讓點子，<span class="text-accent">真實發生</span>
-          <span class="heading-dot">.</span>
-        </h1>
-        <p>一些解決問題的小工具，一些純粹因為喜歡而做的事。</p>
-      </div>
-      <span class="collection-mark" aria-hidden="true">
-        ✳
-      </span>
+      <h1 class="page-title">
+        <Icon name="code" size={36} />
+        作品
+      </h1>
+      <p>一些解決問題的小工具，一些純粹因為喜歡而做的事。這裡記錄我的作品、開源專案與創作實驗。</p>
     </header>
-    <div class="collection-results">
-      <span>
-        所有作品<span class="result-count">{result.total}</span>
-      </span>
-      <span class="result-order">持續創造，持續打磨</span>
-    </div>
-    <div class="project-grid">
+    <section class="project-grid" aria-label="作品列表">
       {result.items.length ? (
-        result.items.map((entry, index) => (
-          <EntryCard entry={entry} variant="card" index={index + (result.page - 1) * 8} />
-        ))
+        result.items.map((entry) => <ProjectCard entry={entry} />)
       ) : (
         <EmptyState
           title="好奇心，是一切的起點。"
@@ -48,7 +35,31 @@ const [settings, result] = await Promise.all([
           icon="code"
         />
       )}
-    </div>
+    </section>
     <Pagination page={result.page} pages={result.pages} />
   </div>
 </PublicLayout>
+
+<style>
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .project-grid :global(.empty-state) {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 1199px) {
+    .project-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 620px) {
+    .project-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

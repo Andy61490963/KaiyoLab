@@ -1,12 +1,13 @@
 ---
 import type { PublicEntry } from '../../lib/types';
-import Icon from './Icon.astro';
 interface Props {
   entry: PublicEntry;
   variant?: 'row' | 'card' | 'feature';
   index?: number;
+  headingLevel?: 'h2' | 'h3';
 }
-const { entry, variant = 'row', index = 0 } = Astro.props;
+const { entry, variant = 'row', headingLevel = 'h3' } = Astro.props;
+const Heading = headingLevel;
 const href = `/${entry.kind === 'project' ? 'projects' : 'articles'}/${encodeURIComponent(entry.slug)}`;
 const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
   year: 'numeric',
@@ -16,45 +17,129 @@ const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
 const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
 ---
 
-<article class:list={['entry', `entry-${variant}`]}>
-  <a class="entry-image" href={href} tabindex="-1" aria-hidden="true">
-    <img
-      src={entry.cover || '/images/cover-orbit.svg'}
-      alt=""
-      loading="lazy"
-      width="960"
-      height="600"
-    />
-    {entry.featured && <span class="image-label">精選紀錄</span>}
-    <span class="image-number">{String(index + 1).padStart(2, '0')}</span>
-  </a>
-  <div class="entry-content">
-    <div class="entry-meta">
-      <span class="category-label">
-        {entry.category || (entry.kind === 'project' ? '作品' : '隨筆')}
-      </span>
-      <span class="meta-dot">·</span>
+<article class:list={['journal-entry', `journal-entry-${variant}`]}>
+  {variant === 'feature' && entry.cover && (
+    <a class="journal-entry-cover" href={href} tabindex="-1" aria-hidden="true">
+      <img src={entry.cover} alt="" loading="lazy" width="960" height="600" />
+    </a>
+  )}
+  <div class="journal-entry-copy">
+    <div class="journal-entry-meta">
       <time datetime={entry.publishedAt}>{date}</time>
+      {entry.category && (
+        <>
+          <span aria-hidden="true">·</span>
+          <a href={`/articles?category=${encodeURIComponent(entry.category)}`}>{entry.category}</a>
+        </>
+      )}
       {entry.kind === 'article' && (
         <>
-          <span class="meta-dot">·</span>
+          <span aria-hidden="true">·</span>
           <span>{readTime} 分鐘閱讀</span>
         </>
       )}
+      {entry.featured && <span class="journal-entry-featured">精選</span>}
     </div>
-    <h3>
+    <Heading class="journal-entry-title">
       <a href={href}>{entry.title}</a>
-    </h3>
-    <p>{entry.excerpt}</p>
-    <div class="entry-bottom">
-      <div class="entry-tags">
+    </Heading>
+    {entry.excerpt && <p class="journal-entry-excerpt">{entry.excerpt}</p>}
+    {entry.tags.length > 0 && (
+      <ul class="journal-entry-tags" aria-label="文章標籤">
         {entry.tags.slice(0, 3).map((tag) => (
-          <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
+          <li>
+            <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
+          </li>
         ))}
-      </div>
-      <a class="entry-arrow" href={href} aria-label={`閱讀：${entry.title}`}>
-        <Icon name="diagonal" size={19} />
-      </a>
-    </div>
+      </ul>
+    )}
   </div>
 </article>
+
+<style>
+  .journal-entry {
+    min-width: 0;
+    padding-block: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .journal-entry-copy {
+    min-width: 0;
+  }
+  .journal-entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-bottom: 7px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .journal-entry-featured {
+    padding: 1px 7px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .journal-entry-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+  .journal-entry-title a {
+    color: var(--accent);
+    text-underline-offset: 4px;
+  }
+  .journal-entry a:hover {
+    text-decoration: underline;
+  }
+  .journal-entry-excerpt {
+    margin-top: 8px;
+    font-size: 16px;
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+  }
+  .journal-entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 0;
+    margin: 10px 0 0;
+    color: var(--muted);
+    list-style: none;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .journal-entry-tags a,
+  .journal-entry-meta a {
+    text-underline-offset: 3px;
+  }
+  .journal-entry-cover {
+    display: block;
+    margin-bottom: 18px;
+  }
+  .journal-entry-cover img {
+    width: 100%;
+    max-height: 260px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+  .journal-entry-card {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+  @media (max-width: 600px) {
+    .journal-entry {
+      padding-block: 18px;
+    }
+    .journal-entry-title {
+      font-size: 18px;
+    }
+  }
+</style>
