@@ -2,16 +2,16 @@
 import PublicLayout from '../layouts/PublicLayout.astro';
 import { getSettings } from '../lib/content';
 import { renderMarkdown } from '../lib/markdown';
+import { defaultAbout } from '../lib/site-copy';
 
 const settings = await getSettings();
-const rendered = await renderMarkdown(
-  settings.about ||
-    "# About Me\n\nHey, I'm a software engineer sharing development notes and personal projects.",
-);
+const rendered = await renderMarkdown(settings.about || defaultAbout(settings.authorName));
+const hasTitle = rendered.toc.some((heading) => heading.depth === 1);
 ---
 
 <PublicLayout settings={settings} title="About Me" description={settings.bio || settings.description}>
   <article class="page-shell about-page">
+    {!hasTitle && <h1 class="page-title">About Me</h1>}
     <div class="about-markdown prose" set:html={rendered.html} />
   </article>
 </PublicLayout>

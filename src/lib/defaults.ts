@@ -1,21 +1,20 @@
 import type { EntryContent, SiteSettings } from './types';
+import { defaultAbout, englishCopy } from './site-copy';
+
 export const defaultSettings: SiteSettings = {
   siteName: 'KaiyoLab',
-  tagline: 'Software engineering notes and open-source projects',
-  description: 'Sharing software development notes, personal projects, and things I am learning',
+  ...englishCopy,
   homeIntro: '',
-  authorName: 'Kaiyo',
-  bio: 'Software engineer sharing development notes and personal projects',
-  about:
-    "# About Me\\n\\nHey, I'm Kaiyo. This is my corner of the web for software development notes and personal projects.\\n\\n## What I Do\\n\\nI build software, explore systems, and document what I learn along the way.\\n\\n## Contact\\n\\nAdd your preferred contact links here from the admin settings.",
+  authorName: 'Andy',
+  about: defaultAbout('Andy'),
   logo: '/favicon.svg',
   avatar: '',
-  heroImage: '/images/kaiyo-hero.png',
+  heroImage: '',
   socialLinks: [],
   siteUrl: process.env.SITE_URL || 'http://localhost:4321',
 };
 export const emptyContent: EntryContent = {
-  title: '未命名文章',
+  title: 'Untitled article',
   slug: '',
   excerpt: '',
   body: '',
