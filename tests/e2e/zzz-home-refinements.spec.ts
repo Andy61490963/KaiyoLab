@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { SiteSettings } from '../../src/lib/types';
 
 const languageButton = (page: Page) => page.locator('.language-toggle:visible');
@@ -79,6 +80,9 @@ test('public refinements fit both languages and themes at five viewport widths',
             expect(
               await cat.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0),
             ).toBe(true);
+            if (width >= 1024) {
+              await expect(page.locator('.public-intro > .ui-copy')).toHaveCSS('display', 'inline');
+            }
             await expect(page.locator('.public-sidebar-bottom a')).toHaveCount(1);
             await expect(page.locator('.public-sidebar-bottom a')).toHaveAttribute(
               'href',
@@ -86,7 +90,7 @@ test('public refinements fit both languages and themes at five viewport widths',
             );
             if ([375, 1440].includes(width)) {
               await testInfo.attach(`home-${language}-${theme}-${width}`, {
-                body: await page.screenshot({ fullPage: true }),
+                body: await page.screenshot({ fullPage: true, animations: 'disabled' }),
                 contentType: 'image/png',
               });
             }
@@ -164,14 +168,22 @@ test('a long, authored timeline keeps its text with the cat beside it', async ({
   if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname))
     throw new Error('Use an isolated local test server, never production.');
   const headers = { Origin: baseURL };
-  const login = await page.request.post('/api/auth/sign-in/email', {
+  const credentials = {
     headers,
     data: {
       email: process.env.E2E_EMAIL || 'e2e@example.test',
       password: process.env.E2E_PASSWORD || 'KaiyoLab-e2e-password-2026',
     },
-  });
-  expect(login.ok()).toBe(true);
+  };
+  let login = await page.request.post('/api/auth/sign-in/email', credentials);
+  if (login.status() === 429) {
+    // Earlier suites use the same test account. Respect the real rate limit, never disable it.
+    const wait = Number(login.headers()['retry-after'] || login.headers()['x-retry-after'] || 60);
+    const seconds = Number.isFinite(wait) ? Math.max(1, Math.min(120, wait)) : 60;
+    await delay((seconds + 1) * 1000);
+    login = await page.request.post('/api/auth/sign-in/email', credentials);
+  }
+  expect(login.ok(), `Fixture sign-in returned HTTP ${login.status()}`).toBe(true);
   const response = await page.request.get('/api/admin/settings');
   expect(response.ok()).toBe(true);
   const original = (await response.json()) as SiteSettings;
@@ -198,7 +210,7 @@ test('a long, authored timeline keeps its text with the cat beside it', async ({
         }
         await page.locator('.home-companion img').evaluate((img: HTMLImageElement) => img.decode());
         await testInfo.attach(`timeline-${lang}-${width}`, {
-          body: await page.screenshot({ fullPage: true }),
+          body: await page.screenshot({ fullPage: true, animations: 'disabled' }),
           contentType: 'image/png',
         });
       }
