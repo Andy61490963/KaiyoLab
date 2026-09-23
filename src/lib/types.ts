@@ -40,6 +40,7 @@ export interface SiteSettings {
   siteName: string;
   tagline: string;
   description: string;
+  homeIntro: string;
   authorName: string;
   bio: string;
   about: string;

@@ -4,6 +4,7 @@ import EntryCard from '../components/public/EntryCard.astro';
 import ProjectCard from '../components/public/ProjectCard.astro';
 import Icon from '../components/public/Icon.astro';
 import { getSettings, listPublished, listTaxonomies } from '../lib/content';
+import { renderMarkdown } from '../lib/markdown';
 const [settings, recent, featured, projects, taxonomy] = await Promise.all([
   getSettings(),
   listPublished({ kind: 'article', pageSize: 5 }),
@@ -13,18 +14,13 @@ const [settings, recent, featured, projects, taxonomy] = await Promise.all([
 ]);
 const recentIds = new Set(recent.items.map((entry) => entry.id));
 const additionalFeatured = featured.items.filter((entry) => !recentIds.has(entry.id));
-const authorName = settings.authorName || settings.siteName;
+const homeIntro = await renderMarkdown(settings.homeIntro);
 ---
 
 <PublicLayout settings={settings}>
   <div class="page-shell home-content">
     <header class="home-introduction">
-      <h1>嗨，我是 {authorName}</h1>
-      <p class="home-tagline">{settings.tagline || '寫程式、做作品，也記錄學習過程中的發現'}</p>
-      <p>
-        {settings.description ||
-          '歡迎來到我的個人網站，這裡分享技術筆記、開發經驗，以及把想法變成作品的過程'}
-      </p>
+      <div class="home-intro-markdown prose" set:html={homeIntro.html} />
       <a class="home-inline-link" href="/about">
         更多關於我 <span aria-hidden="true">→</span>
       </a>
@@ -121,21 +117,31 @@ const authorName = settings.authorName || settings.siteName;
     max-width: 820px;
     margin-bottom: 52px;
   }
-  .home-introduction h1 {
-    margin-bottom: 24px;
+  .home-intro-markdown :global(h1) {
+    margin: 0 0 24px;
     font-size: clamp(30px, 3.2vw, 42px);
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: -0.035em;
   }
-  .home-introduction p {
-    margin-bottom: 16px;
+  .home-intro-markdown :global(p) {
+    margin: 0 0 16px;
+    color: var(--text);
     font-size: 18px;
     line-height: 1.9;
   }
-  .home-introduction .home-tagline {
+  .home-intro-markdown :global(p:first-of-type) {
     font-size: 21px;
     line-height: 1.75;
+  }
+  .home-intro-markdown :global(h2),
+  .home-intro-markdown :global(h3) {
+    margin-block: 24px 12px;
+  }
+  .home-intro-markdown :global(a) {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
   .home-inline-link,
   .home-section-heading a,
@@ -227,10 +233,10 @@ const authorName = settings.authorName || settings.siteName;
     .home-introduction {
       margin-bottom: 36px;
     }
-    .home-introduction p {
+    .home-intro-markdown :global(p) {
       font-size: 16px;
     }
-    .home-introduction .home-tagline {
+    .home-intro-markdown :global(p:first-of-type) {
       font-size: 18px;
     }
     .home-section {

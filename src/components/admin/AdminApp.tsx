@@ -1100,7 +1100,8 @@ function SettingsForm({ about }: { about: boolean }) {
           aria-label={label}
           value={String(data?.[key] ?? '')}
           onChange={(e) => change(key, e.target.value)}
-          rows={key === 'about' ? 14 : 3}
+          required={options.required}
+          rows={key === 'about' ? 14 : key === 'homeIntro' ? 9 : 3}
         />
       ) : (
         <input
@@ -1174,9 +1175,14 @@ function SettingsForm({ about }: { about: boolean }) {
                   {about ? (
                     <>
                       {field('authorName', '顯示名稱', { required: true })}
+                      {field('homeIntro', '首頁自我介紹（Markdown）', {
+                        multiline: true,
+                        required: true,
+                        help: '整段首頁文字可直接編輯，支援標題、段落、連結與圖片；儲存後立即更新首頁',
+                      })}
                       {field('bio', '個人簡介', {
                         multiline: true,
-                        help: '顯示在首頁與作者資訊',
+                        help: '顯示在側欄與關於我頁面',
                       })}
                       {field('about', '關於我', {
                         multiline: true,
@@ -1189,7 +1195,7 @@ function SettingsForm({ about }: { about: boolean }) {
                       {field('tagline', '一句話介紹')}
                       {field('description', '網站描述', {
                         multiline: true,
-                        help: '用於首頁與搜尋引擎摘要',
+                        help: '用於搜尋引擎摘要；首頁文字請到「關於我」編輯',
                       })}
                       {field('siteUrl', '網站公開網址', {
                         type: 'url',
