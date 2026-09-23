@@ -23,17 +23,17 @@ const pageTitle = title
 const siteUrl = settings.siteUrl || Astro.url.origin;
 const canonical = new URL(Astro.url.pathname, siteUrl).href;
 const navItems = [
-  { href: '/', label: 'Home', icon: 'home' },
-  { href: '/articles', label: 'Articles', icon: 'file' },
-  { href: '/projects', label: 'Projects', icon: 'code' },
-  { href: '/about', label: 'About Me', icon: 'user' },
+  { href: '/', label: '首頁', icon: 'home' },
+  { href: '/articles', label: '文章', icon: 'file' },
+  { href: '/projects', label: '作品', icon: 'code' },
+  { href: '/about', label: '關於我', icon: 'user' },
 ];
 const active = (href: string) =>
   href === '/' ? Astro.url.pathname === '/' : Astro.url.pathname.startsWith(href);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant-TW">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,7 +54,7 @@ const active = (href: string) =>
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={new URL(image || '/images/kaiyo-hero.png', siteUrl).href} />
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale" content="zh_TW" />
     <meta property="og:site_name" content={settings.siteName} />
     <meta name="twitter:card" content="summary_large_image" />
     <script is:inline>
@@ -75,18 +75,19 @@ const active = (href: string) =>
   </head>
   <body class="public-site">
     <a class="skip-link" href="#main-content">
-      Skip to main content
+      跳至主要內容
     </a>
     <header class="public-header">
       <div class="public-header-top">
-        <a class="public-brand" href="/" aria-label={`${settings.siteName} home`}>
+        <a class="public-brand" href="/" aria-label={`${settings.siteName} 首頁`}>
+          <img src={settings.logo || '/favicon.svg'} alt="" width="25" height="25" />
           <span>{settings.siteName}</span>
         </a>
         <div class="public-actions">
-          <a class="icon-button" href="/articles#article-search" aria-label="Search articles">
+          <a class="icon-button" href="/articles#article-search" aria-label="搜尋文章">
             <Icon name="search" size={19} />
           </a>
-          <button class="icon-button theme-toggle" type="button" aria-label="Toggle color theme">
+          <button class="icon-button theme-toggle" type="button" aria-label="切換明暗主題">
             <span class="theme-sun">
               <Icon name="sun" size={20} />
             </span>
@@ -97,7 +98,7 @@ const active = (href: string) =>
           <button
             class="icon-button mobile-menu-toggle"
             type="button"
-            aria-label="Open menu"
+            aria-label="開啟選單"
             aria-expanded="false"
             aria-controls="mobile-nav"
           >
@@ -106,11 +107,11 @@ const active = (href: string) =>
         </div>
       </div>
       <p class="public-intro">
-        I\'m <a href="/about">{settings.authorName || settings.siteName}</a>
+        嗨，我是 <a href="/about">{settings.authorName || settings.siteName}</a>
         <br />
-        {settings.bio || 'Software engineer sharing development notes, open-source projects, and things worth documenting.'}
+        {settings.bio || '在這裡分享技術筆記、開源作品，以及生活裡值得記錄的發現'}
       </p>
-      <nav class="public-nav" aria-label="Main navigation">
+      <nav class="public-nav" aria-label="主要導覽">
         {navItems.map((item) => (
           <a
             class:list={{ active: active(item.href) }}
@@ -124,7 +125,7 @@ const active = (href: string) =>
           </a>
         ))}
       </nav>
-      <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation" hidden>
+      <nav id="mobile-nav" class="mobile-nav" aria-label="行動版導覽" hidden>
         {navItems.map((item) => (
           <a
             class:list={{ active: active(item.href) }}
@@ -147,11 +148,11 @@ const active = (href: string) =>
             </a>
           ))}
           <a href="/rss.xml">
-            <Icon name="rss" size={17} /> RSS Subscribe
+            <Icon name="rss" size={17} /> RSS 訂閱
           </a>
         </div>
         <a class="public-admin-link" href="/admin">
-          Admin <Icon name="diagonal" size={13} />
+          管理後台 <Icon name="diagonal" size={13} />
         </a>
       </div>
     </header>
@@ -161,18 +162,18 @@ const active = (href: string) =>
       </main>
       <footer class="public-footer">
         <div class="public-footer-links">
-          <a href="/rss.xml">RSS Subscribe</a>
-          <a href="/about">About Me</a>
+          <a href="/rss.xml">RSS 訂閱</a>
+          <a href="/about">關於我</a>
           {settings.socialLinks.map((link) => (
             <a href={link.url} target="_blank" rel="noopener noreferrer">
               {link.label}
             </a>
           ))}
-          <a href="/admin">Admin</a>
+          <a href="/admin">管理後台</a>
         </div>
         <p>
           © {new Date().getFullYear()} {settings.authorName || settings.siteName}
-          <span>Software notes and projects maintained by the site owner</span>
+          <span>文章與作品由站長維護</span>
         </p>
       </footer>
     </div>
@@ -182,7 +183,7 @@ const active = (href: string) =>
         if (themeButton)
           themeButton.setAttribute(
             'aria-label',
-            document.documentElement.dataset.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
+            document.documentElement.dataset.theme === 'dark' ? '切換淺色主題' : '切換深色主題',
           );
       };
       updateThemeLabel();
@@ -199,14 +200,14 @@ const active = (href: string) =>
       menuButton?.addEventListener('click', () => {
         const open = menuButton.getAttribute('aria-expanded') !== 'true';
         menuButton.setAttribute('aria-expanded', String(open));
-        menuButton.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        menuButton.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
         if (menu) menu.hidden = !open;
       });
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && menu && !menu.hidden) {
           menu.hidden = true;
           menuButton?.setAttribute('aria-expanded', 'false');
-          menuButton?.setAttribute('aria-label', 'Open menu');
+          menuButton?.setAttribute('aria-label', '開啟選單');
           menuButton?.focus();
         }
       });
@@ -214,17 +215,17 @@ const active = (href: string) =>
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'copy-code';
-        button.textContent = 'Copy';
-        button.setAttribute('aria-label', 'Copy code');
+        button.textContent = '複製';
+        button.setAttribute('aria-label', '複製程式碼');
         button.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(pre.querySelector('code')?.textContent || '');
-            button.textContent = 'Copied';
+            button.textContent = '已複製';
           } catch {
-            button.textContent = 'Copy failed';
+            button.textContent = '無法複製';
           }
           setTimeout(() => {
-            button.textContent = 'Copy';
+            button.textContent = '複製';
           }, 2000);
         });
         pre.appendChild(button);

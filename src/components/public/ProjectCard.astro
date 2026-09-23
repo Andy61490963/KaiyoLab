@@ -21,24 +21,24 @@ const year = new Date(entry.publishedAt).getFullYear();
   </Heading>
   {entry.excerpt && <p class="project-description">{entry.excerpt}</p>}
   {entry.tags.length > 0 && (
-    <ul class="project-technologies" aria-label="Technologies used">
+    <ul class="project-technologies" aria-label="使用技術">
       {entry.tags.slice(0, 4).map((tag) => (
         <li>{tag}</li>
       ))}
     </ul>
   )}
   <div class="project-links">
-    <a href={href} aria-label={`${entry.title}: details`}>
-      Details
+    <a href={href} aria-label={`${entry.title}：詳細介紹`}>
+      詳細介紹
     </a>
     {entry.demoUrl && (
       <a
         href={entry.demoUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${entry.title}: live demo (opens in a new tab)`}
+        aria-label={`${entry.title}：展示（開啟新分頁）`}
       >
-        Demo<span aria-hidden="true">↗</span>
+        展示<span aria-hidden="true">↗</span>
       </a>
     )}
     {entry.repoUrl && (
@@ -46,9 +46,9 @@ const year = new Date(entry.publishedAt).getFullYear();
         href={entry.repoUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${entry.title}: source code (opens in a new tab)`}
+        aria-label={`${entry.title}：原始碼（開啟新分頁）`}
       >
-        Source<span aria-hidden="true">↗</span>
+        原始碼<span aria-hidden="true">↗</span>
       </a>
     )}
   </div>

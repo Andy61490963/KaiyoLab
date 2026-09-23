@@ -24,13 +24,13 @@ describe('內容渲染與輸入邊界', () => {
   it('舊設定保留目前首頁文字，並以安全的 Markdown 呈現', async () => {
     const source = defaultHomeIntro({
       ...defaultSettings,
-      authorName: 'Andy *Developer*',
+      authorName: 'Andy *開發者*',
     });
-    expect(source).toContain("# I'm **Andy \\*Developer\\***");
-    expect(source).toContain('Software engineering notes and open\\-source projects');
+    expect(source).toContain('# 嗨，我是 Andy \\*開發者\\*');
+    expect(source).toContain('技術筆記與開源作品');
     const { html } = await renderMarkdown(source);
-    expect(html).toContain('<h1');
-    expect(html).toContain('Andy *Developer*');
+    expect(html).toContain('<h1 id="section-嗨我是-andy-開發者">');
+    expect(html).toContain('Andy *開發者*');
   });
   it('允許中文網址與去除重複標籤', () => {
     expect(

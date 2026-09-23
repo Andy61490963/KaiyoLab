@@ -22,13 +22,13 @@ const homeIntro = await renderMarkdown(settings.homeIntro);
     <header class="home-introduction">
       <div class="home-intro-markdown prose" set:html={homeIntro.html} />
       <a class="home-inline-link" href="/about">
-        More about me <span aria-hidden="true">→</span>
+        更多關於我 <span aria-hidden="true">→</span>
       </a>
       {settings.heroImage && settings.heroImage !== '/images/kaiyo-hero.png' && (
         <img
           class="home-custom-image"
           src={settings.heroImage}
-          alt={`${settings.siteName} home image`}
+          alt={`${settings.siteName} 的首頁圖片`}
           width="960"
           height="400"
           fetchpriority="high"
@@ -38,9 +38,9 @@ const homeIntro = await renderMarkdown(settings.homeIntro);
 
     <section class="home-section" aria-labelledby="recent-articles-title">
       <div class="home-section-heading">
-        <h2 id="recent-articles-title">Latest Articles</h2>
+        <h2 id="recent-articles-title">最新文章</h2>
         <a href="/articles">
-          All articles <span aria-hidden="true">→</span>
+          所有文章 <span aria-hidden="true">→</span>
         </a>
       </div>
       {recent.items.length ? (
@@ -50,14 +50,14 @@ const homeIntro = await renderMarkdown(settings.homeIntro);
           ))}
         </div>
       ) : (
-        <p class="home-empty">No published articles yet.</p>
+        <p class="home-empty">目前沒有已發布的文章</p>
       )}
     </section>
 
     {additionalFeatured.length > 0 && (
       <section class="home-section" aria-labelledby="featured-articles-title">
         <div class="home-section-heading">
-          <h2 id="featured-articles-title">Featured Articles</h2>
+          <h2 id="featured-articles-title">精選文章</h2>
         </div>
         <div class="home-article-list">
           {additionalFeatured.map((entry) => (
@@ -69,9 +69,9 @@ const homeIntro = await renderMarkdown(settings.homeIntro);
 
     <section class="home-section" aria-labelledby="featured-projects-title">
       <div class="home-section-heading">
-        <h2 id="featured-projects-title">Featured Projects</h2>
+        <h2 id="featured-projects-title">精選作品</h2>
         <a href="/projects">
-          All projects <span aria-hidden="true">→</span>
+          所有作品 <span aria-hidden="true">→</span>
         </a>
       </div>
       {projects.items.length ? (
@@ -81,13 +81,13 @@ const homeIntro = await renderMarkdown(settings.homeIntro);
           ))}
         </div>
       ) : (
-        <p class="home-empty">No featured projects yet. Browse the projects page for more.</p>
+        <p class="home-empty">目前沒有精選作品，可到作品頁查看全部內容</p>
       )}
     </section>
 
     {taxonomy.categories.length > 0 && (
       <section class="home-section home-topics" aria-labelledby="topics-title">
-        <h2 id="topics-title">Browse by Topic</h2>
+        <h2 id="topics-title">依主題閱讀</h2>
         <ul>
           {taxonomy.categories.map((category) => (
             <li>
@@ -103,7 +103,7 @@ const homeIntro = await renderMarkdown(settings.homeIntro);
     <p class="home-subscribe">
       <Icon name="rss" size={18} />
       <span>
-        <a href="/rss.xml">Subscribe to new articles via RSS</a>
+        <a href="/rss.xml">透過 RSS 訂閱最新文章</a>
       </span>
     </p>
   </div>

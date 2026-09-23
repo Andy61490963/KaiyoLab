@@ -431,8 +431,6 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
         ...original.rows[0].value,
         siteName: '預設文案遷移驗收站',
         tagline: '在想像與技術之間，探索更多可能。',
-        homeIntro:
-          '# 嗨，我是 [**Andy**](https://kaiyo.zeabur.app/about)**.**\n\nSharing software development notes and personal projects.',
         about:
           '## 嗨，歡迎來到我的實驗室\n\n這裡記錄我的學習、創作，以及對世界的好奇。\n\n你可以在管理後台編輯這段介紹。',
         bio: '這是站長自行撰寫的介紹。保留原本的句號。',
@@ -476,24 +474,6 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
       await client.query(specificCopy);
       const repeated = await client.query('SELECT value FROM settings WHERE id = 1');
       expect(repeated.rows[0].value).toEqual(revised.rows[0].value);
-
-      const englishCopy = await readFile(
-        new URL('../../db/migrations/004_public_english_copy.sql', import.meta.url),
-        'utf8',
-      );
-      await client.query(englishCopy);
-      const english = await client.query('SELECT value FROM settings WHERE id = 1');
-      expect(english.rows[0].value).toEqual({
-        ...revised.rows[0].value,
-        tagline: 'Software engineering notes and open-source projects',
-        about:
-          "# About Me\n\nHey, I'm Kaiyo. This is my corner of the web for software development notes and personal projects.\n\n## What I Do\n\nI build software, explore systems, and document what I learn along the way.\n\n## Contact\n\nAdd your preferred contact links here from the admin settings.",
-        homeIntro:
-          "# I'm **Andy**\n\nSharing software development notes and personal projects.",
-      });
-      await client.query(englishCopy);
-      const englishRepeated = await client.query('SELECT value FROM settings WHERE id = 1');
-      expect(englishRepeated.rows[0].value).toEqual(english.rows[0].value);
     } finally {
       try {
         await client.query('ROLLBACK');

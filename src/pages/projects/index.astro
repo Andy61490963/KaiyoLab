@@ -12,22 +12,22 @@ const [settings, result] = await Promise.all([
 ]);
 ---
 
-<PublicLayout settings={settings} title="Projects" description="Personal projects and open-source work.">
+<PublicLayout settings={settings} title="作品" description="個人作品與開源專案列表">
   <div class="page-shell projects-page">
     <header class="collection-header">
       <h1 class="page-title">
         <Icon name="code" size={36} />
-        Projects
+        作品
       </h1>
-      <p>Selected projects and open-source work, with details and related links.</p>
+      <p>做過的專案與開源作品，點開可查看介紹及相關連結</p>
     </header>
-    <section class="project-grid" aria-label="Project list">
+    <section class="project-grid" aria-label="作品列表">
       {result.items.length ? (
         result.items.map((entry) => <ProjectCard entry={entry} />)
       ) : (
         <EmptyState
-          title="No published projects yet"
-          description="Published projects and links will appear here."
+          title="目前沒有已發布的作品"
+          description="發布作品後，介紹與連結會顯示在這裡"
           icon="code"
         />
       )}
