@@ -11,11 +11,11 @@
     "build": "astro build",
     "preview": "node scripts/start.mjs",
     "check": "astro check",
-    "test": "vitest run --exclude tests/integration/**",
+    "test": "vitest run --exclude \"tests/integration/**\"",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "db:migrate": "node scripts/migrate.mjs",
-    "account:recover": "node scripts/recover.mjs",
+    "account:recover": "node scripts/start.mjs recover",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
