@@ -1,4 +1,5 @@
 ---
+import UiText from '../components/public/UiText.astro';
 import PublicLayout from '../layouts/PublicLayout.astro';
 import { getSettings } from '../lib/content';
 import { renderMarkdown } from '../lib/markdown';
@@ -9,9 +10,22 @@ const rendered = await renderMarkdown(settings.about || defaultAbout(settings.au
 const hasTitle = rendered.toc.some((heading) => heading.depth === 1);
 ---
 
-<PublicLayout settings={settings} title="About Me" description={settings.bio || settings.description}>
+<PublicLayout
+  settings={settings}
+  title="About Me"
+  description={settings.bio || settings.description}
+>
   <article class="page-shell about-page">
-    {!hasTitle && <h1 class="page-title">About Me</h1>}
-    <div class="about-markdown prose" set:html={rendered.html} />
+    {!hasTitle && (
+      <h1 class="page-title">
+        <UiText en="About Me" zh="關於我" />
+      </h1>
+    )}
+    <div
+      class="about-markdown prose"
+      data-authored-content
+      translate="no"
+      set:html={rendered.html}
+    />
   </article>
 </PublicLayout>

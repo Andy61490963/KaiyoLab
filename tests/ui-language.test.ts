@@ -12,8 +12,14 @@ describe('public interface language', () => {
   it('has complete English and Traditional Chinese interface labels', () => {
     for (const [key, values] of Object.entries(uiLabels)) {
       expect(values).toHaveLength(2);
-      expect(values.every((text) => text.trim().length > 0), key).toBe(true);
-      expect(values.every((text) => !text.includes('<script')), key).toBe(true);
+      expect(
+        values.every((text) => text.trim().length > 0),
+        key,
+      ).toBe(true);
+      expect(
+        values.every((text) => !text.includes('<script')),
+        key,
+      ).toBe(true);
     }
     expect(uiLabel('openMenu', 'en')).toBe('Open menu');
     expect(uiLabel('openMenu', 'zh-TW')).toBe('開啟選單');

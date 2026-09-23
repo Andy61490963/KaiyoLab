@@ -1,4 +1,5 @@
 ---
+import UiText from './UiText.astro';
 import type { PublicEntry } from '../../lib/types';
 interface Props {
   entry: PublicEntry;
@@ -35,17 +36,21 @@ const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
       {entry.kind === 'article' && (
         <>
           <span aria-hidden="true">·</span>
-          <span>{readTime} min read</span>
+          <UiText en={`${readTime} min read`} zh={`閱讀約 ${readTime} 分鐘`} />
         </>
       )}
-      {entry.featured && <span class="journal-entry-featured">Featured</span>}
+      {entry.featured && (
+        <span class="journal-entry-featured">
+          <UiText en="Featured" zh="精選" />
+        </span>
+      )}
     </div>
     <Heading class="journal-entry-title">
       <a href={href}>{entry.title}</a>
     </Heading>
     {entry.excerpt && <p class="journal-entry-excerpt">{entry.excerpt}</p>}
     {entry.tags.length > 0 && (
-      <ul class="journal-entry-tags" aria-label="Article tags">
+      <ul class="journal-entry-tags" aria-label="Article tags" data-ui-label="articleTags">
         {entry.tags.slice(0, 3).map((tag) => (
           <li>
             <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>

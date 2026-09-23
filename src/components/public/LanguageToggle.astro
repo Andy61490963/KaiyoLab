@@ -1,9 +1,24 @@
 ---
-interface Props { placement: 'header' | 'corner'; }
+interface Props {
+  placement: 'header' | 'corner';
+}
 const { placement } = Astro.props;
 ---
+
 <div class:list={['language-control', `language-control-${placement}`]}>
-  <button type="button" class="language-toggle" aria-label="Switch interface language to Traditional Chinese" aria-pressed="false" aria-describedby="language-help" hidden>
-    <span lang="en" aria-hidden="true">EN</span><span lang="zh-TW" aria-hidden="true">中文</span>
+  <button
+    type="button"
+    class="language-toggle"
+    aria-label="Switch interface language to Traditional Chinese"
+    aria-pressed="false"
+    aria-describedby="language-help"
+    hidden
+  >
+    <span lang="en" aria-hidden="true">
+      EN
+    </span>
+    <span lang="zh-TW" aria-hidden="true">
+      中文
+    </span>
   </button>
 </div>

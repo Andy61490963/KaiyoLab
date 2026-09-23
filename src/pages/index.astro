@@ -1,4 +1,5 @@
 ---
+import UiText from '../components/public/UiText.astro';
 import PublicLayout from '../layouts/PublicLayout.astro';
 import EntryCard from '../components/public/EntryCard.astro';
 import ProjectCard from '../components/public/ProjectCard.astro';
@@ -13,7 +14,9 @@ const [settings, recent, featured, selectedProjects, taxonomy] = await Promise.a
   listPublished({ kind: 'project', featured: true, pageSize: 3 }),
   listTaxonomies(),
 ]);
-const projects = selectedProjects.total ? selectedProjects : await listPublished({ kind: 'project', pageSize: 3 });
+const projects = selectedProjects.total
+  ? selectedProjects
+  : await listPublished({ kind: 'project', pageSize: 3 });
 const recentIds = new Set(recent.items.map((entry) => entry.id));
 const additionalFeatured = featured.items.filter((entry) => !recentIds.has(entry.id));
 const homeIntro = await renderMarkdown(settings.homeIntro);
@@ -23,45 +26,127 @@ const hasTitle = homeIntro.toc.some((heading) => heading.depth === 1);
 <PublicLayout settings={settings}>
   <div class="page-shell home-content">
     <header class="home-introduction">
-      {!hasTitle && <h1 class="page-title">I'm {settings.authorName || settings.siteName}</h1>}
-      <div class="home-intro-markdown prose" set:html={homeIntro.html} />
-      <a class="home-inline-link" href="/about">More about me <span aria-hidden="true">→</span></a>
+      <div class="home-intro-layout">
+        <div class="home-intro-copy">
+          {!hasTitle && <h1 class="page-title">I'm {settings.authorName || settings.siteName}</h1>}
+          <div
+            class="home-intro-markdown prose"
+            data-authored-content
+            translate="no"
+            set:html={homeIntro.html}
+          />
+          <a class="home-inline-link" href="/about">
+            <UiText en="More about me" zh="更多關於我" /> <span aria-hidden="true">→</span>
+          </a>
+        </div>
+        <figure class="home-companion" aria-hidden="true">
+          <img
+            src="/images/ragdoll-companion.webp"
+            alt=""
+            width="320"
+            height="320"
+            decoding="async"
+          />
+        </figure>
+      </div>
       {settings.heroImage && settings.heroImage !== '/images/kaiyo-hero.png' && (
-        <img class="home-custom-image" src={settings.heroImage} alt={`${settings.siteName} home image`} width="960" height="400" fetchpriority="high" />
+        <img
+          class="home-custom-image"
+          src={settings.heroImage}
+          alt={`${settings.siteName} home image`}
+          width="960"
+          height="400"
+          fetchpriority="high"
+        />
       )}
     </header>
     <section class="home-section" aria-labelledby="recent-articles-title">
       <div class="home-section-heading">
-        <h2 id="recent-articles-title">Latest Articles</h2>
-        <a href="/articles">All articles <span aria-hidden="true">→</span></a>
+        <h2 id="recent-articles-title">
+          <UiText en="Latest Articles" zh="最新文章" />
+        </h2>
+        <a href="/articles">
+          <UiText en="All articles" zh="所有文章" /> <span aria-hidden="true">→</span>
+        </a>
       </div>
       {recent.items.length ? (
-        <div class="home-article-list">{recent.items.map((entry) => <EntryCard entry={entry} />)}</div>
-      ) : <p class="home-empty">No published articles yet. New writing will appear here.</p>}
+        <div class="home-article-list">
+          {recent.items.map((entry) => (
+            <EntryCard entry={entry} />
+          ))}
+        </div>
+      ) : (
+        <p class="home-empty">
+          <UiText
+            en="No published articles yet. New writing will appear here."
+            zh="尚無已發布文章，新的筆記會出現在這裡。"
+          />
+        </p>
+      )}
     </section>
     {additionalFeatured.length > 0 && (
       <section class="home-section" aria-labelledby="featured-articles-title">
-        <div class="home-section-heading"><h2 id="featured-articles-title">Featured Articles</h2></div>
-        <div class="home-article-list">{additionalFeatured.map((entry) => <EntryCard entry={entry} />)}</div>
+        <div class="home-section-heading">
+          <h2 id="featured-articles-title">
+            <UiText en="Featured Articles" zh="精選文章" />
+          </h2>
+        </div>
+        <div class="home-article-list">
+          {additionalFeatured.map((entry) => (
+            <EntryCard entry={entry} />
+          ))}
+        </div>
       </section>
     )}
     <section class="home-section" aria-labelledby="featured-projects-title">
       <div class="home-section-heading">
-        <h2 id="featured-projects-title">{selectedProjects.total ? 'Selected Projects' : 'Projects'}</h2>
-        <a href="/projects">All projects <span aria-hidden="true">→</span></a>
+        <h2 id="featured-projects-title">
+          {selectedProjects.total ? (
+            <UiText en="Selected Projects" zh="精選專案" />
+          ) : (
+            <UiText en="Projects" zh="專案" />
+          )}
+        </h2>
+        <a href="/projects">
+          <UiText en="All projects" zh="所有專案" /> <span aria-hidden="true">→</span>
+        </a>
       </div>
       {projects.items.length ? (
-        <div class="home-project-list">{projects.items.map((entry) => <ProjectCard entry={entry} headingLevel="h3" />)}</div>
-      ) : <p class="home-empty">No published projects yet. Projects will appear here when they are ready to share.</p>}
+        <div class="home-project-list">
+          {projects.items.map((entry) => (
+            <ProjectCard entry={entry} headingLevel="h3" />
+          ))}
+        </div>
+      ) : (
+        <p class="home-empty">
+          <UiText
+            en="No published projects yet. Projects will appear here when they are ready to share."
+            zh="尚無已發布專案，準備好分享時會出現在這裡。"
+          />
+        </p>
+      )}
     </section>
     {taxonomy.categories.length > 0 && (
       <section class="home-section home-topics" aria-labelledby="topics-title">
-        <h2 id="topics-title">Browse by Topic</h2>
-        <ul>{taxonomy.categories.map((category) => (
-          <li><a href={`/articles?category=${encodeURIComponent(category.name)}`}>{category.name}</a></li>
-        ))}</ul>
+        <h2 id="topics-title">
+          <UiText en="Browse by Topic" zh="依主題瀏覽" />
+        </h2>
+        <ul>
+          {taxonomy.categories.map((category) => (
+            <li>
+              <a href={`/articles?category=${encodeURIComponent(category.name)}`}>
+                {category.name}
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
     )}
-    <p class="home-subscribe"><Icon name="rss" size={18} /><a href="/rss.xml">Subscribe to new articles via RSS</a></p>
+    <p class="home-subscribe">
+      <Icon name="rss" size={18} />
+      <a href="/rss.xml">
+        <UiText en="Subscribe to new articles via RSS" zh="透過 RSS 訂閱新文章" />
+      </a>
+    </p>
   </div>
 </PublicLayout>

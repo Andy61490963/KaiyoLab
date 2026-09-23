@@ -1,4 +1,5 @@
 ---
+import UiText from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import EntryCard from '../../components/public/EntryCard.astro';
 import Icon from '../../components/public/Icon.astro';
@@ -31,7 +32,7 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
 >
   <article class="page-shell article-page">
     <a class="back-link" href="/articles">
-      <Icon name="back" size={17} /> Back to articles
+      <Icon name="back" size={17} /> <UiText en="Back to articles" zh="返回文章列表" />
     </a>
     <header class="article-heading">
       <div class="entry-meta">
@@ -41,7 +42,10 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
         <span class="meta-dot">·</span>
         <time datetime={entry.publishedAt}>{date}</time>
         <span class="meta-dot">·</span>
-        <span>{rendered.readingMinutes} min read</span>
+        <UiText
+          en={`${rendered.readingMinutes} min read`}
+          zh={`閱讀約 ${rendered.readingMinutes} 分鐘`}
+        />
       </div>
       <h1>{entry.title}</h1>
       {entry.excerpt && <p class="article-lead">{entry.excerpt}</p>}
@@ -63,8 +67,10 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
     )}
     {rendered.toc.length > 0 && (
       <details class="mobile-toc">
-        <summary>Table of contents</summary>
-        <nav aria-label="Mobile article table of contents">
+        <summary>
+          <UiText en="Table of contents" zh="目錄" />
+        </summary>
+        <nav aria-label="Mobile article table of contents" data-ui-label="mobileToc">
           {rendered.toc.map((item) => (
             <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
               {item.text}
@@ -75,19 +81,23 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
     )}
     <div class="reading-layout">
       <div class="article-body">
-        <div class="prose" set:html={rendered.html} />
+        <div class="prose" data-authored-content translate="no" set:html={rendered.html} />
         <div class="article-end">
           <a href="/rss.xml">
-            Subscribe to new articles <Icon name="rss" size={16} />
+            <UiText en="Subscribe to new articles" zh="訂閱新文章" /> <Icon name="rss" size={16} />
           </a>
         </div>
       </div>
       <aside class="article-toc">
         <div class="toc-inner">
-          <h2>Table of contents</h2>
-          <span class="eyebrow">ON THIS PAGE</span>
+          <h2>
+            <UiText en="Table of contents" zh="目錄" />
+          </h2>
+          <span class="eyebrow">
+            <UiText en="ON THIS PAGE" zh="本頁內容" />
+          </span>
           {rendered.toc.length ? (
-            <nav aria-label="Article table of contents">
+            <nav aria-label="Article table of contents" data-ui-label="articleToc">
               {rendered.toc.map((item) => (
                 <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
                   {item.text}
@@ -95,10 +105,12 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
               ))}
             </nav>
           ) : (
-            <p class="sidebar-empty">A short read without section headings.</p>
+            <p class="sidebar-empty">
+              <UiText en="A short read without section headings." zh="這篇短文沒有章節標題。" />
+            </p>
           )}
           <a class="toc-top" href="#main-content">
-            Back to top ↑
+            <UiText en="Back to top" zh="回到頂端" /> ↑
           </a>
         </div>
       </aside>
@@ -108,13 +120,16 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
     <section class="related-section page-shell">
       <div class="section-heading">
         <div>
-          <span class="eyebrow">KEEP EXPLORING</span>
+          <span class="eyebrow">
+            <UiText en="KEEP EXPLORING" zh="繼續探索" />
+          </span>
           <h2>
-            You might also like<span class="heading-dot">.</span>
+            <UiText en="You might also like" zh="延伸閱讀" />
+            <span class="heading-dot">.</span>
           </h2>
         </div>
         <a class="text-link" href="/articles">
-          All articles <Icon size={17} />
+          <UiText en="All articles" zh="所有文章" /> <Icon size={17} />
         </a>
       </div>
       <div class="related-grid">

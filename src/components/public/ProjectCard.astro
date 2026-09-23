@@ -1,4 +1,5 @@
 ---
+import UiText from './UiText.astro';
 import type { PublicEntry } from '../../lib/types';
 
 interface Props {
@@ -21,34 +22,32 @@ const year = new Date(entry.publishedAt).getFullYear();
   </Heading>
   {entry.excerpt && <p class="project-description">{entry.excerpt}</p>}
   {entry.tags.length > 0 && (
-    <ul class="project-technologies" aria-label="Technologies used">
+    <ul class="project-technologies" aria-label="Technologies used" data-ui-label="technologies">
       {entry.tags.slice(0, 4).map((tag) => (
         <li>{tag}</li>
       ))}
     </ul>
   )}
   <div class="project-links">
-    <a href={href} aria-label={`${entry.title}: details`}>
-      Details
+    <a href={href} title={entry.title}>
+      <UiText en="Details" zh="詳細內容" />
     </a>
     {entry.demoUrl && (
-      <a
-        href={entry.demoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`${entry.title}: live demo (opens in a new tab)`}
-      >
-        Demo<span aria-hidden="true">↗</span>
+      <a href={entry.demoUrl} target="_blank" rel="noopener noreferrer" title={entry.title}>
+        <UiText en="Demo" zh="展示" />
+        <span aria-hidden="true">↗</span>
+        <span class="sr-only">
+          <UiText en="(opens in a new tab)" zh="（於新分頁開啟）" />
+        </span>
       </a>
     )}
     {entry.repoUrl && (
-      <a
-        href={entry.repoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`${entry.title}: source code (opens in a new tab)`}
-      >
-        Source<span aria-hidden="true">↗</span>
+      <a href={entry.repoUrl} target="_blank" rel="noopener noreferrer" title={entry.title}>
+        <UiText en="Source" zh="原始碼" />
+        <span aria-hidden="true">↗</span>
+        <span class="sr-only">
+          <UiText en="(opens in a new tab)" zh="（於新分頁開啟）" />
+        </span>
       </a>
     )}
   </div>

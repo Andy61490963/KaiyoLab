@@ -1,4 +1,5 @@
 ---
+import UiText from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import Icon from '../../components/public/Icon.astro';
 import { getSettings, getPublished } from '../../lib/content';
@@ -19,11 +20,13 @@ const rendered = await renderMarkdown(entry.body);
 >
   <article class="page-shell project-detail">
     <a class="back-link" href="/projects">
-      <Icon name="back" size={17} /> Back to projects
+      <Icon name="back" size={17} /> <UiText en="Back to projects" zh="返回專案列表" />
     </a>
     <header class="project-detail-heading">
       <div>
-        <span class="eyebrow">A PROJECT BY {settings.authorName || settings.siteName}</span>
+        <span class="eyebrow">
+          <UiText en="A PROJECT BY" zh="專案作者" /> {settings.authorName || settings.siteName}
+        </span>
         <h1>{entry.title}</h1>
         <p>{entry.excerpt}</p>
         <div class="entry-tags">
@@ -40,7 +43,7 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            Open demo <Icon name="diagonal" size={18} />
+            <UiText en="Open demo" zh="開啟展示" /> <Icon name="diagonal" size={18} />
           </a>
         )}
         {entry.repoUrl && (
@@ -50,7 +53,8 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Icon name="code" size={18} /> Source code <Icon name="diagonal" size={16} />
+            <Icon name="code" size={18} /> <UiText en="Source code" zh="原始碼" />{' '}
+            <Icon name="diagonal" size={16} />
           </a>
         )}
       </div>
@@ -62,25 +66,33 @@ const rendered = await renderMarkdown(entry.body);
     )}
     <div class="reading-layout">
       <div class="article-body">
-        <div class="prose" set:html={rendered.html} />
+        <div class="prose" data-authored-content translate="no" set:html={rendered.html} />
       </div>
       <aside class="article-toc">
         <div class="toc-inner">
-          <h2>Project details</h2>
+          <h2>
+            <UiText en="Project details" zh="專案資訊" />
+          </h2>
           <dl class="project-facts">
-            <dt>Published</dt>
+            <dt>
+              <UiText en="Published" zh="發布日期" />
+            </dt>
             <dd>{new Date(entry.publishedAt).toLocaleDateString('en-US')}</dd>
-            <dt>Last updated</dt>
+            <dt>
+              <UiText en="Last updated" zh="最後更新" />
+            </dt>
             <dd>{new Date(entry.updatedAt).toLocaleDateString('zh-TW')}</dd>
             {entry.category && (
               <>
-                <dt>Category</dt>
+                <dt>
+                  <UiText en="Category" zh="分類" />
+                </dt>
                 <dd>{entry.category}</dd>
               </>
             )}
           </dl>
           {rendered.toc.length > 0 && (
-            <nav aria-label="Project table of contents">
+            <nav aria-label="Project table of contents" data-ui-label="projectToc">
               {rendered.toc.map((item) => (
                 <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
                   {item.text}

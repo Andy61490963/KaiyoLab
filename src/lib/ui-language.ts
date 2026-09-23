@@ -28,9 +28,18 @@ export const uiLabels = {
   copied: ['Copied', '已複製'],
   copyFailed: ['Copy failed', '複製失敗'],
   copiedStatus: ['Code copied to clipboard.', '已將程式碼複製到剪貼簿。'],
-  copyFailedStatus: ['Unable to copy. Select the code and copy it manually.', '無法複製，請選取程式碼後手動複製。'],
-  languageHint: ['Interface only. Articles and profile content stay in their original language.', '只切換介面；文章與個人介紹保留原始語言。'],
-  languageChanged: ['Interface language: English. Content is unchanged.', '介面已切換為繁體中文，內容語言保持不變。'],
+  copyFailedStatus: [
+    'Unable to copy. Select the code and copy it manually.',
+    '無法複製，請選取程式碼後手動複製。',
+  ],
+  languageHint: [
+    'Interface only. Articles and profile content stay in their original language.',
+    '只切換介面；文章與個人介紹保留原始語言。',
+  ],
+  languageChanged: [
+    'Interface language: English. Content is unchanged.',
+    '介面已切換為繁體中文，內容語言保持不變。',
+  ],
 } as const;
 export type UiLabel = keyof typeof uiLabels;
 export const uiLabel = (key: UiLabel, language: UiLanguage): string =>
