@@ -6,6 +6,7 @@ import { db, systemState, settings, secret } from '../../lib/db';
 import { createAuth } from '../../lib/auth';
 import { body, json, errorResponse, HttpError } from '../../lib/http';
 import { defaultSettings } from '../../lib/defaults';
+import { defaultAbout } from '../../lib/site-copy';
 export const POST: APIRoute = async ({ request }) => {
   try {
     const input = z
@@ -37,7 +38,12 @@ export const POST: APIRoute = async ({ request }) => {
         .insert(settings)
         .values({
           id: 1,
-          value: { ...defaultSettings, siteName: input.siteName, authorName: input.name },
+          value: {
+            ...defaultSettings,
+            siteName: input.siteName,
+            authorName: input.name,
+            about: defaultAbout(input.name),
+          },
         })
         .onConflictDoNothing();
     });

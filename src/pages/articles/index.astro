@@ -14,104 +14,63 @@ const [settings, result, taxonomy] = await Promise.all([
   listPublished({ kind: 'article', q, category, tag, page, pageSize: 8 }),
   listTaxonomies(),
 ]);
-const categoryLink = (name: string) => {
+const filterLink = (key: 'category' | 'tag', value: string) => {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
-  if (name) params.set('category', name);
+  if (category) params.set('category', category);
   if (tag) params.set('tag', tag);
+  if (value) params.set(key, value);
+  else params.delete(key);
   return `/articles${params.size ? `?${params}` : ''}`;
 };
 ---
 
-<PublicLayout settings={settings} title="Articles" description="Browse articles by category, tag, or keyword.">
+<PublicLayout settings={settings} title="Articles" description="Development notes, practical guides, and things worth documenting.">
   <div class="page-shell">
     <header class="collection-header">
-      <div>
-        <h1>
-          <Icon name="file" size={34} />
-          Articles
-        </h1>
-        <p>Software development notes and other writing, searchable by category or keyword.</p>
-      </div>
+      <h1>Articles</h1>
+      <p>Development notes, practical guides, and things worth documenting.</p>
     </header>
     <div class="collection-layout">
       <aside class="collection-sidebar">
         <h2>Categories</h2>
         <nav class="category-nav" aria-label="Article categories">
-          <a href={categoryLink('')} class:list={{ active: !category }}>
-            <span>All articles</span>
-            <Icon name="layers" size={17} />
-          </a>
+          <a href={filterLink('category', '')} class:list={{ active: !category }} aria-current={!category ? 'true' : undefined}>All categories</a>
           {taxonomy.categories.map((item) => (
-            <a href={categoryLink(item.name)} class:list={{ active: category === item.name }}>
-              <span>{item.name}</span>
-              <Icon name="chevron" size={15} />
-            </a>
+            <a href={filterLink('category', item.name)} class:list={{ active: category === item.name }} aria-current={category === item.name ? 'true' : undefined}>{item.name}</a>
           ))}
         </nav>
         {taxonomy.tags.length > 0 && (
           <div class="tag-cloud">
             <h2>Tags</h2>
             <div>
+              {tag && <a href={filterLink('tag', '')}>Clear tag</a>}
               {taxonomy.tags.map((item) => (
-                <a
-                  href={`/articles?tag=${encodeURIComponent(item.name)}`}
-                  class:list={{ active: tag === item.name }}
-                >
-                  #{item.name}
-                </a>
+                <a href={filterLink('tag', item.name)} class:list={{ active: tag === item.name }} aria-current={tag === item.name ? 'true' : undefined}>#{item.name}</a>
               ))}
             </div>
           </div>
         )}
       </aside>
       <div class="collection-content">
-        <form id="article-search" class="search-form" method="get" action="/articles" role="search">
-          <label class="sr-only" for="q">
-            Search articles
-          </label>
+        <form class="search-form" method="get" action="/articles" role="search">
+          <label class="sr-only" for="article-search">Search articles</label>
           <Icon name="search" size={19} />
-          <input
-            id="q"
-            type="search"
-            name="q"
-            value={q}
-            placeholder="Search titles or content…"
-            autocomplete="off"
-          />
+          <input id="article-search" type="search" name="q" value={q} maxlength="200" placeholder="Search titles or content…" autocomplete="off" />
           {category && <input type="hidden" name="category" value={category} />}
           {tag && <input type="hidden" name="tag" value={tag} />}
-          <button type="submit">
-            Search
-            <Icon name="arrow" size={16} />
-          </button>
+          <button type="submit">Search <Icon name="arrow" size={16} /></button>
         </form>
         <div class="collection-results">
-          <span>
-            {q ? `Search results for “${q}”` : category || (tag ? `#${tag}` : 'All articles')}
-            <span class="result-count">{result.total}</span>
-          </span>
-          {(q || tag || category) && (
-            <a href="/articles">
-              Clear filters <Icon name="close" size={14} />
-            </a>
-          )}
+          <span>{result.total} {result.total === 1 ? 'article' : 'articles'}{q && ` matching “${q}”`}{category && ` in ${category}`}{tag && ` tagged #${tag}`}</span>
+          {(q || tag || category) && <a href="/articles">Clear filters <Icon name="close" size={14} /></a>}
           <span class="result-order">Newest first</span>
         </div>
         <div class="article-list">
-          {result.items.length ? (
-            result.items.map((entry, index) => (
-              <EntryCard entry={entry} headingLevel="h2" index={index + (result.page - 1) * 8} />
-            ))
-          ) : (
-            <EmptyState
-              title={q || tag || category ? 'No matching articles' : 'No published articles yet'}
-              description={
-                q || tag || category
-                  ? 'Try another keyword or clear the category and tag filters.'
-                  : 'Published articles will appear here.'
-              }
-            />
+          {result.items.length ? result.items.map((entry, index) => (
+            <EntryCard entry={entry} headingLevel="h2" index={index + (result.page - 1) * 8} />
+          )) : (
+            <EmptyState title={q || tag || category ? 'No matching articles' : 'No published articles yet'} description={q || tag || category ? 'Try another keyword or clear the category and tag filters.' : 'Published articles will appear here.'} />
           )}
         </div>
         <Pagination page={result.page} pages={result.pages} />

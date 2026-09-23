@@ -2,7 +2,9 @@ import { and, desc, eq, isNull, isNotNull, sql } from 'drizzle-orm';
 import { db, entries, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
 import { defaultHomeIntro } from './home-intro';
+import { repairLegacySiteCopy } from './site-copy';
 import type { Entry, EntryKind, PublicEntry, Taxonomy, SiteSettings } from './types';
+
 export function serializeEntry(row: typeof entries.$inferSelect): Entry {
   return {
     ...row,
@@ -14,11 +16,11 @@ export function serializeEntry(row: typeof entries.$inferSelect): Entry {
 }
 export async function getSettings(): Promise<SiteSettings> {
   const [row] = await db().select().from(settings);
-  const merged = {
+  const merged = repairLegacySiteCopy({
     ...defaultSettings,
     ...row?.value,
     siteUrl: process.env.SITE_URL || row?.value.siteUrl || defaultSettings.siteUrl,
-  };
+  });
   return { ...merged, homeIntro: merged.homeIntro?.trim() || defaultHomeIntro(merged) };
 }
 export async function listTaxonomies(
@@ -81,7 +83,8 @@ export async function listPublished(opts: {
     .select()
     .from(entries)
     .where(where)
-    .orderBy(desc(sql`${entries.published}->>'featured'`), desc(entries.publishedAt))
+    // The UI promises "Newest first". Featured posts must not displace newer posts.
+    .orderBy(desc(entries.publishedAt), desc(entries.id))
     .limit(pageSize)
     .offset((page - 1) * pageSize);
   return { items: rows.map(asPublic), total, page, pages };
