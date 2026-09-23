@@ -27,7 +27,7 @@ describe('內容渲染與輸入邊界', () => {
       authorName: 'Andy *Developer*',
     });
     expect(source).toContain("# I'm **Andy \\*Developer\\***");
-    expect(source).toContain('Software engineering notes and open-source projects');
+    expect(source).toContain('Software engineering notes and open\\-source projects');
     const { html } = await renderMarkdown(source);
     expect(html).toContain('<h1');
     expect(html).toContain('Andy *Developer*');
