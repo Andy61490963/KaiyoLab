@@ -3,10 +3,15 @@ import PublicLayout from '../layouts/PublicLayout.astro';
 import ErrorView from '../components/public/ErrorView.astro';
 import { getSettings } from '../lib/content';
 import { defaultSettings } from '../lib/defaults';
+
 Astro.response.status = 404;
 const settings = await getSettings().catch(() => defaultSettings);
 ---
 
-<PublicLayout settings={settings} title="找不到這個頁面" description="找不到指定的頁面">
-  <ErrorView code="404" title="找不到這個頁面" description="請檢查網址，或返回首頁查看文章與作品" />
+<PublicLayout settings={settings} title="Page not found" description="The requested page could not be found.">
+  <ErrorView
+    code="404"
+    title="Page not found"
+    description="Check the URL, or head back home to browse articles and projects."
+  />
 </PublicLayout>

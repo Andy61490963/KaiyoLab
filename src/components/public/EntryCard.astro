@@ -9,7 +9,7 @@ interface Props {
 const { entry, variant = 'row', headingLevel = 'h3' } = Astro.props;
 const Heading = headingLevel;
 const href = `/${entry.kind === 'project' ? 'projects' : 'articles'}/${encodeURIComponent(entry.slug)}`;
-const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
+const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
@@ -35,17 +35,17 @@ const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
       {entry.kind === 'article' && (
         <>
           <span aria-hidden="true">·</span>
-          <span>{readTime} 分鐘閱讀</span>
+          <span>{readTime} min read</span>
         </>
       )}
-      {entry.featured && <span class="journal-entry-featured">精選</span>}
+      {entry.featured && <span class="journal-entry-featured">Featured</span>}
     </div>
     <Heading class="journal-entry-title">
       <a href={href}>{entry.title}</a>
     </Heading>
     {entry.excerpt && <p class="journal-entry-excerpt">{entry.excerpt}</p>}
     {entry.tags.length > 0 && (
-      <ul class="journal-entry-tags" aria-label="文章標籤">
+      <ul class="journal-entry-tags" aria-label="Article tags">
         {entry.tags.slice(0, 3).map((tag) => (
           <li>
             <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
