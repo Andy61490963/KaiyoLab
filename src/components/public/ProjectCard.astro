@@ -30,10 +30,12 @@ const year = new Date(entry.publishedAt).getFullYear();
   )}
   <div class="project-links">
     <a href={href} title={entry.title}>
+      <span class="sr-only">{entry.title}: </span>
       <UiText en="Details" zh="詳細內容" />
     </a>
     {entry.demoUrl && (
       <a href={entry.demoUrl} target="_blank" rel="noopener noreferrer" title={entry.title}>
+        <span class="sr-only">{entry.title}: </span>
         <UiText en="Demo" zh="展示" />
         <span aria-hidden="true">↗</span>
         <span class="sr-only">
@@ -43,6 +45,7 @@ const year = new Date(entry.publishedAt).getFullYear();
     )}
     {entry.repoUrl && (
       <a href={entry.repoUrl} target="_blank" rel="noopener noreferrer" title={entry.title}>
+        <span class="sr-only">{entry.title}: </span>
         <UiText en="Source" zh="原始碼" />
         <span aria-hidden="true">↗</span>
         <span class="sr-only">
