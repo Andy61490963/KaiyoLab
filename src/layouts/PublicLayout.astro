@@ -1,6 +1,9 @@
 ---
+import UiText from '../components/public/UiText.astro';
 import '../styles/global.css';
 import '../styles/public.css';
+import '../styles/public-enhancements.css';
+import LanguageToggle from '../components/public/LanguageToggle.astro';
 import Icon from '../components/public/Icon.astro';
 import type { SiteSettings } from '../lib/types';
 
@@ -14,19 +17,23 @@ interface Props {
 
 const { settings, title, description = settings.description, image, article = false } = Astro.props;
 const author = settings.authorName || settings.siteName;
-const pageTitle = title ? `${title} · ${settings.siteName}` : `${settings.siteName} — ${settings.tagline}`;
+const pageTitle = title
+  ? `${title} · ${settings.siteName}`
+  : `${settings.siteName} — ${settings.tagline}`;
 const siteUrl = settings.siteUrl || Astro.url.origin;
 const canonical = new URL(Astro.url.pathname, siteUrl).href;
-const socialImage = image || (settings.heroImage !== '/images/kaiyo-hero.png' ? settings.heroImage : '');
+const socialImage =
+  image || (settings.heroImage !== '/images/kaiyo-hero.png' ? settings.heroImage : '');
 const navItems = [
-  { href: '/', label: 'Home', icon: 'home' },
-  { href: '/articles', label: 'Articles', icon: 'file' },
-  { href: '/projects', label: 'Projects', icon: 'code' },
-  { href: '/about', label: 'About Me', icon: 'user' },
+  { href: '/', label: 'Home', zh: '首頁', icon: 'home' },
+  { href: '/articles', label: 'Articles', zh: '文章', icon: 'file' },
+  { href: '/projects', label: 'Projects', zh: '專案', icon: 'code' },
+  { href: '/about', label: 'About Me', zh: '關於我', icon: 'user' },
 ];
-const active = (href: string) => href === '/'
-  ? Astro.url.pathname === '/'
-  : Astro.url.pathname === href || Astro.url.pathname.startsWith(`${href}/`);
+const active = (href: string) =>
+  href === '/'
+    ? Astro.url.pathname === '/'
+    : Astro.url.pathname === href || Astro.url.pathname.startsWith(`${href}/`);
 ---
 
 <!doctype html>
@@ -39,7 +46,12 @@ const active = (href: string) => href === '/'
     <title>{pageTitle}</title>
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate" type="application/rss+xml" title={`${settings.siteName} RSS`} href="/rss.xml" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={`${settings.siteName} RSS`}
+      href="/rss.xml"
+    />
     <meta property="og:type" content={article ? 'article' : 'website'} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
@@ -50,42 +62,92 @@ const active = (href: string) => href === '/'
     <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
     <script is:inline>
       (() => {
+        let language = 'en';
+        try {
+          if (localStorage.getItem('kaiyo-ui-language') === 'zh-TW') language = 'zh-TW';
+        } catch {}
+        document.documentElement.dataset.uiLanguage = language;
+        document.documentElement.lang = language;
         let saved;
-        try { saved = localStorage.getItem('kaiyo-theme'); } catch {}
-        const theme = saved === 'light' || saved === 'dark'
-          ? saved
-          : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        try {
+          saved = localStorage.getItem('kaiyo-theme');
+        } catch {}
+        const theme =
+          saved === 'light' || saved === 'dark'
+            ? saved
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
         document.documentElement.dataset.theme = theme;
-        document.querySelector('meta[name="theme-color"]')?.setAttribute(
-          'content', theme === 'dark' ? '#202025' : '#f8f4e6',
-        );
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute('content', theme === 'dark' ? '#202025' : '#f8f4e6');
       })();
     </script>
   </head>
   <body class="public-site">
-    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <a class="skip-link" href="#main-content">
+      <UiText en="Skip to main content" zh="跳至主要內容" />
+    </a>
     <header class="public-header">
       <div class="public-header-top">
         <a class="public-brand" href="/" aria-label={`${settings.siteName} home`}>
-          {settings.siteName}<span aria-hidden="true" class="brand-dot">.</span>
+          {settings.siteName}
+          <span aria-hidden="true" class="brand-dot">
+            .
+          </span>
         </a>
         <div class="public-actions">
-          <a class="icon-button" href="/articles#article-search" aria-label="Search articles">
+          <LanguageToggle placement="header" />
+          <a
+            class="icon-button"
+            href="/articles#article-search"
+            aria-label="Search articles"
+            data-ui-label="search"
+          >
             <Icon name="search" size={19} />
           </a>
-          <button class="icon-button theme-toggle" type="button" aria-label="Toggle color theme" hidden>
-            <span class="theme-sun"><Icon name="sun" size={20} /></span>
-            <span class="theme-moon"><Icon name="moon" size={20} /></span>
+          <button
+            class="icon-button theme-toggle"
+            type="button"
+            aria-label="Toggle color theme"
+            hidden
+          >
+            <span class="theme-sun">
+              <Icon name="sun" size={20} />
+            </span>
+            <span class="theme-moon">
+              <Icon name="moon" size={20} />
+            </span>
           </button>
           <details class="mobile-menu" id="mobile-menu">
-            <summary role="button" class="icon-button mobile-menu-toggle" aria-label="Open menu" aria-controls="mobile-nav">
-              <span class="menu-open-icon"><Icon name="menu" size={21} /></span>
-              <span class="menu-close-icon"><Icon name="close" size={21} /></span>
+            <summary
+              role="button"
+              class="icon-button mobile-menu-toggle"
+              aria-label="Open menu"
+              aria-controls="mobile-nav"
+            >
+              <span class="menu-open-icon">
+                <Icon name="menu" size={21} />
+              </span>
+              <span class="menu-close-icon">
+                <Icon name="close" size={21} />
+              </span>
             </summary>
-            <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation">
+            <nav
+              id="mobile-nav"
+              class="mobile-nav"
+              aria-label="Mobile navigation"
+              data-ui-label="mobileNavigation"
+            >
               {navItems.map((item) => (
-                <a class:list={{ active: active(item.href) }} aria-current={active(item.href) ? 'page' : undefined} href={item.href}>
-                  <Icon name={item.icon} size={19} />{item.label}
+                <a
+                  class:list={{ active: active(item.href) }}
+                  aria-current={active(item.href) ? 'page' : undefined}
+                  href={item.href}
+                >
+                  <Icon name={item.icon} size={19} />
+                  <UiText en={item.label} zh={item.zh} />
                 </a>
               ))}
             </nav>
@@ -93,57 +155,105 @@ const active = (href: string) => href === '/'
         </div>
       </div>
       <p class="public-intro">
-        I'm <a href="/about"><strong>{author}</strong></a>.
-        <span>{settings.bio || 'Software engineer sharing development notes and personal projects.'}</span>
+        <UiText en="I’m" zh="我是" />{' '}
+        <a href="/about">
+          <strong>{author}</strong>
+        </a>
+        .
+        <span>
+          {settings.bio || 'Software engineer sharing development notes and personal projects.'}
+        </span>
       </p>
-      <nav class="public-nav" aria-label="Main navigation">
+      <nav class="public-nav" aria-label="Main navigation" data-ui-label="mainNavigation">
         {navItems.map((item) => (
-          <a class:list={{ active: active(item.href) }} aria-current={active(item.href) ? 'page' : undefined} href={item.href}>
-            <span class="nav-icon"><Icon name={item.icon} size={19} /></span>{item.label}
+          <a
+            class:list={{ active: active(item.href) }}
+            aria-current={active(item.href) ? 'page' : undefined}
+            href={item.href}
+          >
+            <span class="nav-icon">
+              <Icon name={item.icon} size={19} />
+            </span>
+            <UiText en={item.label} zh={item.zh} />
           </a>
         ))}
       </nav>
       <div class="public-sidebar-bottom">
         <div class="public-socials">
-          {settings.socialLinks.map((link) => (
-            <a href={link.url} target="_blank" rel="noopener noreferrer">
-              {link.label}<Icon name="diagonal" size={14} /><span class="sr-only"> (opens in a new tab)</span>
-            </a>
-          ))}
-          <a href="/rss.xml"><Icon name="rss" size={16} />RSS feed</a>
+          <a href="https://github.com/Andy61490963" target="_blank" rel="noopener noreferrer">
+            GitHub <Icon name="diagonal" size={14} />
+            <span class="sr-only">
+              <UiText en="(opens in a new tab)" zh="（於新分頁開啟）" />
+            </span>
+          </a>
         </div>
-        <a class="public-admin-link" href="/admin">Admin <Icon name="diagonal" size={13} /></a>
       </div>
     </header>
     <div class="public-frame">
-      <main id="main-content" tabindex="-1"><slot /></main>
+      <LanguageToggle placement="corner" />
+      <main id="main-content" tabindex="-1">
+        <slot />
+      </main>
       <footer class="public-footer">
         <div class="public-footer-links">
-          <a href="/rss.xml">RSS feed</a>
-          <a href="/about">About Me</a>
+          <a href="/rss.xml">
+            <UiText en="RSS feed" zh="RSS 訂閱" />
+          </a>
+          <a href="/about">
+            <UiText en="About Me" zh="關於我" />
+          </a>
           {settings.socialLinks.map((link) => (
             <a href={link.url} target="_blank" rel="noopener noreferrer">
-              {link.label}<span class="sr-only"> (opens in a new tab)</span>
+              {link.label}
+              <span class="sr-only">
+                {' '}
+                <UiText en="(opens in a new tab)" zh="（於新分頁開啟）" />
+              </span>
             </a>
           ))}
-          <a href="/admin">Admin</a>
+          <a href="/admin">
+            <UiText en="Admin" zh="管理後台" />
+          </a>
         </div>
-        <p>© {new Date().getFullYear()} {author}<span>Notes, projects, and things learned along the way.</span></p>
+        <p>
+          © {new Date().getFullYear()} {author}
+          <span>
+            <UiText
+              en="Notes, projects, and things learned along the way."
+              zh="筆記、專案，以及一路學到的事。"
+            />
+          </span>
+        </p>
       </footer>
     </div>
+    <span class="sr-only" id="language-help" data-ui-message="languageHint">
+      Interface only. Articles and profile content stay in their original language.
+    </span>
+    <span class="sr-only" id="language-status" role="status" aria-live="polite"></span>
     <span class="sr-only" id="copy-status" role="status" aria-live="polite"></span>
     <script>
+      import { currentUiLabel } from '../scripts/public-language';
       const root = document.documentElement;
       const themeButton = document.querySelector<HTMLButtonElement>('.theme-toggle');
       const systemTheme = matchMedia('(prefers-color-scheme: dark)');
       let chosenThisVisit = false;
       const savedTheme = () => {
-        try { return localStorage.getItem('kaiyo-theme'); } catch { return null; }
+        try {
+          return localStorage.getItem('kaiyo-theme');
+        } catch {
+          return null;
+        }
       };
       const applyTheme = (theme: string) => {
         root.dataset.theme = theme;
-        themeButton?.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#202025' : '#f8f4e6');
+        themeButton?.setAttribute('data-ui-label', theme === 'dark' ? 'lightTheme' : 'darkTheme');
+        themeButton?.setAttribute(
+          'aria-label',
+          currentUiLabel(theme === 'dark' ? 'lightTheme' : 'darkTheme'),
+        );
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute('content', theme === 'dark' ? '#202025' : '#f8f4e6');
       };
       applyTheme(root.dataset.theme || (systemTheme.matches ? 'dark' : 'light'));
       if (themeButton) themeButton.hidden = false;
@@ -151,17 +261,22 @@ const active = (href: string) => href === '/'
         chosenThisVisit = true;
         const theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
         applyTheme(theme);
-        try { localStorage.setItem('kaiyo-theme', theme); } catch {}
+        try {
+          localStorage.setItem('kaiyo-theme', theme);
+        } catch {}
       });
       systemTheme.addEventListener('change', () => {
         const saved = savedTheme();
-        if (!chosenThisVisit && saved !== 'light' && saved !== 'dark') applyTheme(systemTheme.matches ? 'dark' : 'light');
+        if (!chosenThisVisit && saved !== 'light' && saved !== 'dark')
+          applyTheme(systemTheme.matches ? 'dark' : 'light');
       });
       window.addEventListener('storage', (event) => {
         if (event.key === 'kaiyo-theme' || event.key === null) {
           chosenThisVisit = false;
           const saved = savedTheme();
-          applyTheme(saved === 'light' || saved === 'dark' ? saved : systemTheme.matches ? 'dark' : 'light');
+          applyTheme(
+            saved === 'light' || saved === 'dark' ? saved : systemTheme.matches ? 'dark' : 'light',
+          );
         }
       });
 
@@ -169,7 +284,11 @@ const active = (href: string) => href === '/'
       const menuButton = menu?.querySelector<HTMLElement>('summary');
       const updateMenu = () => {
         menuButton?.setAttribute('aria-expanded', String(Boolean(menu?.open)));
-        menuButton?.setAttribute('aria-label', menu?.open ? 'Close menu' : 'Open menu');
+        menuButton?.setAttribute('data-ui-label', menu?.open ? 'closeMenu' : 'openMenu');
+        menuButton?.setAttribute(
+          'aria-label',
+          currentUiLabel(menu?.open ? 'closeMenu' : 'openMenu'),
+        );
       };
       updateMenu();
       menu?.addEventListener('toggle', updateMenu);
@@ -181,16 +300,23 @@ const active = (href: string) => href === '/'
         }
       });
       document.addEventListener('click', (event) => {
-        if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+        if (menu?.open && event.target instanceof Node && !menu.contains(event.target))
+          menu.open = false;
       });
-      menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => { menu.open = false; }));
+      menu?.querySelectorAll('a').forEach((link) =>
+        link.addEventListener('click', () => {
+          menu.open = false;
+        }),
+      );
       matchMedia('(min-width: 801px)').addEventListener('change', (event) => {
         if (event.matches && menu) menu.open = false;
       });
       // Target the input itself: native fragment navigation also works without JavaScript.
       const focusSearch = () => {
         if (location.hash === '#article-search') {
-          document.querySelector<HTMLInputElement>('#article-search')?.focus({ preventScroll: true });
+          document
+            .querySelector<HTMLInputElement>('#article-search')
+            ?.focus({ preventScroll: true });
         }
       };
       window.addEventListener('pageshow', focusSearch);
@@ -204,21 +330,28 @@ const active = (href: string) => href === '/'
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'copy-code';
-        button.textContent = 'Copy';
-        button.setAttribute('aria-label', 'Copy code');
+        button.dataset.uiMessage = 'copy';
+        button.textContent = currentUiLabel('copy');
+        button.dataset.uiLabel = 'copyCode';
+        button.setAttribute('aria-label', currentUiLabel('copyCode'));
         let reset: ReturnType<typeof setTimeout>;
         button.addEventListener('click', async () => {
           clearTimeout(reset);
           const status = document.getElementById('copy-status');
           try {
             await navigator.clipboard.writeText(code.textContent || '');
-            button.textContent = 'Copied';
-            if (status) status.textContent = 'Code copied to clipboard.';
+            button.dataset.uiMessage = 'copied';
+            button.textContent = currentUiLabel('copied');
+            if (status) status.textContent = currentUiLabel('copiedStatus');
           } catch {
-            button.textContent = 'Copy failed';
-            if (status) status.textContent = 'Unable to copy. Select the code and copy it manually.';
+            button.dataset.uiMessage = 'copyFailed';
+            button.textContent = currentUiLabel('copyFailed');
+            if (status) status.textContent = currentUiLabel('copyFailedStatus');
           }
-          reset = setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+          reset = setTimeout(() => {
+            button.dataset.uiMessage = 'copy';
+            button.textContent = currentUiLabel('copy');
+          }, 2000);
         });
         pre.appendChild(button);
       });

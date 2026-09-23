@@ -1,4 +1,5 @@
 ---
+import UiText from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import ProjectCard from '../../components/public/ProjectCard.astro';
 import EmptyState from '../../components/public/EmptyState.astro';
@@ -12,22 +13,33 @@ const [settings, result] = await Promise.all([
 ]);
 ---
 
-<PublicLayout settings={settings} title="Projects" description="Personal projects and open-source work.">
+<PublicLayout
+  settings={settings}
+  title="Projects"
+  description="Personal projects and open-source work."
+>
   <div class="page-shell projects-page">
     <header class="collection-header">
       <h1 class="page-title">
         <Icon name="code" size={36} />
-        Projects
+        <UiText en="Projects" zh="專案" />
       </h1>
-      <p>Selected projects and open-source work, with details and related links.</p>
+      <p>
+        <UiText
+          en="Selected projects and open-source work, with details and related links."
+          zh="個人專案與開源作品，以及相關介紹和連結。"
+        />
+      </p>
     </header>
-    <section class="project-grid" aria-label="Project list">
+    <section class="project-grid" aria-label="Project list" data-ui-label="projectList">
       {result.items.length ? (
         result.items.map((entry) => <ProjectCard entry={entry} />)
       ) : (
         <EmptyState
           title="No published projects yet"
+          titleZh="尚無已發布專案"
           description="Published projects and links will appear here."
+          descriptionZh="已發布的專案與連結會出現在這裡。"
           icon="code"
         />
       )}

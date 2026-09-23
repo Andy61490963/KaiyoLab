@@ -1,14 +1,19 @@
 ---
+import UiText from './UiText.astro';
 import Icon from './Icon.astro';
 interface Props {
   title?: string;
   description?: string;
+  titleZh?: string;
+  descriptionZh?: string;
   icon?: string;
 }
 const {
   title = 'Nothing here yet',
   description = 'Published content will appear here.',
   icon = 'file',
+  titleZh = title,
+  descriptionZh = description,
 } = Astro.props;
 ---
 
@@ -16,6 +21,10 @@ const {
   <span class="empty-orbit">
     <Icon name={icon} size={27} />
   </span>
-  <h3>{title}</h3>
-  <p>{description}</p>
+  <h3>
+    <UiText en={title} zh={titleZh} />
+  </h3>
+  <p>
+    <UiText en={description} zh={descriptionZh} />
+  </p>
 </div>
