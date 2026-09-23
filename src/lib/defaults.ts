@@ -3,6 +3,7 @@ export const defaultSettings: SiteSettings = {
   siteName: 'KaiyoLab',
   tagline: '技術筆記與開源作品',
   description: '整理開發筆記、做過的專案，以及正在學習的事',
+  homeIntro: '',
   authorName: 'Kaiyo',
   bio: '分享程式開發筆記與個人作品',
   about:

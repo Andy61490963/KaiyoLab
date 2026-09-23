@@ -98,6 +98,7 @@ export const settingsSchema = z.object({
   siteName: z.string().trim().min(1).max(80),
   tagline: z.string().max(200),
   description: z.string().max(500),
+  homeIntro: z.string().trim().min(1).max(100000),
   authorName: z.string().trim().min(1).max(100),
   bio: z.string().max(1000),
   about: z.string().max(100000),

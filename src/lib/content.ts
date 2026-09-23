@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, isNotNull, sql } from 'drizzle-orm';
 import { db, entries, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
+import { defaultHomeIntro } from './home-intro';
 import type { Entry, EntryKind, PublicEntry, Taxonomy, SiteSettings } from './types';
 export function serializeEntry(row: typeof entries.$inferSelect): Entry {
   return {
@@ -13,11 +14,12 @@ export function serializeEntry(row: typeof entries.$inferSelect): Entry {
 }
 export async function getSettings(): Promise<SiteSettings> {
   const [row] = await db().select().from(settings);
-  return {
+  const merged = {
     ...defaultSettings,
     ...row?.value,
     siteUrl: process.env.SITE_URL || row?.value.siteUrl || defaultSettings.siteUrl,
   };
+  return { ...merged, homeIntro: merged.homeIntro?.trim() || defaultHomeIntro(merged) };
 }
 export async function listTaxonomies(
   publicOnly = true,
