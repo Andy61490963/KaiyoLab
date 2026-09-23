@@ -3,12 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import AdminApp from '../../components/admin/AdminApp';
 export const prerender = false;
 ---
-
 <AdminLayout>
-  <AdminApp path={Astro.url.pathname} client:only="react">
-    <p slot="fallback" class="admin-initial-loading">
-      正在載入管理後台…
-    </p>
-  </AdminApp>
-  <noscript>管理後台需要啟用 JavaScript</noscript>
+  <AdminApp path={Astro.url.pathname} client:only="react"><p slot="fallback" class="admin-initial-loading">Loading your workspace…</p></AdminApp>
+  <noscript>Enable JavaScript to use the admin workspace.</noscript>
 </AdminLayout>
