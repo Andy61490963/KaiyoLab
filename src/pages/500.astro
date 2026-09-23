@@ -2,17 +2,18 @@
 import PublicLayout from '../layouts/PublicLayout.astro';
 import ErrorView from '../components/public/ErrorView.astro';
 import { defaultSettings } from '../lib/defaults';
+
 Astro.response.status = 500;
 ---
 
 <PublicLayout
   settings={defaultSettings}
-  title="暫時無法載入"
-  description="KaiyoLab 目前暫時無法載入，請稍後再試"
+  title="Temporarily unavailable"
+  description="KaiyoLab is temporarily unavailable. Please try again shortly."
 >
   <ErrorView
     code="500"
-    title="網站暫時無法載入"
-    description="請稍後重新整理頁面；如果問題持續，請聯絡站長"
+    title="Temporarily unavailable"
+    description="Refresh the page in a moment. If the problem persists, contact the site owner."
   />
 </PublicLayout>

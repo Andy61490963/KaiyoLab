@@ -11,7 +11,7 @@ function plainText(value: string): string {
 
 export function defaultHomeIntro(settings: IntroSource): string {
   return [
-    `# 嗨，我是 ${plainText(settings.authorName || settings.siteName)}`,
+    `# I'm **${plainText(settings.authorName || settings.siteName)}**`,
     plainText(settings.tagline),
     plainText(settings.description),
   ]
