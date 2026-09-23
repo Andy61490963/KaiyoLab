@@ -122,12 +122,12 @@ test('媒體上傳、替代文字、個人設定與使用中圖片保護', async
     await page
       .getByLabel('首頁自我介紹（Markdown）')
       .fill(
-        "# I'm **Andy**\n\nSoftware development notes and personal projects.\n\n[Open-source projects](https://example.com)\n\n<script>window.homeIntroUnsafe = true</script>",
+        '# 嗨，我是 Andy\n\n**技術筆記與開源作品**\n\n整理開發筆記、做過的專案，以及正在學習的事\n\n[開源作品](https://example.com)\n\n<script>window.homeIntroUnsafe = true</script>',
       );
     await page.getByLabel('個人簡介', { exact: true }).fill('這是驗收過程中建立的個人簡介。');
     await page
       .getByLabel('關於我', { exact: true })
-      .fill("# About Me\n\n**This Markdown content should render correctly.**");
+      .fill('## 驗收個人頁\n\n**這段文字應正確呈現。**');
     await page.getByRole('button', { name: '選擇圖片', exact: true }).click();
     const picker = page.getByRole('dialog', { name: '選擇圖片' });
     await picker
@@ -141,17 +141,17 @@ test('媒體上傳、替代文字、個人設定與使用中圖片保護', async
     const updated = await requestJson<SiteSettings>(page.request, baseURL!, '/api/admin/settings');
     expect(updated.avatar).toBe(media!.url);
     expect(updated.authorName).toBe('後台驗收站長');
-    expect(updated.homeIntro).toContain("# I'm **Andy**");
+    expect(updated.homeIntro).toContain('# 嗨，我是 Andy');
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: "I'm Andy" })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open-source projects' })).toHaveAttribute(
+    await expect(page.getByRole('heading', { name: '嗨，我是 Andy' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '開源作品' })).toHaveAttribute(
       'href',
       'https://example.com',
     );
     expect(await page.evaluate(() => (window as any).homeIntroUnsafe)).toBeUndefined();
     expect(await page.locator('.home-intro-markdown').innerHTML()).not.toContain('<script');
     const about = await page.request.get('/about');
-    expect(await about.text()).toContain('About Me');
+    expect(await about.text()).toContain('驗收個人頁');
     await page.goto('/admin/media');
     card = page.locator('.admin-media-card').filter({ hasText: fileName });
     await expect(

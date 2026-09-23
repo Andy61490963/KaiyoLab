@@ -15,7 +15,7 @@ const related = await listPublished({
   category: entry.category || undefined,
   pageSize: 4,
 });
-const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
+const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
@@ -31,17 +31,17 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
 >
   <article class="page-shell article-page">
     <a class="back-link" href="/articles">
-      <Icon name="back" size={17} /> Back to articles
+      <Icon name="back" size={17} /> 返回文章紀錄
     </a>
     <header class="article-heading">
       <div class="entry-meta">
         <a class="category-label" href={`/articles?category=${encodeURIComponent(entry.category)}`}>
-          {entry.category || 'Notes'}
+          {entry.category || '隨筆'}
         </a>
         <span class="meta-dot">·</span>
         <time datetime={entry.publishedAt}>{date}</time>
         <span class="meta-dot">·</span>
-        <span>{rendered.readingMinutes} min read</span>
+        <span>{rendered.readingMinutes} 分鐘閱讀</span>
       </div>
       <h1>{entry.title}</h1>
       {entry.excerpt && <p class="article-lead">{entry.excerpt}</p>}
@@ -63,8 +63,8 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
     )}
     {rendered.toc.length > 0 && (
       <details class="mobile-toc">
-        <summary>Table of contents</summary>
-        <nav aria-label="Mobile article table of contents">
+        <summary>本文目錄</summary>
+        <nav aria-label="行動版文章目錄">
           {rendered.toc.map((item) => (
             <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
               {item.text}
@@ -78,16 +78,16 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
         <div class="prose" set:html={rendered.html} />
         <div class="article-end">
           <a href="/rss.xml">
-            Subscribe to new articles <Icon name="rss" size={16} />
+            訂閱新文章 <Icon name="rss" size={16} />
           </a>
         </div>
       </div>
       <aside class="article-toc">
         <div class="toc-inner">
-          <h2>Table of contents</h2>
+          <h2>本文目錄</h2>
           <span class="eyebrow">ON THIS PAGE</span>
           {rendered.toc.length ? (
-            <nav aria-label="Article table of contents">
+            <nav aria-label="文章目錄">
               {rendered.toc.map((item) => (
                 <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
                   {item.text}
@@ -95,10 +95,10 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
               ))}
             </nav>
           ) : (
-            <p class="sidebar-empty">A short read without section headings.</p>
+            <p class="sidebar-empty">一段值得慢慢閱讀的紀錄</p>
           )}
           <a class="toc-top" href="#main-content">
-            Back to top ↑
+            回到頂端 ↑
           </a>
         </div>
       </aside>
@@ -110,11 +110,11 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
         <div>
           <span class="eyebrow">KEEP EXPLORING</span>
           <h2>
-            You might also like<span class="heading-dot">.</span>
+            也許你會喜歡<span class="heading-dot">.</span>
           </h2>
         </div>
         <a class="text-link" href="/articles">
-          All articles <Icon size={17} />
+          所有文章 <Icon size={17} />
         </a>
       </div>
       <div class="related-grid">
