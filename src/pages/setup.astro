@@ -6,7 +6,12 @@ export const prerender = false;
 const [state] = await db().select().from(systemState);
 if (state?.setupComplete) return Astro.redirect('/login');
 ---
+
 <AdminLayout title="First-time setup">
-  <AuthForm mode="setup" client:only="react"><div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">Opening first-time setup…</div></AuthForm>
+  <AuthForm mode="setup" client:only="react">
+    <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
+      Opening first-time setup…
+    </div>
+  </AuthForm>
   <noscript>Enable JavaScript to set up your site.</noscript>
 </AdminLayout>

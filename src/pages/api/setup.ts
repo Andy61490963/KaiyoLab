@@ -9,18 +9,47 @@ import { defaultSettings } from '../../lib/defaults';
 import { defaultAbout } from '../../lib/site-copy';
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const input = z.object({ token: z.string().max(200), email: z.email(), password: z.string().min(12).max(128), name: z.string().trim().min(1).max(100), siteName: z.string().trim().min(1).max(80) }).parse(await body(request));
+    const input = z
+      .object({
+        token: z.string().max(200),
+        email: z.email(),
+        password: z.string().min(12).max(128),
+        name: z.string().trim().min(1).max(100),
+        siteName: z.string().trim().min(1).max(80),
+      })
+      .parse(await body(request));
     const token = secret('setup-token', 'SETUP_TOKEN');
-    const received = Buffer.from(input.token); const expected = Buffer.from(token);
-    if (!token || received.length !== expected.length || !timingSafeEqual(received, expected)) throw new HttpError(403, 'The setup token is incorrect.');
+    const received = Buffer.from(input.token);
+    const expected = Buffer.from(token);
+    if (!token || received.length !== expected.length || !timingSafeEqual(received, expected))
+      throw new HttpError(403, 'The setup token is incorrect.');
     await db().transaction(async (tx) => {
       const state = await tx.execute(sql`SELECT * FROM system_state WHERE id=1 FOR UPDATE`);
-      if (state.rows[0]?.setup_complete) throw new HttpError(409, 'This site is already initialized.');
+      if (state.rows[0]?.setup_complete)
+        throw new HttpError(409, 'This site is already initialized.');
       const auth = createAuth(tx as unknown as ReturnType<typeof db>, true);
-      const result = await auth.api.signUpEmail({ body: { email: input.email, password: input.password, name: input.name } });
-      await tx.update(systemState).set({ ownerId: result.user.id, setupComplete: true }).where(eq(systemState.id, 1));
-      await tx.insert(settings).values({ id: 1, value: { ...defaultSettings, siteName: input.siteName, authorName: input.name, about: defaultAbout(input.name) } }).onConflictDoNothing();
+      const result = await auth.api.signUpEmail({
+        body: { email: input.email, password: input.password, name: input.name },
+      });
+      await tx
+        .update(systemState)
+        .set({ ownerId: result.user.id, setupComplete: true })
+        .where(eq(systemState.id, 1));
+      await tx
+        .insert(settings)
+        .values({
+          id: 1,
+          value: {
+            ...defaultSettings,
+            siteName: input.siteName,
+            authorName: input.name,
+            about: defaultAbout(input.name),
+          },
+        })
+        .onConflictDoNothing();
     });
     return json({ ok: true });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 };

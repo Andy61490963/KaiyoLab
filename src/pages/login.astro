@@ -9,7 +9,12 @@ if (!state?.setupComplete) return Astro.redirect('/setup');
 const session = await getAuth().api.getSession({ headers: Astro.request.headers });
 if (session?.user.id === state.ownerId) return Astro.redirect('/admin');
 ---
+
 <AdminLayout title="Sign in">
-  <AuthForm mode="login" client:only="react"><div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">Opening sign-in…</div></AuthForm>
+  <AuthForm mode="login" client:only="react">
+    <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
+      Opening sign-in…
+    </div>
+  </AuthForm>
   <noscript>Enable JavaScript to sign in.</noscript>
 </AdminLayout>
