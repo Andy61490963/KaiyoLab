@@ -7,8 +7,8 @@ export const prerender = false;
 <AdminLayout>
   <AdminApp path={Astro.url.pathname} client:only="react">
     <p slot="fallback" class="admin-initial-loading">
-      正在載入管理後台…
+      Loading your workspace…
     </p>
   </AdminApp>
-  <noscript>管理後台需要啟用 JavaScript</noscript>
+  <noscript>Enable JavaScript to use the admin workspace.</noscript>
 </AdminLayout>

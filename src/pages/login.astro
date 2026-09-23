@@ -10,11 +10,11 @@ const session = await getAuth().api.getSession({ headers: Astro.request.headers 
 if (session?.user.id === state.ownerId) return Astro.redirect('/admin');
 ---
 
-<AdminLayout title="登入">
+<AdminLayout title="Sign in">
   <AuthForm mode="login" client:only="react">
     <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
-      正在開啟登入工作空間…
+      Opening sign-in…
     </div>
   </AuthForm>
-  <noscript>登入需要啟用 JavaScript</noscript>
+  <noscript>Enable JavaScript to sign in.</noscript>
 </AdminLayout>

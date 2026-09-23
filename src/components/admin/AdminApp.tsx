@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   ArrowRight,
@@ -12,14 +12,12 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Moon,
   Orbit,
   Plus,
   RefreshCw,
   Search,
   Settings,
   ShieldCheck,
-  Sun,
   Tag,
   Trash2,
   Upload,
@@ -38,6 +36,7 @@ import {
   type Taxonomies,
   type Taxonomy,
 } from './api';
+import ThemeButton from './ThemeButton';
 const EntryEditor = lazy(() => import('./EntryEditor'));
 
 export function Alert({ message, success = false }: { message: string; success?: boolean }) {
@@ -53,7 +52,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
     <div className="admin-empty">
       <Orbit size={36} strokeWidth={1.2} />
       <h3>{title}</h3>
-      <p>{children || '新增內容後，資料會顯示在這裡'}</p>
+      <p>{children || 'Content you create will appear here.'}</p>
     </div>
   );
 }
@@ -89,7 +88,9 @@ function useRemote<T>(url: string) {
     setLoading(true);
     setError('');
     api<T>(url, { signal: controller.signal })
-      .then(setData)
+      .then((result) => {
+        if (!controller.signal.aborted) setData(result);
+      })
       .catch((e) => {
         if (!controller.signal.aborted) setError(errorMessage(e));
       })
@@ -100,54 +101,31 @@ function useRemote<T>(url: string) {
   }, [url, revision]);
   return { data, setData, error, setError, loading, refresh: () => setRevision((v) => v + 1) };
 }
-export function ThemeButton() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    setDark(document.documentElement.dataset.theme === 'dark');
-  }, []);
-  function toggle() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.dataset.theme = next ? 'dark' : 'light';
-    try {
-      localStorage.setItem('kaiyo-theme', next ? 'dark' : 'light');
-    } catch {}
-  }
-  return (
-    <button
-      className="admin-icon-button"
-      type="button"
-      onClick={toggle}
-      aria-label={dark ? '切換淺色主題' : '切換深色主題'}
-    >
-      {dark ? <Sun size={19} /> : <Moon size={19} />}
-    </button>
-  );
-}
 const navigation = [
-  { href: '/admin', label: '網站總覽', icon: LayoutDashboard },
-  { href: '/admin/articles', label: '文章管理', icon: FileText },
-  { href: '/admin/projects', label: '作品管理', icon: FolderKanban },
-  { href: '/admin/media', label: '媒體庫', icon: Image },
-  { href: '/admin/taxonomies', label: '分類與標籤', icon: Tag },
-  { href: '/admin/about', label: '關於我', icon: UserRound },
-  { href: '/admin/settings', label: '網站設定', icon: Settings },
+  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
+  { href: '/admin/articles', label: 'Articles', icon: FileText },
+  { href: '/admin/projects', label: 'Projects', icon: FolderKanban },
+  { href: '/admin/media', label: 'Media library', icon: Image },
+  { href: '/admin/taxonomies', label: 'Categories & tags', icon: Tag },
+  { href: '/admin/about', label: 'About me', icon: UserRound },
+  { href: '/admin/settings', label: 'Site settings', icon: Settings },
 ];
 function Navigation({ path, close }: { path: string; close?: () => void }) {
   return (
     <>
       <a className="admin-brand" href="/admin">
-        <span className="admin-brand-symbol">
-          <Orbit size={24} />
-        </span>
         <span>
-          KaiyoLab<small>網站內容管理</small>
+          KaiyoLab<span className="admin-brand-dot">.</span>
+          <small>Publishing workspace</small>
         </span>
       </a>
-      <div className="admin-nav-caption">工作空間</div>
-      <nav aria-label="管理功能">
+      <div className="admin-nav-caption">Workspace</div>
+      <nav aria-label="Admin navigation">
         {navigation.map((item) => {
-          const active = item.href === '/admin' ? path === '/admin' : path.startsWith(item.href);
+          const active =
+            item.href === '/admin'
+              ? path === '/admin'
+              : path === item.href || path.startsWith(`${item.href}/`);
           return (
             <a
               key={item.href}
@@ -163,9 +141,9 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
         })}
       </nav>
       <div className="admin-sidebar-bottom">
-        <a className="admin-site-link" href="/" target="_blank" rel="noreferrer">
+        <a className="admin-site-link" href="/" target="_blank" rel="noopener noreferrer">
           <span>
-            <Orbit size={18} /> 前往公開網站
+            <Orbit size={18} /> View website
           </span>
           <ArrowUpRight size={17} />
         </a>
@@ -174,8 +152,7 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
             <UserRound size={19} />
           </span>
           <div>
-            站長管理
-            <small>僅站長可見</small>
+            Site owner<small>Private workspace</small>
           </div>
           <ShieldCheck size={17} />
         </div>
@@ -187,15 +164,32 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   const path = rawPath.replace(/\/$/, '') || '/admin';
   const [open, setOpen] = useState(false);
   const [logoutError, setLogoutError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const logoutInFlight = useRef(false);
+  useEffect(() => {
+    const desktop = matchMedia('(min-width: 1024px)');
+    const closeOnDesktop = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    closeOnDesktop();
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, []);
   const current =
-    navigation.find((item) => item.href !== '/admin' && path.startsWith(item.href)) ||
-    navigation[0];
+    navigation.find(
+      (item) => item.href !== '/admin' && (path === item.href || path.startsWith(`${item.href}/`)),
+    ) || navigation[0];
   let page: ReactNode;
   const match = path.match(/^\/admin\/(articles|projects)\/([^/]+)$/);
   if (match)
     page = (
-      <Suspense fallback={<p className="admin-loading">正在載入編輯器…</p>}>
-        <EntryEditor id={match[2]} kind={match[1] === 'articles' ? 'article' : 'project'} />
+      <Suspense fallback={<p className="admin-loading">Loading editor…</p>}>
+        <EntryEditor
+          id={match[2]}
+          kind={match[1] === 'articles' ? 'article' : 'project'}
+          onDirtyChange={setDirty}
+        />
       </Suspense>
     );
   else if (path === '/admin') page = <Dashboard />;
@@ -204,25 +198,41 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   else if (path === '/admin/media') page = <MediaLibrary />;
   else if (path === '/admin/taxonomies') page = <TaxonomyManager />;
   else if (path === '/admin/about' || path === '/admin/settings')
-    page = <SettingsForm about={path.endsWith('about')} />;
+    page = <SettingsForm about={path.endsWith('about')} onDirtyChange={setDirty} />;
   else
     page = (
-      <Empty title="找不到這個管理頁面">
-        <a href="/admin">回到網站總覽</a>
+      <Empty title="Admin page not found">
+        <a href="/admin">Back to overview</a>
       </Empty>
     );
+  useEffect(() => {
+    document.title = `${current.label} · KaiyoLab Admin`;
+  }, [current.label]);
   async function logout() {
+    if (logoutInFlight.current) return;
+    if (
+      dirty &&
+      !window.confirm(
+        'You have unsaved changes. Sign out anyway? Keep this tab open or save your work first.',
+      )
+    )
+      return;
+    logoutInFlight.current = true;
+    setSigningOut(true);
+    setLogoutError('');
     try {
       await api('/api/auth/sign-out', json('POST', {}));
       window.location.href = '/login';
     } catch (e) {
       setLogoutError(errorMessage(e));
+      logoutInFlight.current = false;
+      setSigningOut(false);
     }
   }
   return (
     <div className="admin-app">
       <a className="admin-skip" href="#admin-main">
-        跳至主要內容
+        Skip to main content
       </a>
       <aside className="admin-sidebar">
         <Navigation path={path} />
@@ -232,18 +242,23 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
           <div className="admin-breadcrumb">
             <Dialog.Root open={open} onOpenChange={setOpen}>
               <Dialog.Trigger asChild>
-                <button className="admin-icon-button admin-mobile-menu" aria-label="開啟管理選單">
+                <button
+                  className="admin-icon-button admin-mobile-menu"
+                  aria-label="Open admin menu"
+                >
                   <Menu size={21} />
                 </button>
               </Dialog.Trigger>
               <Dialog.Portal>
                 <Dialog.Overlay className="admin-dialog-overlay" />
                 <Dialog.Content className="admin-mobile-drawer admin-app">
-                  <Dialog.Title className="sr-only">管理選單</Dialog.Title>
-                  <Dialog.Description className="sr-only">選擇內容管理功能</Dialog.Description>
+                  <Dialog.Title className="sr-only">Admin menu</Dialog.Title>
+                  <Dialog.Description className="sr-only">
+                    Choose a section of your workspace.
+                  </Dialog.Description>
                   <Dialog.Close
                     className="admin-drawer-close admin-icon-button"
-                    aria-label="關閉選單"
+                    aria-label="Close menu"
                   >
                     <X size={20} />
                   </Dialog.Close>
@@ -251,28 +266,39 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
                 </Dialog.Content>
               </Dialog.Portal>
             </Dialog.Root>
-            <span>工作空間</span>
+            <span>Workspace</span>
             <ChevronRight size={14} />
             <strong>{current.label}</strong>
           </div>
           <div className="admin-topbar-actions">
             <span className="admin-private-badge">
-              <ShieldCheck size={14} /> 私人空間
+              <ShieldCheck size={14} /> Private
             </span>
             <ThemeButton />
-            <button className="admin-icon-button" onClick={logout} aria-label="登出">
+            <button
+              className="admin-icon-button"
+              type="button"
+              onClick={logout}
+              disabled={signingOut}
+              aria-label={signingOut ? 'Signing out…' : 'Sign out'}
+              title="Sign out"
+            >
               <LogOut size={18} />
             </button>
           </div>
         </div>
-        <main id="admin-main" className="admin-main">
+        <main
+          id="admin-main"
+          className={`admin-main${match ? ' admin-main-editor' : ''}`}
+          tabIndex={-1}
+        >
           <Alert message={logoutError} />
           {page}
         </main>
         <footer className="admin-footer">
-          <span>KaiyoLab · 網站內容管理</span>
-          <a href="/" target="_blank" rel="noreferrer">
-            查看網站 <ArrowUpRight size={13} />
+          <span>KaiyoLab · Content workspace</span>
+          <a href="/" target="_blank" rel="noopener noreferrer">
+            View website <ArrowUpRight size={13} />
           </a>
         </footer>
       </div>
@@ -286,89 +312,107 @@ function Dashboard() {
   }>('/api/admin/dashboard');
   return (
     <>
-      <PageTitle label="管理總覽" title="網站總覽" description="查看內容狀態與最近修改的文章、作品">
+      <PageTitle
+        label="YOUR WORKSPACE"
+        title="Overview"
+        description="Manage your writing, projects, and the details that make this site yours."
+      >
         <a className="admin-button primary" href="/admin/articles/new">
-          <Plus size={17} /> 撰寫文章
+          <Plus size={17} /> New article
         </a>
       </PageTitle>
       <Alert message={error} />
       {error && (
         <button className="admin-button" onClick={refresh}>
-          <RefreshCw size={16} /> 重新載入
+          <RefreshCw size={16} /> Reload
         </button>
       )}
       <section className="admin-welcome">
         <div className="admin-welcome-content">
-          <span className="admin-eyebrow">內容管理</span>
-          <h2>新增文章</h2>
-          <p>撰寫草稿、預覽內容，準備好後再發布到網站</p>
+          <span className="admin-eyebrow">CONTENT</span>
+          <h2>New article</h2>
+          <p>Start with a draft. Preview your work, then publish when it is ready.</p>
           <div className="admin-welcome-actions">
             <a href="/admin/articles/new">
-              建立文章草稿 <ArrowRight size={17} />
+              Write an article <ArrowRight size={17} />
             </a>
-            <a href="/admin/articles?status=draft">查看草稿</a>
+            <a href="/admin/articles?status=draft">View drafts</a>
           </div>
         </div>
       </section>
       <div className="admin-stat-grid">
         {[
           {
-            name: '文章總數',
+            name: 'Articles',
             count: data?.counts.articles,
             icon: FileText,
             href: '/admin/articles',
-            detail: '查看所有文章',
+            detail: 'Browse articles',
           },
           {
-            name: '編輯中草稿',
+            name: 'Drafts',
             count: data?.counts.drafts,
             icon: FileText,
             href: '/admin/articles?status=draft',
-            detail: '查看草稿',
+            otherHref: '/admin/projects?status=draft',
+            detail: 'Articles',
           },
           {
-            name: '作品總數',
+            name: 'Projects',
             count: data?.counts.projects,
             icon: FolderKanban,
             href: '/admin/projects',
-            detail: '管理作品',
+            detail: 'Browse projects',
           },
           {
-            name: '垃圾桶',
+            name: 'Trash',
             count: data?.counts.trash,
             icon: Trash2,
             href: '/admin/articles?status=trash',
-            detail: '查看與還原',
+            detail: 'Articles',
+            otherHref: '/admin/projects?status=trash',
           },
         ].map((stat, i) => (
-          <a className={`admin-stat stat-${i}`} href={stat.href} key={stat.name}>
+          <div className={`admin-stat stat-${i}`} key={stat.name}>
             <div>
               <span>{stat.name}</span>
               <stat.icon size={19} />
             </div>
             <strong>{loading ? '—' : (stat.count ?? '—')}</strong>
-            <small>
-              {stat.detail}
-              <ArrowUpRight size={15} />
-            </small>
-          </a>
+            <div className="admin-stat-links">
+              <a href={stat.href}>
+                {stat.detail}
+                <ArrowUpRight size={14} />
+              </a>
+              {stat.otherHref && (
+                <a href={stat.otherHref}>
+                  Projects
+                  <ArrowUpRight size={14} />
+                </a>
+              )}
+            </div>
+          </div>
         ))}
       </div>
       <div className="admin-dashboard-columns">
         <section className="admin-panel">
           <div className="admin-panel-heading">
             <div>
-              <h2>最近編輯</h2>
-              <p>最近修改的文章與作品</p>
+              <h2>Recently edited</h2>
+              <p>Pick up where you left off.</p>
             </div>
             <a href="/admin/articles">
-              全部內容 <ArrowRight size={15} />
+              All articles <ArrowRight size={15} />
             </a>
           </div>
           {loading ? (
-            <p className="admin-loading">正在載入你的工作空間…</p>
+            <p className="admin-loading">Loading your workspace…</p>
+          ) : error && !data ? (
+            <p className="admin-loading">Unable to load recent content. Use Reload to try again.</p>
           ) : !data?.recent.length ? (
-            <Empty title="尚無編輯紀錄">新增文章或作品後，最近修改的內容會顯示在這裡</Empty>
+            <Empty title="No recent edits">
+              Your recently edited articles and projects will appear here.
+            </Empty>
           ) : (
             <div className="admin-recent-list">
               {data.recent.map((entry) => (
@@ -377,13 +421,14 @@ function Dashboard() {
                     {entry.kind === 'article' ? <FileText size={19} /> : <FolderKanban size={19} />}
                   </span>
                   <div>
-                    <strong>{entry.content.title || '未命名草稿'}</strong>
+                    <strong>{entry.content.title || 'Untitled draft'}</strong>
                     <small>
-                      {entry.kind === 'article' ? '文章' : '作品'} · {dateLabel(entry.updatedAt)}
+                      {entry.kind === 'article' ? 'Article' : 'Project'} ·{' '}
+                      {dateLabel(entry.updatedAt)}
                     </small>
                   </div>
                   <span className={`admin-badge ${entry.published ? 'published' : ''}`}>
-                    {entry.deletedAt ? '垃圾桶' : entry.published ? '已發布' : '草稿'}
+                    {entry.deletedAt ? 'Trash' : entry.published ? 'Published' : 'Draft'}
                   </span>
                   <ChevronRight size={16} />
                 </a>
@@ -394,8 +439,8 @@ function Dashboard() {
         <section className="admin-panel admin-shortcuts">
           <div className="admin-panel-heading">
             <div>
-              <h2>常用設定</h2>
-              <p>編輯關於我、作品與網站資料</p>
+              <h2>Make it yours</h2>
+              <p>A few useful places to start.</p>
             </div>
           </div>
           <a href="/admin/about">
@@ -403,8 +448,8 @@ function Dashboard() {
               <UserRound size={21} />
             </span>
             <div>
-              <strong>介紹你自己</strong>
-              <small>更新簡介、頭像與社群連結</small>
+              <strong>Introduce yourself</strong>
+              <small>Update your bio, avatar, and social links.</small>
             </div>
             <ArrowUpRight size={17} />
           </a>
@@ -413,8 +458,8 @@ function Dashboard() {
               <FolderKanban size={21} />
             </span>
             <div>
-              <strong>分享一個作品</strong>
-              <small>把實作成果整理成作品集</small>
+              <strong>Share a project</strong>
+              <small>Document something you have built.</small>
             </div>
             <ArrowUpRight size={17} />
           </a>
@@ -423,14 +468,16 @@ function Dashboard() {
               <Settings size={21} />
             </span>
             <div>
-              <strong>設定網站品牌</strong>
-              <small>站名、首頁視覺與 SEO</small>
+              <strong>Site identity</strong>
+              <small>Your site name, images, and search details.</small>
             </div>
             <ArrowUpRight size={17} />
           </a>
           <div className="admin-note">
             <ShieldCheck size={17} />
-            <p>草稿只屬於你；完成編輯後，點選「發布」才會在公開網站顯示</p>
+            <p>
+              Drafts stay private. Publishing is a separate action, so you control what readers see.
+            </p>
           </div>
         </section>
       </div>
@@ -438,73 +485,111 @@ function Dashboard() {
   );
 }
 function EntryList({ kind }: { kind: 'article' | 'project' }) {
-  const name = kind === 'article' ? '文章' : '作品';
-  const [query, setQuery] = useState('');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState(() =>
-    typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('status') || ''
-      : '',
+  const name = kind === 'article' ? 'Article' : 'Project';
+  const initialFilters = new URLSearchParams(
+    typeof window !== 'undefined' ? window.location.search : '',
   );
-  const [category, setCategory] = useState('');
+  const [query, setQuery] = useState(() => (initialFilters.get('q') || '').slice(0, 200));
+  const [search, setSearch] = useState(() => (initialFilters.get('q') || '').slice(0, 200));
+  const [status, setStatus] = useState(() => initialFilters.get('status') || '');
+  const [category, setCategory] = useState(() => initialFilters.get('category') || '');
   const [busy, setBusy] = useState('');
+  const actionInFlight = useRef(false);
+  const [notice, setNotice] = useState('');
   const { data: taxonomy } = useRemote<Taxonomies>('/api/admin/taxonomies');
   const { data, error, setError, loading, refresh } = useRemote<{ items: Entry[] }>(
-    `/api/admin/entries?kind=${kind}&q=${encodeURIComponent(search)}&status=${status}&category=${encodeURIComponent(category)}`,
+    `/api/admin/entries?kind=${kind}&q=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&category=${encodeURIComponent(category)}`,
   );
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query), 250);
     return () => clearTimeout(timer);
   }, [query]);
-  async function action(entry: Entry, actionName: string) {
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    for (const [key, value] of [
+      ['q', search],
+      ['status', status],
+      ['category', category],
+    ]) {
+      if (value) url.searchParams.set(key, value);
+      else url.searchParams.delete(key);
+    }
+    window.history.replaceState(window.history.state, '', url);
+  }, [search, status, category]);
+  function clearFilters() {
+    setQuery('');
+    setSearch('');
+    setCategory('');
+    setStatus('');
+  }
+  async function action(entry: Entry, actionName: 'trash' | 'restore' | 'unpublish') {
+    if (actionInFlight.current) return;
     if (
       actionName === 'trash' &&
       !window.confirm(
-        `將「${entry.content.title || '未命名草稿'}」移至垃圾桶？公開內容也會下架，之後可以還原`,
+        `Move “${entry.content.title || 'Untitled draft'}” to trash? Its public version will be removed. You can restore it later.`,
       )
     )
       return;
+    if (
+      actionName === 'unpublish' &&
+      !window.confirm(
+        `Unpublish “${entry.content.title}”? Readers will no longer be able to access it. Your draft will be kept.`,
+      )
+    )
+      return;
+    actionInFlight.current = true;
     setBusy(entry.id);
     setError('');
+    setNotice('');
     try {
       await api(
         `/api/admin/entries/${entry.id}/action`,
         json('POST', { action: actionName, version: entry.version }),
       );
+      setNotice(
+        actionName === 'restore'
+          ? 'Content restored as a draft.'
+          : actionName === 'trash'
+            ? 'Content moved to trash.'
+            : 'Content unpublished. Your draft is kept.',
+      );
       refresh();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      actionInFlight.current = false;
       setBusy('');
     }
   }
   return (
     <>
       <PageTitle
-        label="內容管理"
-        title={`${name}管理`}
+        label="CONTENT"
+        title={kind === 'article' ? 'Articles' : 'Projects'}
         description={
           kind === 'article'
-            ? '把零散的想法，整理成值得分享的內容'
-            : '收集你的實作、實驗，以及一路走來的成果'
+            ? 'Write, review, and publish your articles.'
+            : 'Document your projects and the work behind them.'
         }
       >
         <a
           className="admin-button primary"
           href={`/admin/${kind === 'article' ? 'articles' : 'projects'}/new`}
         >
-          <Plus size={17} /> 新增{name}
+          <Plus size={17} /> New {name.toLowerCase()}
         </a>
       </PageTitle>
       <Alert message={error} />
+      <Alert message={notice} success />
       <section className="admin-panel">
         <div className="admin-list-toolbar">
-          <div className="admin-tabs" aria-label="發布狀態">
+          <div className="admin-tabs" role="group" aria-label="Publication status">
             {[
-              ['', '全部內容'],
-              ['draft', '草稿'],
-              ['published', '已發布'],
-              ['trash', '垃圾桶'],
+              ['', 'All content'],
+              ['draft', 'Draft'],
+              ['published', 'Published'],
+              ['trash', 'Trash'],
             ].map(([value, label]) => (
               <button
                 className={status === value ? 'active' : ''}
@@ -521,57 +606,83 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             <label className="admin-search">
               <Search size={17} />
               <input
-                aria-label={`搜尋${name}`}
-                placeholder={`搜尋${name}標題或內容…`}
+                aria-label={`Search ${name.toLowerCase()}s`}
+                placeholder="Search titles or summaries…"
+                type="search"
+                maxLength={200}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </label>
             <select
-              aria-label="篩選分類"
+              aria-label="Filter by category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="">全部分類</option>
+              <option value="">All categories</option>
               {taxonomy?.categories.map((c) => (
                 <option value={c.name} key={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
-            <button className="admin-icon-button" onClick={refresh} aria-label="重新載入列表">
+            {(query || category || status) && (
+              <button className="admin-button small" type="button" onClick={clearFilters}>
+                Clear filters
+              </button>
+            )}
+            <button
+              className="admin-icon-button"
+              type="button"
+              onClick={refresh}
+              aria-label="Refresh list"
+              title="Refresh list"
+              disabled={loading}
+            >
               <RefreshCw size={17} />
             </button>
           </div>
         </div>
         {loading ? (
-          <p className="admin-loading">載入{name}中…</p>
+          <p className="admin-loading">Loading {name.toLowerCase()}s…</p>
+        ) : error && !data ? (
+          <div className="admin-loading">
+            Unable to load content. Use Refresh list to try again.
+          </div>
         ) : !data?.items.length ? (
           <Empty
             title={
               query || category
-                ? '找不到符合條件的內容'
+                ? 'No matching content'
                 : status === 'trash'
-                  ? '垃圾桶目前是空的'
-                  : `還沒有${name}`
+                  ? 'Trash is empty'
+                  : `No ${name.toLowerCase()}s yet`
             }
           >
             {query || category
-              ? '試著換個關鍵字或調整分類'
+              ? 'Try another keyword or clear the filters.'
               : status === 'trash'
-                ? '移除的內容會保留在這裡，隨時可以還原'
-                : `點選右上方「新增${name}」，開始你的第一份內容`}
+                ? 'Trashed content stays here until you restore it.'
+                : `Create a new ${name.toLowerCase()} to get started.`}
           </Empty>
         ) : (
-          <div className="admin-table-scroll">
+          <div
+            className="admin-table-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Content table. Scroll horizontally to see all columns."
+          >
             <table className="admin-table">
+              <caption className="sr-only">{name}s matching the current filters</caption>
               <thead>
                 <tr>
-                  <th>{name}名稱</th>
-                  <th>狀態</th>
-                  <th>分類</th>
-                  <th>最後編輯</th>
-                  <th className="admin-align-right">操作</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Last edited</th>
+                  <th scope="col" className="admin-align-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -588,12 +699,12 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                         </span>
                         <span>
                           <strong>
-                            {entry.content.title || '未命名草稿'}
+                            {entry.content.title || 'Untitled draft'}
                             {entry.content.featured && (
-                              <span className="admin-featured-label">精選</span>
+                              <span className="admin-featured-label">Featured</span>
                             )}
                           </strong>
-                          <small>/{entry.content.slug || '尚未設定網址'}</small>
+                          <small>/{entry.content.slug || 'no-slug-yet'}</small>
                         </span>
                       </a>
                     </td>
@@ -601,7 +712,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                       <span
                         className={`admin-badge ${entry.published && !entry.deletedAt ? 'published' : ''}`}
                       >
-                        {entry.deletedAt ? '已移除' : entry.published ? '已發布' : '草稿'}
+                        {entry.deletedAt ? 'Trashed' : entry.published ? 'Published' : 'Draft'}
                       </span>
                     </td>
                     <td>
@@ -614,30 +725,30 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                       <div className="admin-row-actions">
                         {entry.deletedAt ? (
                           <button
-                            disabled={busy === entry.id}
+                            disabled={!!busy}
                             onClick={() => action(entry, 'restore')}
                             className="admin-button small"
                           >
-                            <RefreshCw size={14} /> 還原
+                            <RefreshCw size={14} /> Restore
                           </button>
                         ) : (
                           <>
                             <a className="admin-button small" href={editorUrl(entry)}>
-                              編輯
+                              Edit
                             </a>
                             {entry.published && (
                               <button
                                 className="admin-button small"
-                                disabled={busy === entry.id}
+                                disabled={!!busy}
                                 onClick={() => action(entry, 'unpublish')}
                               >
-                                下架
+                                Unpublish
                               </button>
                             )}
                             <button
                               className="admin-icon-button danger"
-                              aria-label={`刪除${entry.content.title}`}
-                              disabled={busy === entry.id}
+                              aria-label={`Move ${entry.content.title} to trash`}
+                              disabled={!!busy}
                               onClick={() => action(entry, 'trash')}
                             >
                               <Trash2 size={16} />
@@ -653,10 +764,10 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
           </div>
         )}
         <div className="admin-table-footer">
-          <span>
-            {data?.items.length ?? 0} 筆{name}
+          <span role="status" aria-live="polite">
+            {loading ? 'Updating results…' : `${data?.items.length ?? 0} ${name.toLowerCase()}s`}
           </span>
-          <span>草稿內容僅對站長可見</span>
+          <span>Draft content is only visible to you.</span>
         </div>
       </section>
     </>
@@ -678,10 +789,12 @@ export function MediaPicker({
         <Dialog.Content className="admin-dialog admin-app">
           <div className="admin-dialog-heading">
             <div>
-              <Dialog.Title>選擇圖片</Dialog.Title>
-              <Dialog.Description>從媒體庫選擇，或上傳新的圖片</Dialog.Description>
+              <Dialog.Title>Choose image</Dialog.Title>
+              <Dialog.Description>
+                Select an image from your library or upload a new one.
+              </Dialog.Description>
             </div>
-            <Dialog.Close className="admin-icon-button" aria-label="關閉圖片選擇">
+            <Dialog.Close className="admin-icon-button" aria-label="Close image picker">
               <X size={20} />
             </Dialog.Close>
           </div>
@@ -711,8 +824,24 @@ function MediaLibrary({
   );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [query, setQuery] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploadInFlight = useRef(false);
+  const filteredMedia =
+    data?.items.filter((item) =>
+      `${item.name} ${item.alt}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+    ) || [];
   async function upload(file?: File) {
-    if (!file) return;
+    if (!file || uploadInFlight.current) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setError('Only PNG, JPEG, and WebP images are supported.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Images cannot exceed 10 MB.');
+      return;
+    }
+    uploadInFlight.current = true;
     setBusy(true);
     setError('');
     setMessage('');
@@ -722,34 +851,45 @@ function MediaLibrary({
     try {
       await api<Media>('/api/admin/media', { method: 'POST', body: form });
       refresh();
-      setMessage('圖片已加入媒體庫');
+      setMessage('Image added to your media library.');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      uploadInFlight.current = false;
       setBusy(false);
     }
   }
   const uploadButton = (
-    <label className={`admin-button primary admin-file-input ${busy ? 'disabled' : ''}`}>
-      <Upload size={17} /> {busy ? '上傳中…' : '上傳圖片'}
+    <div className="admin-upload-control">
+      <button
+        className="admin-button primary"
+        type="button"
+        disabled={busy}
+        onClick={() => fileInput.current?.click()}
+      >
+        <Upload size={17} /> {busy ? 'Uploading…' : 'Upload image'}
+      </button>
       <input
+        ref={fileInput}
+        hidden
         type="file"
+        aria-label="Upload image file"
         accept="image/jpeg,image/png,image/webp"
         disabled={busy}
-        onChange={(e) => {
-          void upload(e.target.files?.[0]);
-          e.target.value = '';
+        onChange={(event) => {
+          void upload(event.target.files?.[0]);
+          event.target.value = '';
         }}
       />
-    </label>
+    </div>
   );
   return (
     <>
       {!picker && (
         <PageTitle
-          label="媒體管理"
-          title="媒體庫"
-          description="集中管理圖片，讓每份內容都有適合的視覺"
+          label="MEDIA"
+          title="Media library"
+          description="Manage covers, avatars, and images in one place."
         >
           {uploadButton}
         </PageTitle>
@@ -757,28 +897,61 @@ function MediaLibrary({
       {picker && (
         <div className="admin-picker-toolbar">
           {uploadButton}
-          <small>JPG、PNG、WebP · 最大 10 MB</small>
+          <small>JPG, PNG, WebP · Up to 10 MB</small>
         </div>
       )}
       <Alert message={error} />
       <Alert message={message} success />
+      <div className="admin-media-search">
+        <label className="admin-search">
+          <Search size={17} />
+          <input
+            type="search"
+            aria-label="Search media"
+            placeholder="Search filenames or alt text…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        {query && (
+          <button className="admin-button small" type="button" onClick={() => setQuery('')}>
+            Clear search
+          </button>
+        )}
+        <button
+          className="admin-icon-button"
+          type="button"
+          onClick={refresh}
+          disabled={loading}
+          aria-label="Refresh media"
+          title="Refresh media"
+        >
+          <RefreshCw size={17} />
+        </button>
+      </div>
       {!picker && (
         <div className="admin-media-info">
           <span>
-            <Image size={16} /> {data?.items.length ?? 0} 張圖片
+            <Image size={16} /> {data?.items.length ?? 0} images
           </span>
-          <span>JPG、PNG、WebP · 最大 10 MB</span>
+          <span>JPG, PNG, WebP · Up to 10 MB</span>
         </div>
       )}
       {loading ? (
-        <p className="admin-loading">正在載入媒體庫…</p>
+        <p className="admin-loading">Loading media library…</p>
+      ) : error && !data ? (
+        <p className="admin-loading">Unable to load images. Use Refresh media to try again.</p>
       ) : !data?.items.length ? (
-        <Empty title="給你的內容一些色彩">
-          上傳封面、頭像或文章插圖，所有圖片都會保存在你的伺服器
+        <Empty title="Your image library starts here">
+          Upload a cover, avatar, or article image. Files are stored on your server.
+        </Empty>
+      ) : !filteredMedia.length ? (
+        <Empty title="No matching images">
+          Try another filename or description, or clear the search.
         </Empty>
       ) : (
         <div className={`admin-media-grid ${picker ? 'picker' : ''}`}>
-          {data.items.map((media) => (
+          {filteredMedia.map((media) => (
             <MediaCard
               key={`${media.id}-${media.alt}`}
               media={media}
@@ -822,7 +995,7 @@ function MediaCard({
     }
   }
   async function remove() {
-    if (!window.confirm(`永久刪除圖片「${media.name}」？此動作無法還原`)) return;
+    if (!window.confirm(`Permanently delete “${media.name}”? This cannot be undone.`)) return;
     setBusy(true);
     onError('');
     try {
@@ -837,14 +1010,19 @@ function MediaCard({
   return (
     <article className="admin-media-card">
       {picker ? (
-        <button className="admin-media-select" onClick={() => onSelect?.(media)}>
+        <button
+          className="admin-media-select"
+          type="button"
+          aria-label={`Choose image ${media.name}`}
+          onClick={() => onSelect?.(media)}
+        >
           <img src={media.url} alt={media.alt || media.name} loading="lazy" />
           <span>
-            選擇圖片 <Plus size={16} />
+            Choose image <Plus size={16} />
           </span>
         </button>
       ) : (
-        <a href={media.url} target="_blank" rel="noreferrer" className="admin-media-image">
+        <a href={media.url} target="_blank" rel="noopener noreferrer" className="admin-media-image">
           <img src={media.url} alt={media.alt || media.name} loading="lazy" />
         </a>
       )}
@@ -856,15 +1034,16 @@ function MediaCard({
         {!picker && (
           <>
             <label>
-              替代文字
+              Alt text
               <input
                 disabled={busy}
+                maxLength={300}
                 value={alt}
                 onChange={(e) => {
                   setAlt(e.target.value);
                   setSaved(false);
                 }}
-                placeholder="描述圖片，協助無障礙閱讀"
+                placeholder="Describe the image for readers using assistive technology"
               />
             </label>
             <div className="admin-media-controls">
@@ -873,21 +1052,25 @@ function MediaCard({
                 className="admin-button small"
                 onClick={save}
               >
-                {saved ? '已儲存' : '儲存描述'}
+                {saved ? 'Saved' : 'Save description'}
               </button>
               <button
                 className="admin-icon-button danger"
                 disabled={busy || media.usedBy.length > 0}
                 onClick={remove}
-                aria-label={`刪除圖片 ${media.name}`}
-                title={media.usedBy.length ? '圖片使用中，無法刪除' : '永久刪除'}
+                aria-label={`Delete image ${media.name}`}
+                title={
+                  media.usedBy.length
+                    ? 'This image is in use and cannot be deleted.'
+                    : 'Delete permanently'
+                }
               >
                 <Trash2 size={16} />
               </button>
             </div>
             <details className="admin-media-usage">
               <summary>
-                {media.usedBy.length ? `${media.usedBy.length} 處使用中` : '尚未被使用'}
+                {media.usedBy.length ? `Used in ${media.usedBy.length} places` : 'Not used yet'}
               </summary>
               {media.usedBy.length > 0 && (
                 <ul>
@@ -908,9 +1091,9 @@ function TaxonomyManager() {
   return (
     <>
       <PageTitle
-        label="內容架構"
-        title="分類與標籤"
-        description="替內容建立清楚的脈絡，讓讀者更容易找到想看的主題"
+        label="ORGANIZATION"
+        title="Categories & tags"
+        description="Organize your content so readers can find related topics."
       />
       <Alert message={error} />
       <div className="admin-taxonomy-columns">
@@ -941,8 +1124,9 @@ function TaxonomySection({
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [edit, setEdit] = useState<string | null>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const label = kind === 'category' ? '分類' : '標籤';
+  const label = kind === 'category' ? 'Category' : 'Tag';
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -963,7 +1147,12 @@ function TaxonomySection({
     }
   }
   async function remove(item: Taxonomy) {
-    if (!window.confirm(`刪除${label}「${item.name}」？若仍被內容使用，系統會阻止刪除`)) return;
+    if (
+      !window.confirm(
+        `Delete ${label.toLowerCase()} “${item.name}”? Items still in use cannot be deleted.`,
+      )
+    )
+      return;
     onError('');
     setBusy(true);
     try {
@@ -980,32 +1169,37 @@ function TaxonomySection({
       <div className="admin-panel-heading">
         <div>
           <h2>{label}</h2>
-          <p>{kind === 'category' ? '用於整理文章的主要分類' : '用於標記文章主題的關鍵字'}</p>
+          <p>
+            {kind === 'category'
+              ? 'Broad sections for organizing content.'
+              : 'Specific topics, technologies, and keywords.'}
+          </p>
         </div>
         <span className="admin-count">{items.length}</span>
       </div>
       <form className="admin-taxonomy-form" onSubmit={submit}>
         <label>
-          {label}名稱
+          {label} name
           <input
+            ref={nameInput}
             required
             maxLength={80}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={kind === 'category' ? '例如：開發筆記' : '例如：Astro'}
+            placeholder={kind === 'category' ? 'For example: Development' : 'For example: Astro'}
           />
         </label>
         <label>
-          網址代稱
+          Slug
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="可留空，自動產生"
+            placeholder="Leave blank to generate automatically"
           />
         </label>
         <div className="admin-form-actions">
           <button disabled={busy} className="admin-button primary" type="submit">
-            {edit ? '儲存修改' : `新增${label}`}
+            {edit ? 'Save changes' : `Add ${label.toLowerCase()}`}
           </button>
           {edit && (
             <button
@@ -1017,7 +1211,7 @@ function TaxonomySection({
                 setSlug('');
               }}
             >
-              取消
+              Cancel
             </button>
           )}
         </div>
@@ -1040,13 +1234,15 @@ function TaxonomySection({
                   setEdit(item.id);
                   setName(item.name);
                   setSlug(item.slug);
+                  nameInput.current?.focus();
+                  nameInput.current?.scrollIntoView({ block: 'center', behavior: 'auto' });
                 }}
               >
-                編輯
+                Edit
               </button>
               <button
                 className="admin-icon-button danger"
-                aria-label={`刪除${label} ${item.name}`}
+                aria-label={`Delete ${label.toLowerCase()} ${item.name}`}
                 disabled={busy}
                 onClick={() => remove(item)}
               >
@@ -1055,39 +1251,78 @@ function TaxonomySection({
             </div>
           ))
         ) : (
-          <p className="admin-subtle">還沒有{label}，從上方新增</p>
+          <p className="admin-subtle">No {label.toLowerCase()} items yet. Add one above.</p>
         )}
       </div>
     </section>
   );
 }
-function SettingsForm({ about }: { about: boolean }) {
-  const { data, setData, error, setError, loading } =
+function SettingsForm({
+  about,
+  onDirtyChange,
+}: {
+  about: boolean;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const { data, setData, error, setError, loading, refresh } =
     useRemote<SiteSettings>('/api/admin/settings');
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const saveInFlight = useRef(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [imageField, setImageField] = useState<'logo' | 'avatar' | 'heroImage' | null>(null);
+  const dirty = !!data && baseline !== null && JSON.stringify(data) !== baseline;
+  useEffect(() => {
+    if (data && baseline === null) setBaseline(JSON.stringify(data));
+  }, [data, baseline]);
+  useEffect(() => {
+    onDirtyChange(dirty || busy);
+    return () => onDirtyChange(false);
+  }, [dirty, busy, onDirtyChange]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (dirty || busy) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty, busy]);
   const change = (key: keyof SiteSettings, value: unknown) => {
     setData((previous) => (previous ? { ...previous, [key]: value } : previous));
     setMessage('');
   };
   async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!data) return;
+    if (!data || saveInFlight.current) return;
+    saveInFlight.current = true;
     setBusy(true);
     setError('');
     setMessage('');
     try {
       const snapshot = JSON.stringify(data);
       const result = await api<SiteSettings>('/api/admin/settings', json('PUT', data));
+      setBaseline(JSON.stringify(result));
       setData((current) => (current && JSON.stringify(current) === snapshot ? result : current));
-      setMessage('已儲存送出的設定；若送出期間繼續編輯，請再儲存一次');
+      setMessage('Settings saved.');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      saveInFlight.current = false;
       setBusy(false);
     }
   }
+  const fieldLimits: Partial<Record<keyof SiteSettings, number>> = {
+    siteName: 80,
+    tagline: 200,
+    description: 500,
+    homeIntro: 100000,
+    authorName: 100,
+    bio: 1000,
+    about: 100000,
+    siteUrl: 2048,
+  };
   const field = (
     key: keyof SiteSettings,
     label: string,
@@ -1098,6 +1333,7 @@ function SettingsForm({ about }: { about: boolean }) {
       {options.multiline ? (
         <textarea
           aria-label={label}
+          maxLength={fieldLimits[key]}
           value={String(data?.[key] ?? '')}
           onChange={(e) => change(key, e.target.value)}
           required={options.required}
@@ -1106,6 +1342,7 @@ function SettingsForm({ about }: { about: boolean }) {
       ) : (
         <input
           aria-label={label}
+          maxLength={fieldLimits[key]}
           type={options.type || 'text'}
           required={options.required}
           value={String(data?.[key] ?? '')}
@@ -1128,78 +1365,97 @@ function SettingsForm({ about }: { about: boolean }) {
         )}
         <div>
           <button className="admin-button small" type="button" onClick={() => setImageField(key)}>
-            選擇圖片
+            Choose image
           </button>
           {data?.[key] && (
             <button className="admin-button small" type="button" onClick={() => change(key, '')}>
-              使用預設
+              Remove image
             </button>
           )}
         </div>
       </div>
       <input
-        aria-label={`${label}網址`}
+        aria-label={`${label} URL`}
+        maxLength={2048}
         value={data?.[key] || ''}
         onChange={(e) => change(key, e.target.value)}
-        placeholder="/media/… 或 /images/…"
+        placeholder="/media/… or /images/…"
       />
     </div>
   );
   return (
     <>
       <PageTitle
-        label={about ? '個人檔案' : '網站控制台'}
-        title={about ? '讓讀者認識你' : '網站設定'}
-        description={about ? '編輯個人介紹與社群連結' : '調整網站名稱、品牌圖片與基本資訊'}
+        label={about ? 'PROFILE' : 'CONFIGURATION'}
+        title={about ? 'About me' : 'Site settings'}
+        description={
+          about
+            ? 'Introduce yourself and give readers a way to stay in touch.'
+            : 'Manage your site identity, search details, and account security.'
+        }
       />
       <Alert message={error} />
-      <Alert message={message} success />
+      <Alert
+        message={
+          message
+            ? dirty
+              ? 'Saved submitted settings. You still have unsaved changes.'
+              : message
+            : ''
+        }
+        success
+      />
+      {error && !data && (
+        <button className="admin-button" type="button" onClick={refresh}>
+          Retry loading settings
+        </button>
+      )}
       {loading ? (
-        <p className="admin-loading">正在載入設定…</p>
+        <p className="admin-loading">Loading settings…</p>
       ) : (
         data && (
-          <form className="admin-settings-grid" onSubmit={save}>
+          <form className="admin-settings-grid" onSubmit={save} aria-busy={busy}>
             <div>
               <section className="admin-panel admin-form-panel">
                 <div className="admin-panel-heading">
                   <div>
-                    <h2>{about ? '個人介紹' : '品牌與搜尋資訊'}</h2>
+                    <h2>{about ? 'Your introduction' : 'Identity & search'}</h2>
                     <p>
                       {about
-                        ? '這些資訊會顯示在首頁及「關於我」'
-                        : '讓公開網站與搜尋結果清楚表達你的風格'}
+                        ? 'These details appear on your homepage and About page.'
+                        : 'Help readers recognize your site in the browser and search results.'}
                     </p>
                   </div>
                 </div>
                 <div className="admin-form-body">
                   {about ? (
                     <>
-                      {field('authorName', '顯示名稱', { required: true })}
-                      {field('homeIntro', '首頁自我介紹（Markdown）', {
+                      {field('authorName', 'Display name', { required: true })}
+                      {field('homeIntro', 'Homepage introduction (Markdown)', {
                         multiline: true,
                         required: true,
-                        help: '整段首頁文字可直接編輯，支援標題、段落、連結與圖片；儲存後立即更新首頁',
+                        help: 'Supports Markdown headings, links, and images. Saving immediately updates the homepage.',
                       })}
-                      {field('bio', '個人簡介', {
+                      {field('bio', 'Short bio', {
                         multiline: true,
-                        help: '顯示在側欄與關於我頁面',
+                        help: 'Appears in the sidebar and About page metadata.',
                       })}
-                      {field('about', '關於我', {
+                      {field('about', 'About me', {
                         multiline: true,
-                        help: '支援 Markdown，可加入小標題、清單與連結',
+                        help: 'Use Markdown for headings, lists, links, and images.',
                       })}
                     </>
                   ) : (
                     <>
-                      {field('siteName', '網站名稱', { required: true })}
-                      {field('tagline', '一句話介紹')}
-                      {field('description', '網站描述', {
+                      {field('siteName', 'Site name', { required: true })}
+                      {field('tagline', 'Tagline')}
+                      {field('description', 'Site description', {
                         multiline: true,
-                        help: '用於搜尋引擎摘要；首頁文字請到「關於我」編輯',
+                        help: 'Used for search metadata. Edit your homepage introduction under About me.',
                       })}
-                      {field('siteUrl', '網站公開網址', {
+                      {field('siteUrl', 'Public site URL', {
                         type: 'url',
-                        help: '例如 https://your-domain.com，影響 canonical、RSS 與 sitemap；部署時的 SITE_URL 也須一致',
+                        help: 'For example, https://your-domain.com. Used by canonical URLs, RSS, and sitemap. The deployment SITE_URL must match.',
                       })}
                     </>
                   )}
@@ -1209,27 +1465,29 @@ function SettingsForm({ about }: { about: boolean }) {
                 <section className="admin-panel admin-form-panel">
                   <div className="admin-panel-heading">
                     <div>
-                      <h2>社群連結</h2>
-                      <p>讓讀者在其他地方找到你</p>
+                      <h2>Social links</h2>
+                      <p>Help readers find you elsewhere.</p>
                     </div>
                     <button
                       className="admin-button small"
                       type="button"
+                      disabled={data.socialLinks.length >= 12}
                       onClick={() =>
                         change('socialLinks', [...data.socialLinks, { label: '', url: '' }])
                       }
                     >
-                      <Plus size={15} /> 新增連結
+                      <Plus size={15} /> Add link
                     </button>
                   </div>
                   <div className="admin-form-body">
                     {data.socialLinks.map((link, index) => (
                       <div className="admin-social-row" key={index}>
                         <label>
-                          平台
+                          Platform
                           <input
                             value={link.label}
                             required
+                            maxLength={50}
                             placeholder="GitHub"
                             onChange={(e) =>
                               change(
@@ -1242,11 +1500,12 @@ function SettingsForm({ about }: { about: boolean }) {
                           />
                         </label>
                         <label>
-                          網址
+                          URL
                           <input
                             type="url"
                             value={link.url}
                             required
+                            maxLength={2048}
                             placeholder="https://…"
                             onChange={(e) =>
                               change(
@@ -1261,7 +1520,7 @@ function SettingsForm({ about }: { about: boolean }) {
                         <button
                           className="admin-icon-button danger"
                           type="button"
-                          aria-label={`移除社群連結 ${index + 1}`}
+                          aria-label={`Remove social link ${index + 1}`}
                           onClick={() =>
                             change(
                               'socialLinks',
@@ -1273,7 +1532,9 @@ function SettingsForm({ about }: { about: boolean }) {
                         </button>
                       </div>
                     ))}
-                    {!data.socialLinks.length && <p className="admin-subtle">尚未設定社群連結</p>}
+                    {!data.socialLinks.length && (
+                      <p className="admin-subtle">No social links yet.</p>
+                    )}
                   </div>
                 </section>
               )}
@@ -1281,32 +1542,36 @@ function SettingsForm({ about }: { about: boolean }) {
             <aside>
               <section className="admin-panel admin-form-panel">
                 <div className="admin-panel-heading">
-                  <h2>{about ? '你的頭像' : '品牌視覺'}</h2>
+                  <h2>{about ? 'Your avatar' : 'Site images'}</h2>
                 </div>
                 <div className="admin-form-body">
                   {about ? (
-                    imageControl('avatar', '個人頭像')
+                    imageControl('avatar', 'Avatar')
                   ) : (
                     <>
-                      {imageControl('logo', '網站 Logo')}
-                      {imageControl('heroImage', '首頁主視覺')}
+                      {imageControl('logo', 'Site logo')}
+                      {imageControl('heroImage', 'Homepage image')}
                     </>
                   )}
                   <div className="admin-note">
                     <Image size={17} />
-                    <p>使用媒體庫中的圖片，方便日後管理與備份</p>
+                    <p>Use your media library to keep image management and backups in one place.</p>
                   </div>
                 </div>
               </section>
-              <button
-                className="admin-button primary admin-save-settings"
-                disabled={busy}
-                type="submit"
-              >
-                <Check size={17} />
-                {busy ? '正在儲存…' : '儲存設定'}
-              </button>
             </aside>
+            <div className="admin-settings-savebar">
+              <div>
+                <strong role="status">
+                  {busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All settings saved'}
+                </strong>
+                <span>Changes go live when you save.</span>
+              </div>
+              <button className="admin-button primary" disabled={busy || !dirty} type="submit">
+                <Check size={17} />
+                {busy ? 'Saving…' : 'Save settings'}
+              </button>
+            </div>
           </form>
         )
       )}
@@ -1333,7 +1598,7 @@ function PasswordForm() {
     setError('');
     setMessage('');
     if (newPassword !== confirm) {
-      setError('兩次輸入的新密碼不相同');
+      setError('The new passwords do not match.');
       return;
     }
     setBusy(true);
@@ -1345,7 +1610,7 @@ function PasswordForm() {
       setCurrent('');
       setNew('');
       setConfirm('');
-      setMessage('密碼已更新，其他裝置的登入已登出');
+      setMessage('Password updated. Other sessions have been signed out.');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -1356,8 +1621,8 @@ function PasswordForm() {
     <section className="admin-panel admin-password-panel">
       <div className="admin-panel-heading">
         <div>
-          <h2>登入與安全</h2>
-          <p>變更密碼後，其他裝置需要重新登入</p>
+          <h2>Account security</h2>
+          <p>Changing your password signs out your other sessions.</p>
         </div>
         <ShieldCheck size={22} />
       </div>
@@ -1366,7 +1631,7 @@ function PasswordForm() {
         <Alert message={message} success />
         <div className="admin-password-fields">
           <label>
-            目前密碼
+            Current password
             <input
               required
               type="password"
@@ -1376,7 +1641,7 @@ function PasswordForm() {
             />
           </label>
           <label>
-            新密碼
+            New password
             <input
               required
               minLength={12}
@@ -1386,10 +1651,10 @@ function PasswordForm() {
               value={newPassword}
               onChange={(e) => setNew(e.target.value)}
             />
-            <small>至少 12 個字元</small>
+            <small>At least 12 characters</small>
           </label>
           <label>
-            再次輸入新密碼
+            Confirm new password
             <input
               required
               minLength={12}
@@ -1402,7 +1667,7 @@ function PasswordForm() {
           </label>
         </div>
         <button type="submit" className="admin-button" disabled={busy}>
-          {busy ? '更新中…' : '更新密碼'}
+          {busy ? 'Updating…' : 'Update password'}
         </button>
       </form>
     </section>

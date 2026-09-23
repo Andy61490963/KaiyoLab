@@ -18,24 +18,29 @@ export async function api<T>(url: string, options: RequestInit = {}): Promise<T>
   const response = await fetch(url, { ...options, headers, credentials: 'same-origin' });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401 && url.startsWith('/api/admin/')) {
-      throw new ApiError('登入已過期，請另開分頁登入後再重試，編輯中的內容會保留', response.status);
-    }
+    if (response.status === 401 && url.startsWith('/api/admin/'))
+      throw new ApiError(
+        'Your session expired. Sign in in another tab, then retry without closing this editor.',
+        response.status,
+      );
     if (url.startsWith('/api/auth/')) {
       const messages: Record<string, string> = {
-        INVALID_EMAIL_OR_PASSWORD: '電子郵件或密碼不正確',
-        INVALID_PASSWORD: '目前密碼不正確',
-        PASSWORD_TOO_SHORT: '密碼至少需要 12 個字元',
-        PASSWORD_TOO_LONG: '密碼不能超過 128 個字元',
-        INVALID_EMAIL: '請輸入有效的電子郵件',
+        INVALID_EMAIL_OR_PASSWORD: 'The email or password is incorrect.',
+        INVALID_PASSWORD: 'The current password is incorrect.',
+        PASSWORD_TOO_SHORT: 'Use at least 12 characters for your password.',
+        PASSWORD_TOO_LONG: 'Passwords cannot exceed 128 characters.',
+        INVALID_EMAIL: 'Enter a valid email address.',
       };
       const message =
         response.status === 429
-          ? '嘗試次數過多，請稍候一分鐘再試'
-          : messages[data?.code] || '驗證失敗，請確認輸入資料並稍後再試';
+          ? 'Too many attempts. Wait a minute and try again.'
+          : messages[data?.code] || 'Authentication failed. Check your details and try again.';
       throw new ApiError(message, response.status);
     }
-    throw new ApiError(data?.error || data?.message || '操作失敗，請稍後重試', response.status);
+    throw new ApiError(
+      data?.error || data?.message || 'The request failed. Please try again.',
+      response.status,
+    );
   }
   return data as T;
 }
@@ -45,12 +50,12 @@ export const json = (method: string, data: unknown): RequestInit => ({
 });
 export const errorMessage = (error: unknown) =>
   error instanceof TypeError
-    ? '無法連線至伺服器，請確認網路後重試'
+    ? 'Unable to reach the server. Check your connection and retry.'
     : error instanceof Error
       ? error.message
-      : '操作失敗，請稍後重試';
+      : 'The request failed. Please try again.';
 export const dateLabel = (value: string) =>
-  new Intl.DateTimeFormat('zh-TW', {
+  new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

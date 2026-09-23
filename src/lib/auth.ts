@@ -4,7 +4,8 @@ import { createAuthMiddleware, APIError } from 'better-auth/api';
 import { db, schema, secret } from './db';
 export function createAuth(database: ReturnType<typeof db>, setup = false) {
   const authSecret = secret('auth-secret', 'BETTER_AUTH_SECRET');
-  if (authSecret.length < 32) throw new Error('尚未設定驗證密鑰，請先初始化 secrets');
+  if (authSecret.length < 32)
+    throw new Error('The authentication secret is not configured. Initialize secrets first.');
   return betterAuth({
     database: drizzleAdapter(database, { provider: 'pg', schema, transaction: false }),
     secret: authSecret,
@@ -30,7 +31,9 @@ export function createAuth(database: ReturnType<typeof db>, setup = false) {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path === '/sign-up/email' && !setup)
-          throw new APIError('FORBIDDEN', { message: '此網站不開放註冊' });
+          throw new APIError('FORBIDDEN', {
+            message: 'Registration is not available on this site.',
+          });
       }),
     },
   });

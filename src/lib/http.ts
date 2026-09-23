@@ -1,5 +1,5 @@
 import { z } from 'zod';
-z.config(z.locales.zhTW());
+z.config(z.locales.en());
 export class HttpError extends Error {
   constructor(
     public status: number,
@@ -17,9 +17,9 @@ export function json(value: unknown, status = 200) {
 export async function body(request: Request) {
   const limit = 2_000_000;
   if (Number(request.headers.get('content-length') || 0) > limit)
-    throw new HttpError(413, '內容超過大小限制');
+    throw new HttpError(413, 'The request exceeds the size limit.');
   const reader = request.body?.getReader();
-  if (!reader) throw new HttpError(400, '請送出 JSON 資料');
+  if (!reader) throw new HttpError(400, 'Send a JSON request body.');
   const chunks: Uint8Array[] = [];
   let length = 0;
   while (true) {
@@ -28,27 +28,27 @@ export async function body(request: Request) {
     length += result.value.length;
     if (length > limit) {
       await reader.cancel();
-      throw new HttpError(413, '內容超過大小限制');
+      throw new HttpError(413, 'The request exceeds the size limit.');
     }
     chunks.push(result.value);
   }
   try {
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch {
-    throw new HttpError(400, '無法讀取送出的資料');
+    throw new HttpError(400, 'Unable to read the submitted data.');
   }
 }
 export function errorResponse(error: unknown) {
   if (error instanceof HttpError) return json({ error: error.message }, error.status);
   if (error instanceof z.ZodError)
     return json(
-      { error: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；') },
+      { error: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') },
       400,
     );
   if ((error as { code?: string })?.code === '23505')
-    return json({ error: '網址代稱或名稱已經存在' }, 409);
-  console.error('處理請求失敗', error instanceof Error ? error.message : error);
-  return json({ error: '處理失敗，請稍後再試' }, 500);
+    return json({ error: 'That slug or name is already in use.' }, 409);
+  console.error('Request failed', error instanceof Error ? error.message : error);
+  return json({ error: 'Unable to process the request. Please try again.' }, 500);
 }
 export const safeUrl = z
   .string()
@@ -65,12 +65,15 @@ export const safeUrl = z
             return false;
           }
         })()),
-    '請輸入 http 或 https 網址',
+    'Enter a valid HTTP or HTTPS URL.',
   );
 export const assetUrl = z
   .string()
   .max(2048)
-  .refine((v) => !v || /^\/(?!\/)[a-zA-Z0-9_./%-]+$/.test(v), '請使用媒體庫或內建圖片路徑');
+  .refine(
+    (v) => !v || /^\/(?!\/)[a-zA-Z0-9_./%-]+$/.test(v),
+    'Use a media library or built-in image path.',
+  );
 export const contentSchema = z.object({
   title: z.string().trim().min(1).max(200),
   slug: z
@@ -78,7 +81,10 @@ export const contentSchema = z.object({
     .trim()
     .min(1)
     .max(160)
-    .regex(/^[\p{L}\p{N}]+(?:[-_][\p{L}\p{N}]+)*$/u, '網址代稱只能包含文字、數字、連字號'),
+    .regex(
+      /^[\p{L}\p{N}]+(?:[-_][\p{L}\p{N}]+)*$/u,
+      'Slugs may contain letters, numbers, hyphens, and underscores.',
+    ),
   excerpt: z.string().max(1000),
   body: z.string().max(500000),
   cover: assetUrl,

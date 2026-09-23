@@ -22,10 +22,11 @@ export const POST: APIRoute = async ({ request }) => {
     const received = Buffer.from(input.token);
     const expected = Buffer.from(token);
     if (!token || received.length !== expected.length || !timingSafeEqual(received, expected))
-      throw new HttpError(403, '初始化碼不正確');
+      throw new HttpError(403, 'The setup token is incorrect.');
     await db().transaction(async (tx) => {
       const state = await tx.execute(sql`SELECT * FROM system_state WHERE id=1 FOR UPDATE`);
-      if (state.rows[0]?.setup_complete) throw new HttpError(409, '網站已完成初始化');
+      if (state.rows[0]?.setup_complete)
+        throw new HttpError(409, 'This site is already initialized.');
       const auth = createAuth(tx as unknown as ReturnType<typeof db>, true);
       const result = await auth.api.signUpEmail({
         body: { email: input.email, password: input.password, name: input.name },
