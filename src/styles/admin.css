@@ -90,7 +90,7 @@
   outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
-.admin-app :is(input:not([type='checkbox']):not([type='file']), textarea, select) {
+.admin-app :where(input:not([type='checkbox']):not([type='file']), textarea, select) {
   display: block;
   width: 100%;
   min-width: 0;
@@ -101,6 +101,7 @@
   background: var(--surface);
   color: var(--text);
   font-size: 16px;
+  font-weight: 400;
   outline-offset: 2px;
 }
 .admin-app :is(input, textarea)::placeholder {

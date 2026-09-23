@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { readRecovery, type DraftRecovery } from './draft-recovery';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -38,7 +38,7 @@ import {
   type Taxonomies,
 } from './api';
 
-const bodyExtensions = [markdown()];
+const bodyExtensions = [markdown(), EditorView.lineWrapping];
 const serialize = (value: EntryContent) => JSON.stringify(value);
 export default function EntryEditor({
   id,

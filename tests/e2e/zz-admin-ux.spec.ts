@@ -81,6 +81,9 @@ async function ready(page: Page, path: string) {
   await page.goto(path);
   await expect(page.locator('main h1').first()).toBeVisible();
   await expect(page.locator('.admin-loading')).toHaveCount(0);
+  if (/\/admin\/(articles|projects)\/[^/]+$/.test(path)) {
+    await expect(page.locator('.admin-markdown-preview')).toHaveAttribute('aria-busy', 'false');
+  }
 }
 
 test('English admin screens fit five widths in both themes', async ({
@@ -214,7 +217,14 @@ test('editor view, save shortcut, and recovery decision do not publish or erase 
   const current = (await currentResponse.json()) as Entry;
   expect(current.content.title).toBe('Saved using the keyboard');
   expect(current.published).toBeNull();
+  expect(
+    await page
+      .getByLabel('Article title')
+      .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+  ).toBeGreaterThanOrEqual(24);
+  await expect(page.locator('.cm-lineWrapping')).toBeVisible();
   await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.locator('.admin-prose h1')).toHaveText('Building reliable software');
   await expect(page.locator('.admin-markdown-input')).toBeHidden();
   await expect(page.getByRole('region', { name: 'Content preview' })).toBeVisible();
   await page.getByRole('button', { name: 'Write', exact: true }).click();
