@@ -1,0 +1,51 @@
+name: Prepare homepage refinements
+on:
+  push:
+    branches: [feat/subtle-home-language-and-notes]
+    paths: ['scripts/review-home.py', '.github/workflows/prepare-home.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.repository == 'Andy61490963/KaiyoLab'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Apply precise public-only changes
+        run: |
+          python scripts/review-home.py
+          git rm scripts/review-home.py .github/workflows/prepare-home.yml
+          npx prettier --write src/components/public/UiText.astro src/components/public/LanguageToggle.astro src/components/public/EntryCard.astro src/components/public/ProjectCard.astro src/components/public/Pagination.astro src/components/public/EmptyState.astro src/components/public/ErrorView.astro src/layouts/PublicLayout.astro src/pages/index.astro src/pages/about.astro src/pages/articles/index.astro 'src/pages/articles/[slug].astro' src/pages/projects/index.astro 'src/pages/projects/[slug].astro' src/lib/ui-language.ts src/scripts/public-language.ts src/styles/public-enhancements.css tests/ui-language.test.ts tests/integration/starter-notes.test.ts tests/e2e/zzz-home-refinements.spec.ts docs/home-refinements.md
+          git add src tests docs db public
+      - name: Prepare an unreferenced tree for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          def git(*args): return subprocess.check_output(['git', *args]).decode().strip()
+          rows=[]
+          for name in git('diff','--cached','--name-only').splitlines():
+              p=Path(name)
+              row={'path':name,'mode':'100644','type':'blob'}
+              if p.exists(): row['content']=p.read_text()
+              else: row['sha']=None
+              rows.append(row)
+          Path('/tmp/home-tree-request.json').write_text(json.dumps({'base_tree':git('rev-parse','HEAD^{tree}'),'tree':rows}))
+          result=json.loads(subprocess.check_output(['gh','api','--method','POST','repos/Andy61490963/KaiyoLab/git/trees','--input','/tmp/home-tree-request.json']))
+          Path('home-review-tree.json').write_text(json.dumps({'parent':git('rev-parse','HEAD'),'tree':result['sha'],'files':[row['path'] for row in rows]},indent=2))
+          Path('home-review.patch').write_bytes(subprocess.check_output(['git','diff','--cached','--binary']))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: home-review-tree
+          retention-days: 1
+          path: |
+            home-review-tree.json
+            home-review.patch
