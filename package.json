@@ -15,7 +15,7 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "db:migrate": "node scripts/migrate.mjs",
-    "account:recover": "node scripts/start.mjs recover",
+    "account:recover": "node scripts/recover.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
