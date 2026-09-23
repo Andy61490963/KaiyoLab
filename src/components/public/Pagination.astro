@@ -16,9 +16,9 @@ const visible = Array.from({ length: pages }, (_, i) => i + 1).filter(
 ---
 
 {pages > 1 && (
-  <nav class="pagination" aria-label="內容分頁">
+  <nav class="pagination" aria-label="Content pagination">
     {page > 1 ? (
-      <a class="pagination-direction" href={pageLink(page - 1)} aria-label="上一頁">
+      <a class="pagination-direction" href={pageLink(page - 1)} aria-label="Previous page">
         <Icon name="back" size={17} />
       </a>
     ) : (
@@ -39,7 +39,7 @@ const visible = Array.from({ length: pages }, (_, i) => i + 1).filter(
       </>
     ))}
     {page < pages ? (
-      <a class="pagination-direction" href={pageLink(page + 1)} aria-label="下一頁">
+      <a class="pagination-direction" href={pageLink(page + 1)} aria-label="Next page">
         <Icon size={17} />
       </a>
     ) : (

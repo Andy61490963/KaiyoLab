@@ -1,61 +1,17 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
-import Icon from '../components/public/Icon.astro';
 import { getSettings } from '../lib/content';
 import { renderMarkdown } from '../lib/markdown';
+
 const settings = await getSettings();
 const rendered = await renderMarkdown(
-  settings.about || '## 關於我\n\n登入管理後台後，可以在這裡編輯個人介紹',
+  settings.about ||
+    "# About Me\n\nHey, I'm a software engineer sharing development notes and personal projects.",
 );
 ---
 
-<PublicLayout settings={settings} title="關於我" description={settings.bio || settings.description}>
-  <div class="page-shell about-page">
-    <header class="collection-header">
-      <div>
-        <h1>
-          <Icon name="user" size={34} />
-          關於我
-        </h1>
-        <p>個人介紹、近期工作與聯絡方式</p>
-      </div>
-    </header>
-    <div class="about-layout">
-      <aside class="about-profile">
-        <img
-          class="profile-avatar"
-          src={settings.avatar || '/favicon.svg'}
-          alt={settings.authorName || settings.siteName}
-          width="112"
-          height="112"
-        />
-        <h2>{settings.authorName || settings.siteName}</h2>
-        <span class="profile-subtitle">{settings.tagline || '技術筆記與開源作品'}</span>
-        <p>{settings.bio || '分享程式開發筆記與個人作品'}</p>
-        <div class="profile-socials">
-          {settings.socialLinks.map((link) => (
-            <a href={link.url} target="_blank" rel="noopener noreferrer">
-              {link.label}
-              <Icon name="diagonal" size={16} />
-            </a>
-          ))}
-        </div>
-      </aside>
-      <div class="about-content">
-        <div class="prose" set:html={rendered.html} />
-        <div class="about-next">
-          <span class="eyebrow">更多內容</span>
-          <h3>文章與作品</h3>
-          <div>
-            <a class="text-link" href="/articles">
-              閱讀文章 <Icon name="arrow" size={17} />
-            </a>
-            <a class="text-link" href="/projects">
-              看看作品 <Icon name="diagonal" size={17} />
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<PublicLayout settings={settings} title="About Me" description={settings.bio || settings.description}>
+  <article class="page-shell about-page">
+    <div class="about-markdown prose" set:html={rendered.html} />
+  </article>
 </PublicLayout>

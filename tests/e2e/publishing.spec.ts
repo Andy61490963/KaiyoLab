@@ -148,7 +148,7 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
 
   const originalTheme = await page.locator('html').getAttribute('data-theme');
   const switchedTheme = originalTheme === 'dark' ? 'light' : 'dark';
-  const themeButton = page.getByRole('button', { name: /切換[深淺]色主題/ });
+  const themeButton = page.getByRole('button', { name: /Switch to (light|dark) theme/ });
   await themeButton.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('html')).toHaveAttribute('data-theme', switchedTheme);
@@ -157,17 +157,17 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   await expect(page.locator('html')).toHaveAttribute('data-theme', switchedTheme);
 
   await page.setViewportSize({ width: 375, height: 1000 });
-  const mobileMenu = page.getByRole('button', { name: '開啟選單', exact: true });
-  const mobileNavigation = page.getByRole('navigation', { name: '行動版導覽' });
+  const mobileMenu = page.getByRole('button', { name: 'Open menu', exact: true });
+  const mobileNavigation = page.getByRole('navigation', { name: 'Mobile navigation' });
   await expect(mobileNavigation).toBeHidden();
   await mobileMenu.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('button', { name: '關閉選單', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Close menu', exact: true })).toHaveAttribute(
     'aria-expanded',
     'true',
   );
   await expect(mobileNavigation).toBeVisible();
-  await mobileNavigation.getByRole('link', { name: '文章', exact: true }).focus();
+  await mobileNavigation.getByRole('link', { name: 'Articles', exact: true }).focus();
   await page.keyboard.press('Escape');
   await expect(mobileNavigation).toBeHidden();
   await expect(mobileMenu).toHaveAttribute('aria-expanded', 'false');
@@ -175,11 +175,11 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseURL! });
   await page.goto(`/articles/${slug}`);
-  const copyButton = page.getByRole('button', { name: '複製程式碼', exact: true }).first();
+  const copyButton = page.getByRole('button', { name: 'Copy code', exact: true }).first();
   await expect(copyButton).toBeVisible();
   await copyButton.focus();
   await page.keyboard.press('Enter');
-  await expect(copyButton).toHaveText('已複製');
+  await expect(copyButton).toHaveText('Copied');
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toContain('const serverReady = true;');
