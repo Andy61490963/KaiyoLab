@@ -19,7 +19,7 @@ const rendered = await renderMarkdown(entry.body);
 >
   <article class="page-shell project-detail">
     <a class="back-link" href="/projects">
-      <Icon name="back" size={17} /> 返回作品列表
+      <Icon name="back" size={17} /> Back to projects
     </a>
     <header class="project-detail-heading">
       <div>
@@ -40,7 +40,7 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            開啟展示 <Icon name="diagonal" size={18} />
+            Open demo <Icon name="diagonal" size={18} />
           </a>
         )}
         {entry.repoUrl && (
@@ -50,7 +50,7 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Icon name="code" size={18} /> 原始碼 <Icon name="diagonal" size={16} />
+            <Icon name="code" size={18} /> Source code <Icon name="diagonal" size={16} />
           </a>
         )}
       </div>
@@ -66,21 +66,21 @@ const rendered = await renderMarkdown(entry.body);
       </div>
       <aside class="article-toc">
         <div class="toc-inner">
-          <h2>作品紀錄</h2>
+          <h2>Project details</h2>
           <dl class="project-facts">
-            <dt>發布日期</dt>
-            <dd>{new Date(entry.publishedAt).toLocaleDateString('zh-TW')}</dd>
-            <dt>最近更新</dt>
+            <dt>Published</dt>
+            <dd>{new Date(entry.publishedAt).toLocaleDateString('en-US')}</dd>
+            <dt>Last updated</dt>
             <dd>{new Date(entry.updatedAt).toLocaleDateString('zh-TW')}</dd>
             {entry.category && (
               <>
-                <dt>作品分類</dt>
+                <dt>Category</dt>
                 <dd>{entry.category}</dd>
               </>
             )}
           </dl>
           {rendered.toc.length > 0 && (
-            <nav aria-label="作品目錄">
+            <nav aria-label="Project table of contents">
               {rendered.toc.map((item) => (
                 <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
                   {item.text}
