@@ -619,45 +619,45 @@
 .public-site .about-markdown {
   max-width: 760px;
 }
-.public-site .about-markdown :global(h1) {
+.public-site .about-markdown h1 {
   margin: 0 0 28px;
   font-size: clamp(36px, 5vw, 52px);
   line-height: 1.15;
   letter-spacing: -0.04em;
 }
-.public-site .about-markdown :global(h2) {
+.public-site .about-markdown h2 {
   margin-top: 52px;
   margin-bottom: 16px;
   font-size: 26px;
   line-height: 1.35;
   letter-spacing: -0.02em;
 }
-.public-site .about-markdown :global(h3) {
+.public-site .about-markdown h3 {
   margin-top: 36px;
   font-size: 20px;
 }
-.public-site .about-markdown :global(p:first-of-type) {
+.public-site .about-markdown p:first-of-type {
   font-size: 20px;
   line-height: 1.85;
 }
-.public-site .about-markdown :global(img) {
+.public-site .about-markdown img {
   width: 100%;
   height: auto;
   margin-block: 12px 32px;
   border-radius: 8px;
 }
-.public-site .about-markdown :global(ul),
-.public-site .about-markdown :global(ol) {
+.public-site .about-markdown ul,
+.public-site .about-markdown ol {
   padding-left: 1.4rem;
 }
 @media (max-width: 700px) {
   .public-site .about-page {
     padding-block: 40px 64px;
   }
-  .public-site .about-markdown :global(h1) {
+  .public-site .about-markdown h1 {
     font-size: 36px;
   }
-  .public-site .about-markdown :global(p:first-of-type) {
+  .public-site .about-markdown p:first-of-type {
     font-size: 18px;
   }
 }
