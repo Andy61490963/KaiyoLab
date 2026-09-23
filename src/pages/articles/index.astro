@@ -53,10 +53,10 @@ const filterLink = (key: 'category' | 'tag', value: string) => {
         )}
       </aside>
       <div class="collection-content">
-        <form id="article-search" class="search-form" method="get" action="/articles" role="search">
-          <label class="sr-only" for="q">Search articles</label>
+        <form class="search-form" method="get" action="/articles" role="search">
+          <label class="sr-only" for="article-search">Search articles</label>
           <Icon name="search" size={19} />
-          <input id="q" type="search" name="q" value={q} maxlength="200" placeholder="Search titles or content…" autocomplete="off" />
+          <input id="article-search" type="search" name="q" value={q} maxlength="200" placeholder="Search titles or content…" autocomplete="off" />
           {category && <input type="hidden" name="category" value={category} />}
           {tag && <input type="hidden" name="tag" value={tag} />}
           <button type="submit">Search <Icon name="arrow" size={16} /></button>

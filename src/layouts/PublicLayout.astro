@@ -187,7 +187,15 @@ const active = (href: string) => href === '/'
       matchMedia('(min-width: 801px)').addEventListener('change', (event) => {
         if (event.matches && menu) menu.open = false;
       });
-      if (location.hash === '#article-search') document.querySelector<HTMLInputElement>('#q')?.focus({ preventScroll: true });
+      // Target the input itself: native fragment navigation also works without JavaScript.
+      const focusSearch = () => {
+        if (location.hash === '#article-search') {
+          document.querySelector<HTMLInputElement>('#article-search')?.focus({ preventScroll: true });
+        }
+      };
+      window.addEventListener('pageshow', focusSearch);
+      window.addEventListener('hashchange', focusSearch);
+      if (document.readyState === 'complete') focusSearch();
 
       document.querySelectorAll<HTMLElement>('.prose pre').forEach((pre) => {
         if (!navigator.clipboard?.writeText) return;
