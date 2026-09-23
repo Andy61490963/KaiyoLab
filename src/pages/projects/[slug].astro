@@ -19,7 +19,7 @@ const rendered = await renderMarkdown(entry.body);
 >
   <article class="page-shell project-detail">
     <a class="back-link" href="/projects">
-      <Icon name="back" size={17} /> 返回作品實驗室
+      <Icon name="back" size={17} /> 返回作品列表
     </a>
     <header class="project-detail-heading">
       <div>
@@ -40,7 +40,7 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            探索作品 <Icon name="diagonal" size={18} />
+            開啟展示 <Icon name="diagonal" size={18} />
           </a>
         )}
         {entry.repoUrl && (
@@ -55,21 +55,14 @@ const rendered = await renderMarkdown(entry.body);
         )}
       </div>
     </header>
-    <figure class="project-cover">
-      <img
-        src={entry.cover || '/images/cover-orbit.svg'}
-        alt={entry.coverAlt || entry.title}
-        width="1280"
-        height="720"
-      />
-    </figure>
+    {entry.cover && (
+      <figure class="project-cover">
+        <img src={entry.cover} alt={entry.coverAlt || entry.title} width="1280" height="720" />
+      </figure>
+    )}
     <div class="reading-layout">
       <div class="article-body">
         <div class="prose" set:html={rendered.html} />
-        <div class="article-end">
-          <span class="status-light"></span>
-          <span>每個作品，都是一場新的探索</span>
-        </div>
       </div>
       <aside class="article-toc">
         <div class="toc-inner">

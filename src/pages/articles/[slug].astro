@@ -63,7 +63,7 @@ const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
     )}
     {rendered.toc.length > 0 && (
       <details class="mobile-toc">
-        <summary>這篇文章的路線</summary>
+        <summary>本文目錄</summary>
         <nav aria-label="行動版文章目錄">
           {rendered.toc.map((item) => (
             <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
@@ -77,16 +77,14 @@ const date = new Date(entry.publishedAt).toLocaleDateString('zh-TW', {
       <div class="article-body">
         <div class="prose" set:html={rendered.html} />
         <div class="article-end">
-          <span class="status-light"></span>
-          <span>謝謝你，讀到這裡</span>
           <a href="/rss.xml">
-            訂閱後續紀錄 <Icon name="rss" size={16} />
+            訂閱新文章 <Icon name="rss" size={16} />
           </a>
         </div>
       </div>
       <aside class="article-toc">
         <div class="toc-inner">
-          <h2>這篇文章的路線</h2>
+          <h2>本文目錄</h2>
           <span class="eyebrow">ON THIS PAGE</span>
           {rendered.toc.length ? (
             <nav aria-label="文章目錄">

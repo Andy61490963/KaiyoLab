@@ -21,7 +21,7 @@ async function signIn(page: Page) {
   await page.getByLabel('密碼', { exact: true }).fill(password);
   await page.getByRole('button', { name: '登入後台' }).click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole('heading', { name: '歡迎回到你的創作宇宙' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '網站總覽' })).toBeVisible();
 }
 test.beforeAll(async ({ request, baseURL }) => {
   const response = await request.get('/setup');

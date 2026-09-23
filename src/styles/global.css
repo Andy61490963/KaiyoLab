@@ -3,41 +3,41 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import 'tailwindcss';
 
-/* KaiyoLab 的共用色票、字體與公開網站樣式。 */
+/* KaiyoLab 前後台共用的紙色、炭灰與莓紅色票 */
 :root {
   color-scheme: light;
-  --bg: #f6f8fa;
-  --surface: #ffffff;
-  --surface-raised: #eef3f5;
-  --text: #142531;
-  --muted: #647687;
-  --border: #dce4e9;
-  --accent: #087f72;
+  --bg: #f8f4e6;
+  --surface: #f0ebd5;
+  --surface-raised: #ece4ca;
+  --text: #28282e;
+  --muted: #62616a;
+  --border: #d2c8aa;
+  --accent: #a0235c;
   --accent-contrast: #ffffff;
-  --accent-soft: #e1f2ed;
-  --violet: #8067b3;
-  --header-bg: rgb(246 248 250 / 92%);
-  --code-bg: #edf2f5;
-  --shadow: 0 20px 55px rgb(28 51 63 / 7%);
+  --accent-soft: #eee1db;
+  --violet: #735ca5;
+  --header-bg: rgb(248 244 230 / 94%);
+  --code-bg: #eee8d6;
+  --shadow: 0 2px 3px rgb(65 53 20 / 5%);
   --font-body: 'Noto Sans TC Variable', 'Noto Sans TC', sans-serif;
-  --font-display: 'Space Grotesk Variable', var(--font-body);
+  --font-display: var(--font-body);
   --font-mono: 'JetBrains Mono', monospace;
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #090f19;
-  --surface: #101824;
-  --surface-raised: #15202d;
-  --text: #e8edf5;
-  --muted: #8e9bae;
-  --border: #25303e;
-  --accent: #74e2ce;
-  --accent-contrast: #082720;
-  --accent-soft: #142d2d;
-  --violet: #b49ae9;
-  --header-bg: rgb(9 15 25 / 93%);
-  --code-bg: #101925;
-  --shadow: 0 20px 55px rgb(0 0 0 / 16%);
+  --bg: #1c1b22;
+  --surface: #25242d;
+  --surface-raised: #33303e;
+  --text: #eceaf0;
+  --muted: #b2aebc;
+  --border: #504b58;
+  --accent: #f29dc4;
+  --accent-contrast: #231823;
+  --accent-soft: #382735;
+  --violet: #b8a1e5;
+  --header-bg: rgb(28 27 34 / 94%);
+  --code-bg: #24222c;
+  --shadow: 0 2px 3px rgb(0 0 0 / 12%);
 }
 * {
   box-sizing: border-box;

@@ -458,6 +458,22 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
       await client.query(migration);
       const second = await client.query('SELECT value FROM settings WHERE id = 1');
       expect(second.rows[0].value).toEqual(first.rows[0].value);
+
+      const specificCopy = await readFile(
+        new URL('../../db/migrations/003_specific_default_copy.sql', import.meta.url),
+        'utf8',
+      );
+      await client.query(specificCopy);
+      const revised = await client.query('SELECT value FROM settings WHERE id = 1');
+      expect(revised.rows[0].value).toEqual({
+        ...expected,
+        tagline: '技術筆記與開源作品',
+        about:
+          '## 關於我\n\n這裡可以介紹自己的背景、正在做的專案，以及聯絡方式\n\n登入管理後台後，就能編輯這段文字',
+      });
+      await client.query(specificCopy);
+      const repeated = await client.query('SELECT value FROM settings WHERE id = 1');
+      expect(repeated.rows[0].value).toEqual(revised.rows[0].value);
     } finally {
       try {
         await client.query('ROLLBACK');

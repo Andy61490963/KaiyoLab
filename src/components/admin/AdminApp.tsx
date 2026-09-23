@@ -53,7 +53,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
     <div className="admin-empty">
       <Orbit size={36} strokeWidth={1.2} />
       <h3>{title}</h3>
-      <p>{children || '從第一筆內容開始，慢慢建立你的創作宇宙'}</p>
+      <p>{children || '新增內容後，資料會顯示在這裡'}</p>
     </div>
   );
 }
@@ -125,7 +125,7 @@ export function ThemeButton() {
   );
 }
 const navigation = [
-  { href: '/admin', label: '工作總覽', icon: LayoutDashboard },
+  { href: '/admin', label: '網站總覽', icon: LayoutDashboard },
   { href: '/admin/articles', label: '文章管理', icon: FileText },
   { href: '/admin/projects', label: '作品管理', icon: FolderKanban },
   { href: '/admin/media', label: '媒體庫', icon: Image },
@@ -141,7 +141,7 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
           <Orbit size={24} />
         </span>
         <span>
-          KaiyoLab<small>創作管理工作室</small>
+          KaiyoLab<small>網站內容管理</small>
         </span>
       </a>
       <div className="admin-nav-caption">工作空間</div>
@@ -158,7 +158,6 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
             >
               <item.icon size={18} />
               <span>{item.label}</span>
-              {active && <span className="admin-active-dot" />}
             </a>
           );
         })}
@@ -175,10 +174,8 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
             <UserRound size={19} />
           </span>
           <div>
-            站長工作空間
-            <small>
-              <span className="admin-status-dot" /> 私人管理
-            </small>
+            站長管理
+            <small>僅站長可見</small>
           </div>
           <ShieldCheck size={17} />
         </div>
@@ -197,7 +194,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   const match = path.match(/^\/admin\/(articles|projects)\/([^/]+)$/);
   if (match)
     page = (
-      <Suspense fallback={<p className="admin-loading">正在開啟編輯工作室…</p>}>
+      <Suspense fallback={<p className="admin-loading">正在載入編輯器…</p>}>
         <EntryEditor id={match[2]} kind={match[1] === 'articles' ? 'article' : 'project'} />
       </Suspense>
     );
@@ -211,7 +208,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   else
     page = (
       <Empty title="找不到這個管理頁面">
-        <a href="/admin">回到工作總覽</a>
+        <a href="/admin">回到網站總覽</a>
       </Empty>
     );
   async function logout() {
@@ -273,7 +270,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
           {page}
         </main>
         <footer className="admin-footer">
-          <span>KaiyoLab · 為每個值得記錄的想法而造</span>
+          <span>KaiyoLab · 網站內容管理</span>
           <a href="/" target="_blank" rel="noreferrer">
             查看網站 <ArrowUpRight size={13} />
           </a>
@@ -289,11 +286,7 @@ function Dashboard() {
   }>('/api/admin/dashboard');
   return (
     <>
-      <PageTitle
-        label="創作控制中心"
-        title="歡迎回到你的創作宇宙"
-        description="整理靈感、記錄探索，讓每一份作品被看見"
-      >
+      <PageTitle label="管理總覽" title="網站總覽" description="查看內容狀態與最近修改的文章、作品">
         <a className="admin-button primary" href="/admin/articles/new">
           <Plus size={17} /> 撰寫文章
         </a>
@@ -306,28 +299,15 @@ function Dashboard() {
       )}
       <section className="admin-welcome">
         <div className="admin-welcome-content">
-          <span className="admin-eyebrow">每個想法，都有自己的軌道</span>
-          <h2>今天，想記錄什麼？</h2>
-          <p>
-            從一段筆記到一篇文章，把腦中的星點，
-            <br className="desktop-break" />
-            收進屬於你的知識與作品集
-          </p>
-          <a href="/admin/articles/new">
-            開始新的草稿 <ArrowRight size={17} />
-          </a>
-        </div>
-        <div className="admin-orbital" aria-hidden="true">
-          <div className="admin-orbit-ring ring-one" />
-          <div className="admin-orbit-ring ring-two" />
-          <div className="admin-orbit-ring ring-three" />
-          <div className="admin-orbit-core">
-            <Orbit size={65} strokeWidth={1} />
+          <span className="admin-eyebrow">內容管理</span>
+          <h2>新增文章</h2>
+          <p>撰寫草稿、預覽內容，準備好後再發布到網站</p>
+          <div className="admin-welcome-actions">
+            <a href="/admin/articles/new">
+              建立文章草稿 <ArrowRight size={17} />
+            </a>
+            <a href="/admin/articles?status=draft">查看草稿</a>
           </div>
-          <span className="admin-orbit-star star-one" />
-          <span className="admin-orbit-star star-two" />
-          <span className="admin-orbit-star star-three" />
-          <span className="admin-orbit-caption">探索 · 記錄 · 分享</span>
         </div>
       </section>
       <div className="admin-stat-grid">
@@ -337,28 +317,28 @@ function Dashboard() {
             count: data?.counts.articles,
             icon: FileText,
             href: '/admin/articles',
-            detail: '你的知識與探索',
+            detail: '查看所有文章',
           },
           {
             name: '編輯中草稿',
             count: data?.counts.drafts,
             icon: FileText,
             href: '/admin/articles?status=draft',
-            detail: '等著被完成的想法',
+            detail: '查看草稿',
           },
           {
-            name: '作品收藏',
+            name: '作品總數',
             count: data?.counts.projects,
             icon: FolderKanban,
             href: '/admin/projects',
-            detail: '讓成果有一個位置',
+            detail: '管理作品',
           },
           {
             name: '垃圾桶',
             count: data?.counts.trash,
             icon: Trash2,
             href: '/admin/articles?status=trash',
-            detail: '內容仍可還原',
+            detail: '查看與還原',
           },
         ].map((stat, i) => (
           <a className={`admin-stat stat-${i}`} href={stat.href} key={stat.name}>
@@ -379,7 +359,7 @@ function Dashboard() {
           <div className="admin-panel-heading">
             <div>
               <h2>最近編輯</h2>
-              <p>接著上次的靈感，繼續創作</p>
+              <p>最近修改的文章與作品</p>
             </div>
             <a href="/admin/articles">
               全部內容 <ArrowRight size={15} />
@@ -388,7 +368,7 @@ function Dashboard() {
           {loading ? (
             <p className="admin-loading">正在載入你的工作空間…</p>
           ) : !data?.recent.length ? (
-            <Empty title="故事，從這裡開始">新增第一篇文章或作品，最近的編輯會出現在這裡</Empty>
+            <Empty title="尚無編輯紀錄">新增文章或作品後，最近修改的內容會顯示在這裡</Empty>
           ) : (
             <div className="admin-recent-list">
               {data.recent.map((entry) => (
@@ -414,8 +394,8 @@ function Dashboard() {
         <section className="admin-panel admin-shortcuts">
           <div className="admin-panel-heading">
             <div>
-              <h2>打造你的空間</h2>
-              <p>讓網站多一點你的樣子</p>
+              <h2>常用設定</h2>
+              <p>編輯關於我、作品與網站資料</p>
             </div>
           </div>
           <a href="/admin/about">
@@ -501,7 +481,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
   return (
     <>
       <PageTitle
-        label="內容工作室"
+        label="內容管理"
         title={`${name}管理`}
         description={
           kind === 'article'
@@ -767,7 +747,7 @@ function MediaLibrary({
     <>
       {!picker && (
         <PageTitle
-          label="素材工作室"
+          label="媒體管理"
           title="媒體庫"
           description="集中管理圖片，讓每份內容都有適合的視覺"
         >
@@ -1000,7 +980,7 @@ function TaxonomySection({
       <div className="admin-panel-heading">
         <div>
           <h2>{label}</h2>
-          <p>{kind === 'category' ? '每份內容的主要歸屬' : '串連靈感與主題的關鍵字'}</p>
+          <p>{kind === 'category' ? '用於整理文章的主要分類' : '用於標記文章主題的關鍵字'}</p>
         </div>
         <span className="admin-count">{items.length}</span>
       </div>
@@ -1169,9 +1149,7 @@ function SettingsForm({ about }: { about: boolean }) {
       <PageTitle
         label={about ? '個人檔案' : '網站控制台'}
         title={about ? '讓讀者認識你' : '網站設定'}
-        description={
-          about ? '你的故事、想法，以及可以找到你的地方' : '調整品牌與網站資訊，打造自己的創作基地'
-        }
+        description={about ? '編輯個人介紹與社群連結' : '調整網站名稱、品牌圖片與基本資訊'}
       />
       <Alert message={error} />
       <Alert message={message} success />

@@ -54,7 +54,7 @@ const authorName = settings.authorName || settings.siteName;
           ))}
         </div>
       ) : (
-        <p class="home-empty">還沒有公開文章，新的筆記將會出現在這裡</p>
+        <p class="home-empty">目前沒有已發布的文章</p>
       )}
     </section>
 
@@ -85,7 +85,7 @@ const authorName = settings.authorName || settings.siteName;
           ))}
         </div>
       ) : (
-        <p class="home-empty">目前沒有精選作品，完成的專案會陸續整理在這裡</p>
+        <p class="home-empty">目前沒有精選作品，可到作品頁查看全部內容</p>
       )}
     </section>
 
@@ -107,7 +107,7 @@ const authorName = settings.authorName || settings.siteName;
     <p class="home-subscribe">
       <Icon name="rss" size={18} />
       <span>
-        喜歡這裡的內容？<a href="/rss.xml">透過 RSS 訂閱最新文章</a>
+        <a href="/rss.xml">透過 RSS 訂閱最新文章</a>
       </span>
     </p>
   </div>
@@ -187,9 +187,8 @@ const authorName = settings.authorName || settings.siteName;
     gap: 24px;
   }
   .home-empty {
-    padding: 24px;
-    border-radius: 6px;
-    background: var(--surface);
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
     color: var(--muted);
     font-size: 16px;
   }

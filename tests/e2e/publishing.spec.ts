@@ -18,20 +18,20 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   await page.getByLabel('密碼', { exact: true }).fill(password);
   await page.getByRole('button', { name: '登入後台' }).click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole('heading', { name: '歡迎回到你的創作宇宙' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '網站總覽' })).toBeVisible();
   await page.getByRole('link', { name: '撰寫文章', exact: true }).click();
   await expect(page.getByLabel('文章標題')).toBeVisible();
   const slug = `ocean-${Date.now()}`;
-  await page.getByLabel('文章標題').fill('在數位海洋，建立自己的創作基地');
+  await page.getByLabel('文章標題').fill('Astro SSR 與 PostgreSQL 的部署筆記');
   await page.getByLabel('網址代稱', { exact: true }).fill(slug);
   await page
     .locator('.cm-content')
     .fill(
-      '# 每一個想法，都值得被記錄\n\n從 Astro 開始，打造一個屬於自己的內容基地。\n\n## 讓技術服務創作\n\n- [x] 完成網站\n- [ ] 繼續探索\n\n```typescript\nconst curiosity = true;\n```',
+      '# Astro SSR 與 PostgreSQL 的部署筆記\n\n記錄網站從本機建置到容器部署時需要的設定\n\n## 部署步驟\n\n- [x] 建置網站\n- [ ] 驗證資料庫連線\n\n```typescript\nconst serverReady = true;\n```',
     );
   await page
     .getByLabel('內容摘要', { exact: true })
-    .fill('把零散的想法整理成文字，將每一次探索，留在自己的數位空間。');
+    .fill('整理 Astro SSR、PostgreSQL 與 Docker Compose 的部署設定');
   await page.getByRole('button', { name: '發布內容', exact: true }).click();
   await expect(
     page.getByText('已發布，讀者現在可以在公開網站閱讀最新內容', { exact: true }),
@@ -40,7 +40,7 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   const id = entryPath.split('/').at(-1)!;
   const publicResponse = await request.get(`/articles/${slug}`);
   expect(publicResponse.status()).toBe(200);
-  expect(await publicResponse.text()).toContain('在數位海洋，建立自己的創作基地');
+  expect(await publicResponse.text()).toContain('Astro SSR 與 PostgreSQL 的部署筆記');
   await page.getByLabel('文章標題').fill('未公開的想法');
   await page.getByRole('button', { name: '儲存草稿', exact: true }).click();
   await expect(page.getByText('所有變更已儲存', { exact: true })).toBeVisible();
@@ -57,12 +57,12 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
     version: current.version,
     content: {
       ...current.content,
-      title: '在數位海洋，建立自己的創作基地',
+      title: 'Astro SSR 與 PostgreSQL 的部署筆記',
       featured: true,
       cover: '/images/kaiyo-hero.png',
       coverAlt: '海洋研究室',
       category: '開發筆記',
-      tags: ['Astro', '創作'],
+      tags: ['Astro', '部署'],
     },
   });
   await api(`/api/admin/entries/${id}/action`, 'POST', {
@@ -73,10 +73,10 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   for (const item of [
     {
       kind: 'article',
-      title: '把靈感寫成程式，讓想像成為日常',
-      category: '靈感隨筆',
-      tags: ['設計', '生活'],
-      excerpt: '一些關於創作節奏、技術選擇與持續學習的筆記。',
+      title: 'Docker Compose 的資料備份與還原',
+      category: '部署筆記',
+      tags: ['Docker', 'PostgreSQL'],
+      excerpt: '記錄資料庫與媒體目錄的備份指令，以及新環境的還原步驟',
       cover: '/images/cover-orbit.svg',
     },
     {
@@ -84,15 +84,15 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
       title: '從零開始的 Markdown 寫作工作流',
       category: '開發筆記',
       tags: ['Markdown', '工具'],
-      excerpt: '專注文字，也照顧閱讀體驗。用簡單的工具整理複雜的想法。',
+      excerpt: '比較編輯器與公開頁的 Markdown 呈現，確認表格、任務清單和程式碼一致',
       cover: '/images/cover-grid.svg',
     },
     {
       kind: 'project',
-      title: 'KaiyoLab · 個人創作實驗室',
+      title: 'KaiyoLab 內容管理系統',
       category: '開源專案',
       tags: ['Astro', 'PostgreSQL'],
-      excerpt: '一個能夠自己掌握資料、自由部署的內容管理系統。',
+      excerpt: '使用 Astro 與 PostgreSQL 建立的自架內容管理系統',
       cover: '/images/kaiyo-hero.png',
     },
     {
@@ -100,15 +100,15 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
       title: 'Markdown 筆記工具',
       category: '開源專案',
       tags: ['TypeScript', 'Markdown'],
-      excerpt: '把靈感整理成文字，專注寫作的小工具。',
+      excerpt: '提供 Markdown 輸入與預覽的本機練習專案',
       cover: '/images/cover-grid.svg',
     },
     {
       kind: 'project',
-      title: '色彩工作室',
-      category: '創作實驗',
+      title: '介面色彩對比檢查',
+      category: '介面練習',
       tags: ['CSS', '設計'],
-      excerpt: '探索配色、對比與介面裡的細節。',
+      excerpt: '對照 WCAG 比例檢查按鈕與文字在明暗主題的可讀性',
       cover: '/images/cover-orbit.svg',
     },
   ]) {
@@ -119,10 +119,10 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
         ...draft.content,
         ...item,
         slug: `sample-${draft.id.slice(0, 8)}`,
-        body: `# ${item.title}\n\n${item.excerpt}\n\n## 關於這份紀錄\n\n這是 KaiyoLab 端到端驗收使用的示範內容。`,
+        body: `# ${item.title}\n\n${item.excerpt}\n\n## 測試資料\n\n這是 KaiyoLab 端到端驗收使用的示範內容`,
         featured: item.kind === 'project',
         cover: item.cover,
-        coverAlt: '原創動漫科技研究室',
+        coverAlt: '測試資料使用的封面圖片',
       },
     });
     await api(`/api/admin/entries/${draft.id}/action`, 'POST', {
@@ -133,9 +133,9 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   }
   await page.goto('/');
   await expect(
-    page.getByRole('link', { name: '在數位海洋，建立自己的創作基地' }).first(),
+    page.getByRole('link', { name: 'Astro SSR 與 PostgreSQL 的部署筆記' }).first(),
   ).toBeVisible();
-  expect(await (await request.get('/rss.xml')).text()).toContain('在數位海洋');
+  expect(await (await request.get('/rss.xml')).text()).toContain('Astro SSR');
   expect(await (await request.get('/sitemap.xml')).text()).toContain(slug);
   const privateResponse = await request.get('/api/admin/entries');
   expect(privateResponse.status()).toBe(401);
@@ -182,7 +182,7 @@ test('站長從初始設定、創作發布到多尺寸閱讀', async ({ page, re
   await expect(copyButton).toHaveText('已複製');
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toContain('const curiosity = true;');
+    .toContain('const serverReady = true;');
   if (process.env.CAPTURE_DOCS) await mkdir('docs/screenshots', { recursive: true });
   for (const theme of ['dark', 'light'] as const) {
     await page.emulateMedia({ colorScheme: theme });

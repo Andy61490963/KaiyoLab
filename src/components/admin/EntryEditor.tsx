@@ -327,7 +327,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
       <>
         <Alert message={error} />
         {!error ? (
-          <div className="admin-loading">正在開啟編輯工作室…</div>
+          <div className="admin-loading">正在載入編輯器…</div>
         ) : (
           <a
             className="admin-button"
@@ -374,7 +374,7 @@ export default function EntryEditor({ id, kind }: { id: string; kind: 'article' 
             <ArrowLeft size={15} /> 返回{kind === 'article' ? '文章' : '作品'}列表
           </a>
           <h1>
-            {kind === 'article' ? '文章' : '作品'}編輯工作室{' '}
+            {kind === 'article' ? '文章' : '作品'}編輯器{' '}
             <span className={`admin-badge ${entry.published ? 'published' : ''}`}>
               {entry.deletedAt ? '垃圾桶' : entry.published ? '已發布' : '草稿'}
             </span>
