@@ -7,7 +7,7 @@ export const prerender = false;
 <AdminLayout>
   <AdminApp path={Astro.url.pathname} client:only="react">
     <p slot="fallback" class="admin-initial-loading">
-      正在開啟管理工作室…
+      正在載入管理後台…
     </p>
   </AdminApp>
   <noscript>管理後台需要啟用 JavaScript</noscript>

@@ -23,11 +23,7 @@ const categoryLink = (name: string) => {
 };
 ---
 
-<PublicLayout
-  settings={settings}
-  title="文章"
-  description="探索技術筆記、生活紀錄與創作途中的每一個發現"
->
+<PublicLayout settings={settings} title="文章" description="文章列表，依分類、標籤與關鍵字查找">
   <div class="page-shell">
     <header class="collection-header">
       <div>
@@ -35,7 +31,7 @@ const categoryLink = (name: string) => {
           <Icon name="file" size={34} />
           文章
         </h1>
-        <p>關於程式開發、持續學習，以及生活中的一些想法</p>
+        <p>技術筆記與其他文章，依分類或關鍵字查找</p>
       </div>
     </header>
     <div class="collection-layout">
@@ -68,15 +64,6 @@ const categoryLink = (name: string) => {
             </div>
           </div>
         )}
-        <div class="collection-side-note">
-          <span>STAY CURIOUS</span>
-          <p>
-            每一篇紀錄，都是
-            <br />
-            通往下一個發現的起點
-          </p>
-          <span aria-hidden="true">✳</span>
-        </div>
       </aside>
       <div class="collection-content">
         <form id="article-search" class="search-form" method="get" action="/articles" role="search">
@@ -89,7 +76,7 @@ const categoryLink = (name: string) => {
             type="search"
             name="q"
             value={q}
-            placeholder="搜尋標題、內容或靈感…"
+            placeholder="搜尋標題或內容…"
             autocomplete="off"
           />
           {category && <input type="hidden" name="category" value={category} />}
@@ -118,11 +105,11 @@ const categoryLink = (name: string) => {
             ))
           ) : (
             <EmptyState
-              title={q || tag || category ? '暫時沒有符合的紀錄' : '第一篇故事，值得期待'}
+              title={q || tag || category ? '找不到符合的文章' : '目前沒有已發布的文章'}
               description={
                 q || tag || category
-                  ? '試試其他關鍵字，或清除篩選，尋找下一個靈感'
-                  : '新的思考與發現，將很快在這裡相遇'
+                  ? '請更換關鍵字，或清除分類與標籤篩選'
+                  : '發布文章後，內容會顯示在這裡'
               }
             />
           )}

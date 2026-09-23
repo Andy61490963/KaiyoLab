@@ -5,8 +5,7 @@ import { getSettings } from '../lib/content';
 import { renderMarkdown } from '../lib/markdown';
 const settings = await getSettings();
 const rendered = await renderMarkdown(
-  settings.about ||
-    '## 很高興在這裡遇見你\n\n這裡是我的數位基地，也是一本持續書寫的探索筆記\n\n我相信，每個值得分享的想法，都來自一次真實的嘗試\n\n無論是新技術、一個小作品，還是生活裡的靈光一閃，都值得被好好記錄\n\n謝謝你來到這裡，和我一起保持好奇',
+  settings.about || '## 關於我\n\n登入管理後台後，可以在這裡編輯個人介紹',
 );
 ---
 
@@ -18,7 +17,7 @@ const rendered = await renderMarkdown(
           <Icon name="user" size={34} />
           關於我
         </h1>
-        <p>這是我的一小片網路空間，也是故事開始的地方</p>
+        <p>個人介紹、近期工作與聯絡方式</p>
       </div>
     </header>
     <div class="about-layout">
@@ -31,8 +30,8 @@ const rendered = await renderMarkdown(
           height="112"
         />
         <h2>{settings.authorName || settings.siteName}</h2>
-        <span class="profile-subtitle">{settings.tagline || '持續探索，保持好奇'}</span>
-        <p>{settings.bio || '喜歡技術、創作，以及所有讓生活更有趣的小事'}</p>
+        <span class="profile-subtitle">{settings.tagline || '技術筆記與開源作品'}</span>
+        <p>{settings.bio || '分享程式開發筆記與個人作品'}</p>
         <div class="profile-socials">
           {settings.socialLinks.map((link) => (
             <a href={link.url} target="_blank" rel="noopener noreferrer">
@@ -41,18 +40,15 @@ const rendered = await renderMarkdown(
             </a>
           ))}
         </div>
-        <div class="profile-bottom">
-          <span class="status-light"></span> 正在探索更多可能
-        </div>
       </aside>
       <div class="about-content">
         <div class="prose" set:html={rendered.html} />
         <div class="about-next">
-          <span class="eyebrow">NEXT STOP</span>
-          <h3>從文字與作品，繼續認識我</h3>
+          <span class="eyebrow">更多內容</span>
+          <h3>文章與作品</h3>
           <div>
             <a class="text-link" href="/articles">
-              探索文章 <Icon name="arrow" size={17} />
+              閱讀文章 <Icon name="arrow" size={17} />
             </a>
             <a class="text-link" href="/projects">
               看看作品 <Icon name="diagonal" size={17} />

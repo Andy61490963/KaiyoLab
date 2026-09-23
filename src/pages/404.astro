@@ -7,14 +7,6 @@ Astro.response.status = 404;
 const settings = await getSettings().catch(() => defaultSettings);
 ---
 
-<PublicLayout
-  settings={settings}
-  title="找不到這個頁面"
-  description="這個座標尚未留下紀錄，回到 KaiyoLab 繼續探索"
->
-  <ErrorView
-    code="404"
-    title="這個座標，還沒有故事"
-    description="頁面可能已經移動，或這個網址尚未留下紀錄；回到熟悉的航道，繼續尋找下一個靈感"
-  />
+<PublicLayout settings={settings} title="找不到這個頁面" description="找不到指定的頁面">
+  <ErrorView code="404" title="找不到這個頁面" description="請檢查網址，或返回首頁查看文章與作品" />
 </PublicLayout>

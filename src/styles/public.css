@@ -1,18 +1,18 @@
-/* 公開網站：溫暖紙色、文字優先的個人開發者網站。後台保留獨立配色。 */
+/* 公開網站：與管理後台共用紙色、炭灰與莓紅色票 */
 .public-site {
   --bg: #f8f4e6;
   --surface: #f0ebd5;
   --surface-raised: #ece4ca;
   --text: #28282e;
   --muted: #62616a;
-  --border: #ddd5b7;
-  --accent: #aa2865;
+  --border: #d2c8aa;
+  --accent: #a0235c;
   --accent-contrast: #fff;
   --accent-soft: #eee1db;
   --violet: #735ca5;
   --code-bg: #eee8d6;
   --shadow: 0 2px 3px rgb(65 53 20 / 5%);
-  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC Variable', sans-serif;
+  --font-body: 'Noto Sans TC Variable', 'Noto Sans TC', sans-serif;
   --font-display: var(--font-body);
   font-size: 16px;
   line-height: 1.65;
@@ -23,7 +23,7 @@
   --surface-raised: #33303e;
   --text: #eceaf0;
   --muted: #b2aebc;
-  --border: #45404e;
+  --border: #504b58;
   --accent: #f29dc4;
   --accent-contrast: #231823;
   --accent-soft: #382735;
@@ -123,24 +123,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: var(--muted);
 }
-.nav-icon-home {
-  color: var(--violet);
-}
-.nav-icon-file {
-  color: #8f6427;
-}
-.nav-icon-code {
+.public-nav a.active .nav-icon,
+.public-site .mobile-nav a.active .nav-icon,
+.public-nav a:hover .nav-icon {
   color: var(--accent);
-}
-.nav-icon-user {
-  color: #39717b;
-}
-[data-theme='dark'] .nav-icon-file {
-  color: #e4bc76;
-}
-[data-theme='dark'] .nav-icon-user {
-  color: #83c8c9;
 }
 .public-socials {
   display: flex;
@@ -229,17 +217,14 @@
   transform: none;
 }
 .public-site .empty-state {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  min-height: 230px;
-  padding: 32px 24px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border);
+  min-height: 0;
+  padding: 26px 0;
 }
 .public-site .empty-orbit {
-  border: 0;
-  border-radius: 6px;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 16px;
+  display: none;
 }
 .public-site .empty-orbit::after {
   display: none;

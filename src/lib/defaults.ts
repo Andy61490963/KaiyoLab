@@ -1,12 +1,12 @@
 import type { EntryContent, SiteSettings } from './types';
 export const defaultSettings: SiteSettings = {
   siteName: 'KaiyoLab',
-  tagline: '在想像與技術之間，探索更多可能',
-  description: '一個記錄想法、分享技術與創作的個人實驗室',
+  tagline: '技術筆記與開源作品',
+  description: '整理開發筆記、做過的專案，以及正在學習的事',
   authorName: 'Kaiyo',
-  bio: '寫下探索的軌跡，讓每一個想法都有發光的機會',
+  bio: '分享程式開發筆記與個人作品',
   about:
-    '## 嗨，歡迎來到我的實驗室\n\n這裡記錄我的學習、創作，以及對世界的好奇\n\n你可以在管理後台編輯這段介紹',
+    '## 關於我\n\n這裡可以介紹自己的背景、正在做的專案，以及聯絡方式\n\n登入管理後台後，就能編輯這段文字',
   logo: '/favicon.svg',
   avatar: '',
   heroImage: '/images/kaiyo-hero.png',

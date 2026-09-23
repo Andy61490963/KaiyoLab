@@ -57,20 +57,6 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
             KaiyoLab<small>個人網站內容管理</small>
           </span>
         </a>
-        <div className="admin-auth-art" aria-hidden="true">
-          <div className="auth-orbit orbit-a" />
-          <div className="auth-orbit orbit-b" />
-          <div className="auth-orbit orbit-c" />
-          <div className="auth-planet">
-            <Orbit size={100} strokeWidth={0.75} />
-          </div>
-          <span className="auth-star star-a" />
-          <span className="auth-star star-b" />
-          <span className="auth-star star-c" />
-          <span className="auth-coordinate">25°03′ N / 121°33′ E</span>
-          <span className="auth-cross cross-a">+</span>
-          <span className="auth-cross cross-b">+</span>
-        </div>
         <div className="admin-auth-copy">
           <div className="admin-eyebrow">KAIYOLAB CMS</div>
           <h1>內容管理後台</h1>
@@ -81,7 +67,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
           </p>
         </div>
         <div className="admin-auth-visual-footer">
-          <span>文章 · 作品 · 媒體</span>
+          <span>管理文章、作品與網站資訊</span>
           <span>KAIYOLAB / ADMIN</span>
         </div>
       </div>

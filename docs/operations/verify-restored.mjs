@@ -22,7 +22,7 @@ for (const route of ['/', '/rss.xml']) {
   const response = await fetch(base + route);
   assert.equal(response.status, 200, '還原後的公開網站及 RSS 應可閱讀。');
   assert(
-    (await response.text()).includes('在數位海洋，建立自己的創作基地'),
+    (await response.text()).includes('Astro SSR 與 PostgreSQL 的部署筆記'),
     '還原後應保留瀏覽器驗收所發布的文章。',
   );
 }
