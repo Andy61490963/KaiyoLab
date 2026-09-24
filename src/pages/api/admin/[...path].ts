@@ -16,6 +16,7 @@ import {
 } from '../../../lib/http';
 import { serializeEntry, getSettings, listTaxonomies } from '../../../lib/content';
 import { emptyContent } from '../../../lib/defaults';
+import { settingsWithPreservedViews } from '../../../lib/article-views';
 import { renderMarkdown } from '../../../lib/markdown';
 import { listMedia, mediaUsages, mediaUrl, lockContent, ensureMedia } from '../../../lib/media';
 import type { EntryContent } from '../../../lib/types';
@@ -259,7 +260,10 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           await tx
             .insert(settings)
             .values({ id: 1, value })
-            .onConflictDoUpdate({ target: settings.id, set: { value } });
+            .onConflictDoUpdate({
+              target: settings.id,
+              set: { value: settingsWithPreservedViews(value) },
+            });
         });
         return json(value);
       }
