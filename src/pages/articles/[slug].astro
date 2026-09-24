@@ -1,6 +1,4 @@
 ---
-import '../../styles/article-reading.css';
-import ArticleViews from '../../components/public/ArticleViews.astro';
 import Ui from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import EntryCard from '../../components/public/EntryCard.astro';
@@ -33,59 +31,42 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
   image={entry.cover || undefined}
   article
 >
-  <article class="page-shell article-page article-reading">
+  <article class="page-shell article-page">
     <a class="back-link" href="/articles">
       <Icon name="back" size={17} /> <Ui text="Back to articles" />
     </a>
-    <header class:list={['article-hero', { 'has-cover': Boolean(entry.cover) }]}>
-      <div class="article-heading">
-        <div class="entry-meta">
-          <a
-            class="category-label"
-            href={`/articles?category=${encodeURIComponent(entry.category)}`}
-          >
-            {entry.category || 'Notes'}
-          </a>
-          <span class="meta-dot">·</span>
-          <time datetime={entry.publishedAt}>{date}</time>
-          <span class="meta-dot">·</span>
-          <span>
-            <Ui text="{count} min read" values={{ count: rendered.readingMinutes }} />
-          </span>
-          <ArticleViews entryId={entry.id} />
-        </div>
-        <h1 data-original-content translate="no">
-          {entry.title}
-        </h1>
-        {entry.excerpt && (
-          <p class="article-lead" data-original-content translate="no">
-            {entry.excerpt}
-          </p>
-        )}
-        <div class="article-byline">
-          <img src={settings.avatar || '/favicon.svg'} alt="" width="34" height="34" />
-          <span>{settings.authorName || settings.siteName}</span>
-          <span class="byline-line"></span>
-          <div class="entry-tags">
-            {entry.tags.map((tag) => (
-              <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
-            ))}
-          </div>
+    <header class="article-heading">
+      <div class="entry-meta">
+        <a class="category-label" href={`/articles?category=${encodeURIComponent(entry.category)}`}>
+          {entry.category || 'Notes'}
+        </a>
+        <span class="meta-dot">·</span>
+        <time datetime={entry.publishedAt}>{date}</time>
+        <span class="meta-dot">·</span>
+        <span>
+          <Ui text="{count} min read" values={{ count: rendered.readingMinutes }} />
+        </span>
+      </div>
+      <h1 data-original-content translate="no">
+        {entry.title}
+      </h1>
+      {entry.excerpt && <p class="article-lead">{entry.excerpt}</p>}
+      <div class="article-byline">
+        <img src={settings.avatar || '/favicon.svg'} alt="" width="34" height="34" />
+        <span>{settings.authorName || settings.siteName}</span>
+        <span class="byline-line"></span>
+        <div class="entry-tags">
+          {entry.tags.map((tag) => (
+            <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>
+          ))}
         </div>
       </div>
-      {entry.cover && (
-        <figure class="article-cover">
-          <img
-            src={entry.cover}
-            alt={entry.coverAlt || entry.title}
-            width="1280"
-            height="720"
-            fetchpriority="high"
-            decoding="async"
-          />
-        </figure>
-      )}
     </header>
+    {entry.cover && (
+      <figure class="article-cover">
+        <img src={entry.cover} alt={entry.coverAlt || entry.title} width="1280" height="720" />
+      </figure>
+    )}
     {rendered.toc.length > 0 && (
       <details class="mobile-toc">
         <summary>
@@ -93,18 +74,14 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
         </summary>
         <nav {...uiLabel('Mobile article table of contents')}>
           {rendered.toc.map((item) => (
-            <a
-              data-article-toc-link
-              class:list={{ 'toc-sub': item.depth > 2 }}
-              href={`#${item.id}`}
-            >
+            <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
               {item.text}
             </a>
           ))}
         </nav>
       </details>
     )}
-    <div class:list={['reading-layout', { 'without-toc': rendered.toc.length === 0 }]}>
+    <div class="reading-layout">
       <div class="article-body">
         <div class="prose" data-original-content translate="no" set:html={rendered.html} />
         <div class="article-end">
@@ -113,38 +90,32 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
           </a>
         </div>
       </div>
-      {rendered.toc.length > 0 && (
-        <aside class="article-toc">
-          <div class="toc-inner">
-            <h2>
-              <Ui text="Table of contents" />
-            </h2>
-            <span class="eyebrow">
-              <Ui text="ON THIS PAGE" />
-            </span>
-            {rendered.toc.length ? (
-              <nav {...uiLabel('Article table of contents')}>
-                {rendered.toc.map((item) => (
-                  <a
-                    data-article-toc-link
-                    class:list={{ 'toc-sub': item.depth > 2 }}
-                    href={`#${item.id}`}
-                  >
-                    {item.text}
-                  </a>
-                ))}
-              </nav>
-            ) : (
-              <p class="sidebar-empty">
-                <Ui text="A short read without section headings." />
-              </p>
-            )}
-            <a class="toc-top" href="#main-content">
-              <Ui text="Back to top ↑" />
-            </a>
-          </div>
-        </aside>
-      )}
+      <aside class="article-toc">
+        <div class="toc-inner">
+          <h2>
+            <Ui text="Table of contents" />
+          </h2>
+          <span class="eyebrow">
+            <Ui text="ON THIS PAGE" />
+          </span>
+          {rendered.toc.length ? (
+            <nav {...uiLabel('Article table of contents')}>
+              {rendered.toc.map((item) => (
+                <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
+                  {item.text}
+                </a>
+              ))}
+            </nav>
+          ) : (
+            <p class="sidebar-empty">
+              <Ui text="A short read without section headings." />
+            </p>
+          )}
+          <a class="toc-top" href="#main-content">
+            <Ui text="Back to top ↑" />
+          </a>
+        </div>
+      </aside>
     </div>
   </article>
   {related.items.some((item) => item.id !== entry.id) && (
@@ -173,8 +144,4 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
       </div>
     </section>
   )}
-  <script>
-    import { initializeArticleReading } from '../../scripts/article-reading';
-    initializeArticleReading();
-  </script>
 </PublicLayout>
