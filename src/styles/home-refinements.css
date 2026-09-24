@@ -1,4 +1,8 @@
 /* Only the interface language, a small portrait, and sidebar links change. */
+.public-site {
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    'Microsoft JhengHei', 'PingFang TC', 'Noto Sans CJK TC', 'WenQuanYi Zen Hei', sans-serif;
+}
 .ui-text > [lang='zh-TW'] {
   display: none;
 }
@@ -112,7 +116,7 @@
     flex: 1;
     font-size: 20px;
   }
-  .public-actions > a {
+  .public-site .public-actions > a {
     display: none;
   } /* Search remains in the Articles page. */
 }
