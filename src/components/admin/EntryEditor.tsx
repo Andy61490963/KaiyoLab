@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { readRecovery, type DraftRecovery } from './draft-recovery';
+import EntryHistory from './EntryHistory';
+import PublishReview from './PublishReview';
+import type { ContentReview } from '../../lib/content-review';
+import './editor-extensions.css';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { EditorView } from '@codemirror/view';
@@ -55,6 +59,10 @@ export default function EntryEditor({
   const [conflict, setConflict] = useState(false);
   const [saveState, setSaveState] = useState<'saved' | 'pending' | 'saving' | 'error'>('saved');
   const [acting, setActing] = useState(false);
+  const [review, setReview] = useState<ContentReview | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const publishButton = useRef<HTMLButtonElement>(null);
+  const editorLocked = acting || !!review || historyOpen;
   const [notice, setNotice] = useState('');
   const [taxonomy, setTaxonomy] = useState<Taxonomies>({ categories: [], tags: [] });
   const [preview, setPreview] = useState<{ html: string; readingMinutes: number }>({
@@ -137,7 +145,7 @@ export default function EntryEditor({
     }
   }
   function update<K extends keyof EntryContent>(key: K, value: EntryContent[K]) {
-    if (!current.current || recovery) return;
+    if (!current.current || recovery || editorLocked) return;
     const next = { ...current.current, [key]: value };
     current.current = next;
     setContent(next);
@@ -257,6 +265,55 @@ export default function EntryEditor({
       controller.abort();
     };
   }, [content?.body]);
+  async function prepareReview() {
+    if (actionInFlight.current || recovery || blocked.current) return;
+    actionInFlight.current = true;
+    setActing(true);
+    setError('');
+    try {
+      const saved = await persist();
+      if (!saved) return;
+      setReview(
+        await api<ContentReview>(
+          `/api/admin/entries/${saved.id}/checks`,
+          json('POST', { version: saved.version }),
+        ),
+      );
+    } catch (e) {
+      setError(errorMessage(e));
+      if (e instanceof ApiError && e.status === 409) {
+        blocked.current = true;
+        setConflict(true);
+      }
+    } finally {
+      actionInFlight.current = false;
+      setActing(false);
+    }
+  }
+  async function prepareHistory() {
+    if (actionInFlight.current || recovery || blocked.current) return null;
+    actionInFlight.current = true;
+    setActing(true);
+    try {
+      return await persist();
+    } finally {
+      actionInFlight.current = false;
+      setActing(false);
+    }
+  }
+  function restoreVersion(result: Entry) {
+    currentEntry.current = result;
+    current.current = result.content;
+    stored.current = serialize(result.content);
+    setEntry(result);
+    setContent(result.content);
+    setSaveState('saved');
+    setError('');
+    try {
+      localStorage.removeItem(draftKey(result.id));
+    } catch {}
+    setNotice('Version restored as a draft. The public version has not changed.');
+  }
   async function act(action: 'publish' | 'unpublish' | 'trash' | 'restore') {
     if (actionInFlight.current || recovery) return;
     if (
@@ -279,12 +336,17 @@ export default function EntryEditor({
     try {
       const saved = action === 'restore' ? currentEntry.current : await persist();
       if (!saved) return;
+      if (action === 'publish' && (!review || review.version !== saved.version)) {
+        setReview(null);
+        throw new Error('The draft changed after review. Review it again before publishing');
+      }
       const result = await api<Entry>(
         `/api/admin/entries/${saved.id}/action`,
         json('POST', { action, version: saved.version }),
       );
       currentEntry.current = result;
       setEntry(result);
+      if (action === 'publish') setReview(null);
       setNotice(
         {
           publish: 'Published. Readers can now see this version on your website.',
@@ -359,7 +421,12 @@ export default function EntryEditor({
   function selectImage(media: Media) {
     if (picker === 'cover') {
       if (!current.current || recovery) return;
-      const next = { ...current.current, cover: media.url, coverAlt: media.alt };
+      const next = {
+        ...current.current,
+        cover: media.url,
+        coverAlt: media.alt,
+        coverPosition: { x: 50, y: 50 },
+      };
       current.current = next;
       setContent(next);
       remember(next);
@@ -397,6 +464,7 @@ export default function EntryEditor({
     seoDescription: 500,
     demoUrl: 2048,
     repoUrl: 2048,
+    series: 100,
   };
   const formField = (
     key: keyof EntryContent,
@@ -409,7 +477,7 @@ export default function EntryEditor({
         <textarea
           aria-label={label}
           maxLength={fieldLimits[key]}
-          disabled={acting || !!entry.deletedAt || !!recovery}
+          disabled={editorLocked || !!entry.deletedAt || !!recovery}
           rows={3}
           value={String(content[key] || '')}
           onChange={(e) => update(key, e.target.value as never)}
@@ -418,7 +486,7 @@ export default function EntryEditor({
         <input
           aria-label={label}
           maxLength={fieldLimits[key]}
-          disabled={acting || !!entry.deletedAt || !!recovery}
+          disabled={editorLocked || !!entry.deletedAt || !!recovery}
           type={options.type || 'text'}
           value={String(content[key] || '')}
           onChange={(e) => update(key, e.target.value as never)}
@@ -455,7 +523,7 @@ export default function EntryEditor({
           {entry.deletedAt ? (
             <button
               className="admin-button primary"
-              disabled={acting || !!recovery}
+              disabled={editorLocked || !!recovery}
               onClick={() => act('restore')}
             >
               <RefreshCw size={16} /> Restore content
@@ -464,7 +532,7 @@ export default function EntryEditor({
             <>
               <button
                 className="admin-button"
-                disabled={acting || conflict || !!recovery}
+                disabled={editorLocked || conflict || !!recovery}
                 onClick={() => void persist()}
                 title="Save draft (Ctrl/Cmd+S)"
                 aria-keyshortcuts="Control+s Meta+s"
@@ -472,9 +540,10 @@ export default function EntryEditor({
                 <Save size={16} /> Save draft
               </button>
               <button
+                ref={publishButton}
                 className="admin-button primary"
-                disabled={acting || conflict || !!recovery}
-                onClick={() => act('publish')}
+                disabled={editorLocked || conflict || !!recovery}
+                onClick={() => void prepareReview()}
               >
                 <Send size={16} />
                 {acting ? 'Working…' : entry.published ? 'Publish changes' : 'Publish content'}
@@ -560,7 +629,7 @@ export default function EntryEditor({
               id="entry-title"
               placeholder="Give this a clear, descriptive title…"
               value={content.title}
-              disabled={acting || !!entry.deletedAt || !!recovery}
+              disabled={editorLocked || !!entry.deletedAt || !!recovery}
               onChange={(e) => update('title', e.target.value)}
               maxLength={200}
             />
@@ -581,7 +650,7 @@ export default function EntryEditor({
                   className="admin-icon-button"
                   title={tool.label}
                   aria-label={tool.label}
-                  disabled={acting || !!entry.deletedAt || !!recovery}
+                  disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onClick={() => insert(tool.before, tool.after)}
                 >
                   <tool.icon size={17} />
@@ -591,7 +660,7 @@ export default function EntryEditor({
                 className="admin-icon-button"
                 title="Insert image"
                 aria-label="Insert image"
-                disabled={acting || !!entry.deletedAt || !!recovery}
+                disabled={editorLocked || !!entry.deletedAt || !!recovery}
                 onClick={() => setPicker('body')}
               >
                 <Image size={17} />
@@ -635,7 +704,7 @@ export default function EntryEditor({
                 theme={dark ? 'dark' : 'light'}
                 minHeight="480px"
                 basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: true }}
-                editable={!acting && !entry.deletedAt && !recovery}
+                editable={!editorLocked && !entry.deletedAt && !recovery}
                 onCreateEditor={(view) => {
                   editor.current = view;
                 }}
@@ -695,7 +764,7 @@ export default function EntryEditor({
                 Category
                 <select
                   value={content.category}
-                  disabled={acting || !!entry.deletedAt || !!recovery}
+                  disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onChange={(e) => update('category', e.target.value)}
                 >
                   <option value="">Uncategorized</option>
@@ -708,7 +777,7 @@ export default function EntryEditor({
               </label>
               <fieldset
                 className="admin-tag-options"
-                disabled={acting || !!entry.deletedAt || !!recovery}
+                disabled={editorLocked || !!entry.deletedAt || !!recovery}
               >
                 <legend>Tag</legend>
                 {taxonomy.tags.length ? (
@@ -743,10 +812,46 @@ export default function EntryEditor({
                 <input
                   type="checkbox"
                   checked={content.featured}
-                  disabled={acting || !!entry.deletedAt || !!recovery}
+                  disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onChange={(e) => update('featured', e.target.checked)}
                 />
               </label>
+              {kind === 'article' && (
+                <details className="admin-series-fields">
+                  <summary>Article series</summary>
+                  <div className="admin-form-body">
+                    {formField('series', 'Series name', {
+                      help: 'Use the same name for related articles',
+                    })}
+                    <label className="admin-field">
+                      Position in series
+                      <input
+                        type="number"
+                        min={0}
+                        max={100000}
+                        step={1}
+                        value={content.seriesOrder ?? 0}
+                        disabled={editorLocked || !!entry.deletedAt || !!recovery}
+                        onChange={(event) =>
+                          update(
+                            'seriesOrder',
+                            Math.min(
+                              100000,
+                              Math.max(0, Math.trunc(Number(event.target.value) || 0)),
+                            ),
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                </details>
+              )}
+              <EntryHistory
+                disabled={editorLocked || conflict || !!recovery || !!entry.deletedAt}
+                prepare={prepareHistory}
+                onRestored={restoreVersion}
+                onOpenChange={setHistoryOpen}
+              />
             </div>
           </section>
           <section className="admin-panel">
@@ -757,11 +862,17 @@ export default function EntryEditor({
               <button
                 className="admin-cover-picker"
                 aria-label={content.cover ? 'Change cover image' : 'Choose cover image'}
-                disabled={acting || !!entry.deletedAt || !!recovery}
+                disabled={editorLocked || !!entry.deletedAt || !!recovery}
                 onClick={() => setPicker('cover')}
               >
                 {content.cover ? (
-                  <img src={content.cover} alt={content.coverAlt || 'Content cover'} />
+                  <img
+                    src={content.cover}
+                    alt={content.coverAlt || 'Content cover'}
+                    style={{
+                      objectPosition: `${content.coverPosition?.x ?? 50}% ${content.coverPosition?.y ?? 50}%`,
+                    }}
+                  />
                 ) : (
                   <>
                     <Image size={28} />
@@ -773,13 +884,46 @@ export default function EntryEditor({
               {content.cover && (
                 <button
                   className="admin-button small"
-                  disabled={acting || !!entry.deletedAt || !!recovery}
+                  disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onClick={() => update('cover', '')}
                 >
                   Remove cover
                 </button>
               )}
               {formField('coverAlt', 'Cover alt text')}
+              {content.cover && (
+                <details className="admin-cover-focus">
+                  <summary>Cover crop focus</summary>
+                  {(['x', 'y'] as const).map((axis) => (
+                    <label className="admin-field" key={axis}>
+                      {axis === 'x' ? 'Horizontal focus' : 'Vertical focus'} (
+                      {content.coverPosition?.[axis] ?? 50}%)
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={content.coverPosition?.[axis] ?? 50}
+                        disabled={editorLocked || !!entry.deletedAt || !!recovery}
+                        onChange={(event) =>
+                          update('coverPosition', {
+                            x: content.coverPosition?.x ?? 50,
+                            y: content.coverPosition?.y ?? 50,
+                            [axis]: Number(event.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                  <button
+                    className="admin-button small"
+                    disabled={editorLocked || !!entry.deletedAt || !!recovery}
+                    onClick={() => update('coverPosition', { x: 50, y: 50 })}
+                  >
+                    Center focus
+                  </button>
+                </details>
+              )}
               {formField('excerpt', 'Summary', {
                 multiline: true,
                 help: 'A short introduction for content cards and search results.',
@@ -815,7 +959,7 @@ export default function EntryEditor({
             {entry.published && !entry.deletedAt && (
               <button
                 className="admin-button"
-                disabled={acting || conflict || !!recovery}
+                disabled={editorLocked || conflict || !!recovery}
                 onClick={() => act('unpublish')}
               >
                 <PanelLeftClose size={15} /> Unpublish content
@@ -824,7 +968,7 @@ export default function EntryEditor({
             {!entry.deletedAt && (
               <button
                 className="admin-button danger"
-                disabled={acting || conflict || !!recovery}
+                disabled={editorLocked || conflict || !!recovery}
                 onClick={() => act('trash')}
               >
                 <Trash2 size={15} /> Move to trash
@@ -837,6 +981,14 @@ export default function EntryEditor({
         open={picker !== null}
         onOpenChange={(value) => !value && setPicker(null)}
         onSelect={selectImage}
+      />
+      <PublishReview
+        review={review}
+        busy={acting}
+        error={error}
+        onClose={() => setReview(null)}
+        onPublish={() => void act('publish')}
+        returnFocus={() => publishButton.current?.focus()}
       />
     </>
   );

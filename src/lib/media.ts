@@ -2,6 +2,7 @@ import { db, media, entries, settings } from './db';
 import { sql } from 'drizzle-orm';
 import { HttpError } from './http';
 import type { Media } from './types';
+import { historyMediaUsages } from './history';
 export const mediaUrl = (id: string) => `/media/${id}.webp`;
 export async function mediaUsages(database: ReturnType<typeof db>, id: string) {
   const url = mediaUrl(id);
@@ -15,6 +16,7 @@ export async function mediaUsages(database: ReturnType<typeof db>, id: string) {
       usedBy.push(`${e.published.title} (published)`);
   }
   if (config && JSON.stringify(config.value).includes(url)) usedBy.push('Site settings / About me');
+  usedBy.push(...(await historyMediaUsages(database, id)));
   return usedBy;
 }
 export async function listMedia(): Promise<Media[]> {

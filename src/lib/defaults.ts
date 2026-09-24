@@ -27,4 +27,7 @@ export const emptyContent: EntryContent = {
   seoDescription: '',
   demoUrl: '',
   repoUrl: '',
+  series: '',
+  seriesOrder: 0,
+  coverPosition: { x: 50, y: 50 },
 };

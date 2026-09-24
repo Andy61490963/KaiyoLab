@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, isNull, isNotNull, or, sql } from 'drizzle-orm';
-import { db, entries, media, settings } from './db';
+import { db, entries, entryRevisions, media, settings } from './db';
 import { serializeEntry } from './content';
 import { mediaUrl } from './media';
 import { adminEntryList, adminMediaList, literalLike, paginate, readListing } from './listing';
@@ -17,18 +17,32 @@ export async function listAdminEntries(params: URLSearchParams) {
   if (category) parts.push(sql`${entries.content}->>'category' = ${category}`);
   if (q) {
     const term = literalLike(q);
-    parts.push(sql`(${entries.content}->>'title' ILIKE ${term} OR ${entries.content}->>'excerpt' ILIKE ${term})`);
+    parts.push(
+      sql`(${entries.content}->>'title' ILIKE ${term} OR ${entries.content}->>'excerpt' ILIKE ${term})`,
+    );
   }
   const where = and(...parts);
-  const [count] = await db().select({ total: sql<number>`count(*)::int` }).from(entries).where(where);
+  const [count] = await db()
+    .select({ total: sql<number>`count(*)::int` })
+    .from(entries)
+    .where(where);
   const page = paginate(count?.total || 0, options.page, options.pageSize);
   const title = sql`lower(${entries.content}->>'title')`;
-  const order = options.sort === 'title-asc' ? [asc(title), asc(entries.id)]
-    : options.sort === 'title-desc' ? [desc(title), desc(entries.id)]
-      : options.sort === 'updated-asc' ? [asc(entries.updatedAt), asc(entries.id)]
-        : [desc(entries.updatedAt), desc(entries.id)];
-  const rows = await db().select().from(entries).where(where).orderBy(...order)
-    .limit(page.pageSize).offset((page.page - 1) * page.pageSize);
+  const order =
+    options.sort === 'title-asc'
+      ? [asc(title), asc(entries.id)]
+      : options.sort === 'title-desc'
+        ? [desc(title), desc(entries.id)]
+        : options.sort === 'updated-asc'
+          ? [asc(entries.updatedAt), asc(entries.id)]
+          : [desc(entries.updatedAt), desc(entries.id)];
+  const rows = await db()
+    .select()
+    .from(entries)
+    .where(where)
+    .orderBy(...order)
+    .limit(page.pageSize)
+    .offset((page.page - 1) * page.pageSize);
   return { ...page, items: rows.map(serializeEntry) };
 }
 
@@ -37,39 +51,90 @@ export async function listAdminMedia(params: URLSearchParams) {
   const q = (params.get('q') || '').trim().slice(0, 200);
   const term = literalLike(q);
   const where = q ? sql`(${media.name} ILIKE ${term} OR ${media.alt} ILIKE ${term})` : undefined;
-  const [count] = await db().select({ total: sql<number>`count(*)::int` }).from(media).where(where);
+  const [count] = await db()
+    .select({ total: sql<number>`count(*)::int` })
+    .from(media)
+    .where(where);
   const page = paginate(count?.total || 0, options.page, options.pageSize);
   const name = sql`lower(${media.name})`;
-  const order = options.sort === 'name-asc' ? [asc(name), asc(media.id)]
-    : options.sort === 'name-desc' ? [desc(name), desc(media.id)]
-      : options.sort === 'size-desc' ? [desc(media.size), desc(media.id)]
-        : options.sort === 'size-asc' ? [asc(media.size), asc(media.id)]
-          : options.sort === 'oldest' ? [asc(media.createdAt), asc(media.id)]
-            : [desc(media.createdAt), desc(media.id)];
-  const rows = await db().select().from(media).where(where).orderBy(...order)
-    .limit(page.pageSize).offset((page.page - 1) * page.pageSize);
+  const order =
+    options.sort === 'name-asc'
+      ? [asc(name), asc(media.id)]
+      : options.sort === 'name-desc'
+        ? [desc(name), desc(media.id)]
+        : options.sort === 'size-desc'
+          ? [desc(media.size), desc(media.id)]
+          : options.sort === 'size-asc'
+            ? [asc(media.size), asc(media.id)]
+            : options.sort === 'oldest'
+              ? [asc(media.createdAt), asc(media.id)]
+              : [desc(media.createdAt), desc(media.id)];
+  const rows = await db()
+    .select()
+    .from(media)
+    .where(where)
+    .orderBy(...order)
+    .limit(page.pageSize)
+    .offset((page.page - 1) * page.pageSize);
   if (!rows.length) return { ...page, items: [] };
-  // Resolve usage for this page in two queries, not two whole-table reads per image.
-  const references = or(...rows.map((row) => {
-    const reference = `%${mediaUrl(row.id)}%`;
-    return sql`(${entries.content}::text LIKE ${reference} OR ${entries.published}::text LIKE ${reference})`;
-  }));
-  const [content, config] = await Promise.all([
-    db().select({ content: entries.content, published: entries.published, deletedAt: entries.deletedAt }).from(entries).where(references),
+  // 本頁的參照批次查詢，避免每張圖片重讀整張資料表
+  const references = or(
+    ...rows.map((row) => {
+      const reference = `%${mediaUrl(row.id)}%`;
+      return sql`(${entries.content}::text LIKE ${reference} OR ${entries.published}::text LIKE ${reference})`;
+    }),
+  );
+  const [content, config, revisions] = await Promise.all([
+    db()
+      .select({
+        content: entries.content,
+        published: entries.published,
+        deletedAt: entries.deletedAt,
+      })
+      .from(entries)
+      .where(references),
     db().select().from(settings),
+    db()
+      .select({ content: entryRevisions.content })
+      .from(entryRevisions)
+      .where(
+        or(
+          ...rows.map(
+            (row) => sql`${entryRevisions.content}::text LIKE ${`%${mediaUrl(row.id)}%`}`,
+          ),
+        ),
+      ),
   ]);
   const usages = content.map((entry) => ({
-    ...entry, draftText: JSON.stringify(entry.content), publishedText: JSON.stringify(entry.published),
+    ...entry,
+    draftText: JSON.stringify(entry.content),
+    publishedText: JSON.stringify(entry.published),
   }));
   const settingsText = JSON.stringify(config[0]?.value || {});
-  return { ...page, items: rows.map((row) => {
-    const url = mediaUrl(row.id);
-    const usedBy: string[] = [];
-    for (const entry of usages) {
-      if (entry.draftText.includes(url)) usedBy.push(`${entry.content.title} (draft${entry.deletedAt ? ' / trash' : ''})`);
-      if (entry.published && entry.publishedText.includes(url)) usedBy.push(`${entry.published.title} (published)`);
-    }
-    if (settingsText.includes(url)) usedBy.push('Site settings / About me');
-    return { ...row, url, createdAt: row.createdAt.toISOString(), usedBy };
-  }) };
+  const revisionUsages = revisions.map((revision) => ({
+    title: revision.content.title,
+    text: JSON.stringify(revision.content),
+  }));
+  return {
+    ...page,
+    items: rows.map((row) => {
+      const url = mediaUrl(row.id);
+      const usedBy: string[] = [];
+      for (const entry of usages) {
+        if (entry.draftText.includes(url))
+          usedBy.push(`${entry.content.title} (draft${entry.deletedAt ? ' / trash' : ''})`);
+        if (entry.published && entry.publishedText.includes(url))
+          usedBy.push(`${entry.published.title} (published)`);
+      }
+      if (settingsText.includes(url)) usedBy.push('Site settings / About me');
+      usedBy.push(
+        ...new Set(
+          revisionUsages
+            .filter((revision) => revision.text.includes(url))
+            .map((revision) => `${revision.title} (version history)`),
+        ),
+      );
+      return { ...row, url, createdAt: row.createdAt.toISOString(), usedBy };
+    }),
+  };
 }

@@ -1,0 +1,28 @@
+name: 網站外部監測
+on:
+  schedule:
+    - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-uptime
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: 檢查網站與私人資料邊界
+    if: vars.PRODUCTION_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: 從外部檢查網站並重試短暫錯誤
+        run: node scripts/monitor-site.mjs
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}

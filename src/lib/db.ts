@@ -2,7 +2,16 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { pgTable, text, timestamp, boolean, integer, jsonb, bigint } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  jsonb,
+  bigint,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
 import type { EntryContent, SiteSettings } from './types';
 export function secret(name: string, env: string): string {
   if (process.env[env]) return process.env[env]!;
@@ -77,10 +86,32 @@ export const entries = pgTable('entries', {
   content: jsonb().$type<EntryContent>().notNull(),
   published: jsonb().$type<EntryContent>(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
+  publishedUpdatedAt: timestamp('published_updated_at', { withTimezone: true }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   version: integer().notNull().default(1),
 });
+export const entryRevisions = pgTable('entry_revisions', {
+  id: text().primaryKey(),
+  entryId: text('entry_id')
+    .notNull()
+    .references(() => entries.id, { onDelete: 'cascade' }),
+  content: jsonb().$type<EntryContent>().notNull(),
+  source: text().$type<'draft' | 'published' | 'restore'>().notNull(),
+  version: integer().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+export const entrySlugs = pgTable(
+  'entry_slugs',
+  {
+    kind: text().notNull(),
+    slug: text().notNull(),
+    entryId: text('entry_id')
+      .notNull()
+      .references(() => entries.id, { onDelete: 'cascade' }),
+  },
+  (table) => [primaryKey({ columns: [table.kind, table.slug] })],
+);
 export const taxonomies = pgTable('taxonomies', {
   id: text().primaryKey(),
   kind: text().notNull(),
@@ -106,6 +137,8 @@ export const schema = {
   systemState,
   settings,
   entries,
+  entryRevisions,
+  entrySlugs,
   taxonomies,
   media,
 };

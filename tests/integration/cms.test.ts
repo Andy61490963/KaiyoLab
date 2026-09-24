@@ -51,7 +51,10 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
     const ctx: any = {
       request,
       url: new URL(request.url),
-      params: { path: route.replace('/api/admin/', ''), file: route.replace('/media/', '') },
+      params: {
+        path: new URL(request.url).pathname.replace('/api/admin/', ''),
+        file: new URL(request.url).pathname.replace('/media/', ''),
+      },
       clientAddress: options.clientAddress || '127.0.0.1',
       locals: {},
       redirect: (url: string) => new Response(null, { status: 302, headers: { Location: url } }),
@@ -85,11 +88,10 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
     dir = await mkdtemp(path.join(os.tmpdir(), 'kaiyo-tests-'));
     process.env.UPLOAD_DIR = dir;
     database = await import('../../src/lib/db');
-    await database
-      .getPool()
-      .query(
-        await readFile(new URL('../../db/migrations/001_initial.sql', import.meta.url), 'utf8'),
-      );
+    for (const name of ['001_initial.sql', '007_content_history.sql'])
+      await database
+        .getPool()
+        .query(await readFile(new URL(`../../db/migrations/${name}`, import.meta.url), 'utf8'));
     setup = await import('../../src/pages/api/setup');
     api = await import('../../src/pages/api/admin/[...path]');
     auth = await import('../../src/pages/api/auth/[...all]');
@@ -130,6 +132,20 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
   });
 
   it('訪客無法管理，跨來源請求被拒絕，一般註冊關閉', async () => {
+    expect(
+      (await call('/api/admin/history/private-entry', 'GET', undefined, { anonymous: true }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await call(
+          '/api/admin/history/private-entry',
+          'POST',
+          { revisionId: 'private-version', version: 1 },
+          { anonymous: true },
+        )
+      ).status,
+    ).toBe(401);
     expect((await call('/api/admin/entries', 'GET', undefined, { anonymous: true })).status).toBe(
       401,
     );
@@ -386,6 +402,85 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
     expect((await call(uploadedImage.url)).status).toBe(200);
   });
 
+  it('縮圖沿用公開權限，垃圾桶與歷史版本不外洩圖片並保護刪除', async () => {
+    const image = await sharp({
+      create: { width: 1200, height: 600, channels: 3, background: '#975c75' },
+    })
+      .png()
+      .toBuffer();
+    const form = new FormData();
+    form.set('file', new Blob([new Uint8Array(image)], { type: 'image/png' }), 'variant-test.png');
+    const upload = await call('/api/admin/media', 'POST', undefined, { form });
+    expect(upload.status).toBe(201);
+    const picture = (await upload.json()) as Media;
+    let draft = await entryResponse(await call('/api/admin/entries', 'POST', { kind: 'article' }));
+    draft = await entryResponse(
+      await call(`/api/admin/entries/${draft.id}`, 'PATCH', {
+        version: draft.version,
+        content: {
+          ...draft.content,
+          slug: 'variant-private',
+          body: 'Image permissions',
+          cover: picture.url,
+        },
+      }),
+    );
+    const variant = `${picture.url}?w=480`;
+    let response = await call(variant, 'GET', undefined, { anonymous: true });
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    response = await call(variant);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await sharp(Buffer.from(await response.arrayBuffer())).metadata()).toMatchObject({
+      width: 480,
+      height: 240,
+      format: 'webp',
+    });
+    expect((await call(`${picture.url}?w=481`)).status).toBe(400);
+    expect(
+      (await sharp(Buffer.from(await (await call(picture.url)).arrayBuffer())).metadata()).width,
+    ).toBe(1200);
+    draft = await entryResponse(
+      await call(`/api/admin/entries/${draft.id}/action`, 'POST', {
+        action: 'publish',
+        version: draft.version,
+      }),
+    );
+    response = await call(variant, 'GET', undefined, { anonymous: true });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
+    expect((await sharp(Buffer.from(await response.arrayBuffer())).metadata()).width).toBe(480);
+    draft = await entryResponse(
+      await call(`/api/admin/entries/${draft.id}/action`, 'POST', {
+        action: 'trash',
+        version: draft.version,
+      }),
+    );
+    response = await call(variant, 'GET', undefined, { anonymous: true });
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    draft = await entryResponse(
+      await call(`/api/admin/entries/${draft.id}/action`, 'POST', {
+        action: 'restore',
+        version: draft.version,
+      }),
+    );
+    draft = await entryResponse(
+      await call(`/api/admin/entries/${draft.id}`, 'PATCH', {
+        version: draft.version,
+        content: { ...draft.content, cover: '' },
+      }),
+    );
+    const mediaList = (await (await call('/api/admin/media')).json()) as { items: Media[] };
+    expect(mediaList.items.find((item) => item.id === picture.id)?.usedBy).toEqual([
+      `${draft.content.title} (version history)`,
+    ]);
+    expect((await call(`/api/admin/media/${picture.id}`, 'DELETE')).status).toBe(409);
+    expect((await call(variant, 'GET', undefined, { anonymous: true })).status).toBe(404);
+    expect((await call(variant)).status).toBe(200);
+  });
+
   it('輪替偽造代理 IP 與內部 IP 標頭仍觸發登入限流', async () => {
     const statuses: number[] = [];
     for (let i = 0; i < 6; i++) {
@@ -488,8 +583,7 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
         tagline: 'Software engineering notes and open-source projects',
         about:
           "# About Me\n\nHey, I'm Kaiyo. This is my corner of the web for software development notes and personal projects.\n\n## What I Do\n\nI build software, explore systems, and document what I learn along the way.\n\n## Contact\n\nAdd your preferred contact links here from the admin settings.",
-        homeIntro:
-          "# I'm **Andy**\n\nSharing software development notes and personal projects.",
+        homeIntro: "# I'm **Andy**\n\nSharing software development notes and personal projects.",
       });
       await client.query(englishCopy);
       const englishRepeated = await client.query('SELECT value FROM settings WHERE id = 1');

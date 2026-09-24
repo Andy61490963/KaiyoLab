@@ -38,6 +38,7 @@ test('owner setup, publishing, and responsive reading', async ({
     .getByLabel('Summary', { exact: true })
     .fill('整理 Astro SSR、PostgreSQL 與 Docker Compose 的部署設定');
   await page.getByRole('button', { name: 'Publish content', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm publication', exact: true }).click();
   await expect(
     page.getByText('Published. Readers can now see this version on your website.', { exact: true }),
   ).toBeVisible();

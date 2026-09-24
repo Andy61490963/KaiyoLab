@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, isNull, isNotNull, sql } from 'drizzle-orm';
-import { db, entries, settings, taxonomies } from './db';
+import { db, entries, entrySlugs, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
 import { defaultHomeIntro } from './home-intro';
 import { repairLegacySiteCopy } from './site-copy';
@@ -11,6 +11,7 @@ export function serializeEntry(row: typeof entries.$inferSelect): Entry {
     ...row,
     kind: row.kind as EntryKind,
     publishedAt: row.publishedAt?.toISOString() || null,
+    publishedUpdatedAt: row.publishedUpdatedAt?.toISOString() || null,
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() || null,
   };
@@ -48,7 +49,7 @@ function asPublic(row: typeof entries.$inferSelect): PublicEntry {
     id: row.id,
     kind: row.kind as EntryKind,
     publishedAt: row.publishedAt!.toISOString(),
-    updatedAt: row.publishedAt!.toISOString(),
+    updatedAt: (row.publishedUpdatedAt || row.publishedAt)!.toISOString(),
   };
 }
 export async function listPublished(opts: {
@@ -81,10 +82,14 @@ export async function listPublished(opts: {
   // Sort the complete published result before LIMIT/OFFSET, never private drafts.
   // An ID tie-breaker prevents duplicate/missing rows when dates or titles match.
   const title = sql`lower(${entries.published}->>'title')`;
-  const order = opts.sort === 'oldest' ? [asc(entries.publishedAt), asc(entries.id)]
-    : opts.sort === 'title-asc' ? [asc(title), asc(entries.id)]
-      : opts.sort === 'title-desc' ? [desc(title), desc(entries.id)]
-        : [desc(entries.publishedAt), desc(entries.id)];
+  const order =
+    opts.sort === 'oldest'
+      ? [asc(entries.publishedAt), asc(entries.id)]
+      : opts.sort === 'title-asc'
+        ? [asc(title), asc(entries.id)]
+        : opts.sort === 'title-desc'
+          ? [desc(title), desc(entries.id)]
+          : [desc(entries.publishedAt), desc(entries.id)];
   const rows = await db()
     .select()
     .from(entries)
@@ -105,4 +110,41 @@ export async function allPublished(): Promise<PublicEntry[]> {
   return (
     await db().select().from(entries).where(visible()).orderBy(desc(entries.publishedAt))
   ).map(asPublic);
+}
+
+export async function publishedRedirect(kind: EntryKind, slug: string): Promise<string | null> {
+  const [row] = await db()
+    .select({ published: entries.published })
+    .from(entrySlugs)
+    .innerJoin(entries, eq(entries.id, entrySlugs.entryId))
+    .where(and(eq(entrySlugs.kind, kind), eq(entrySlugs.slug, slug), visible()));
+  const current = row?.published?.slug;
+  if (!current || current === slug) return null;
+  return `/${kind === 'article' ? 'articles' : 'projects'}/${encodeURIComponent(current)}`;
+}
+
+export async function seriesNavigation(entry: PublicEntry) {
+  if (!entry.series?.trim()) return { items: [], previous: null, next: null };
+  const rows = await db()
+    .select()
+    .from(entries)
+    .where(
+      and(
+        visible(),
+        eq(entries.kind, 'article'),
+        sql`${entries.published}->>'series' = ${entry.series}`,
+      ),
+    )
+    .orderBy(
+      sql`COALESCE((${entries.published}->>'seriesOrder')::integer, 0)`,
+      asc(entries.publishedAt),
+      asc(entries.id),
+    );
+  const items = rows.map(asPublic);
+  const index = items.findIndex((item) => item.id === entry.id);
+  return {
+    items,
+    previous: index > 0 ? items[index - 1] : null,
+    next: index >= 0 ? items[index + 1] || null : null,
+  };
 }

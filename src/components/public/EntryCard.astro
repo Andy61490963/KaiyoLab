@@ -2,6 +2,7 @@
 import Ui from './UiText.astro';
 import type { PublicEntry } from '../../lib/types';
 import { uiLabel } from '../../lib/ui-language';
+import { mediaPresentation } from '../../lib/media-presentation';
 interface Props {
   entry: PublicEntry;
   variant?: 'row' | 'card' | 'feature';
@@ -22,7 +23,14 @@ const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
 <article class:list={['journal-entry', `journal-entry-${variant}`]}>
   {variant === 'feature' && entry.cover && (
     <a class="journal-entry-cover" href={href} tabindex="-1" aria-hidden="true">
-      <img src={entry.cover} alt="" loading="lazy" width="960" height="600" />
+      <img
+        {...mediaPresentation(entry.cover, entry.coverPosition)}
+        sizes="(max-width: 768px) 100vw, 640px"
+        alt=""
+        loading="lazy"
+        width="960"
+        height="600"
+      />
     </a>
   )}
   <div class="journal-entry-copy">

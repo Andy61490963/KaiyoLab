@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import {
   ArrowRight,
   ArrowUpRight,
+  Activity,
   Check,
   ChevronRight,
   CircleHelp,
@@ -21,6 +22,7 @@ import {
   Tag,
   Trash2,
   Upload,
+  Package,
   UserRound,
   X,
 } from 'lucide-react';
@@ -38,8 +40,16 @@ import {
 } from './api';
 import ThemeButton from './ThemeButton';
 import { ListOrder, ListPager, useListing } from './ListControls';
-import { adminEntryList, adminMediaList, taxonomyList, paginate, type ListResult } from '../../lib/listing';
+import {
+  adminEntryList,
+  adminMediaList,
+  taxonomyList,
+  paginate,
+  type ListResult,
+} from '../../lib/listing';
 const EntryEditor = lazy(() => import('./EntryEditor'));
+const ContentTransfer = lazy(() => import('./ContentTransfer'));
+const SystemStatus = lazy(() => import('./SystemStatus'));
 
 export function Alert({ message, success = false }: { message: string; success?: boolean }) {
   return message ? (
@@ -105,7 +115,15 @@ function useRemote<T>(url: string) {
       });
     return () => controller.abort();
   }, [url, revision]);
-  return { data, setData, resolvedUrl, error, setError, loading, refresh: () => setRevision((v) => v + 1) };
+  return {
+    data,
+    setData,
+    resolvedUrl,
+    error,
+    setError,
+    loading,
+    refresh: () => setRevision((v) => v + 1),
+  };
 }
 const navigation = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
@@ -115,6 +133,8 @@ const navigation = [
   { href: '/admin/taxonomies', label: 'Categories & tags', icon: Tag },
   { href: '/admin/about', label: 'About me', icon: UserRound },
   { href: '/admin/settings', label: 'Site settings', icon: Settings },
+  { href: '/admin/transfer', label: 'Content transfer', icon: Package },
+  { href: '/admin/system', label: 'System status', icon: Activity },
 ];
 function Navigation({ path, close }: { path: string; close?: () => void }) {
   return (
@@ -205,6 +225,18 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   else if (path === '/admin/taxonomies') page = <TaxonomyManager />;
   else if (path === '/admin/about' || path === '/admin/settings')
     page = <SettingsForm about={path.endsWith('about')} onDirtyChange={setDirty} />;
+  else if (path === '/admin/transfer')
+    page = (
+      <Suspense fallback={<p className="admin-loading">Loading content transfer…</p>}>
+        <ContentTransfer />
+      </Suspense>
+    );
+  else if (path === '/admin/system')
+    page = (
+      <Suspense fallback={<p className="admin-loading">Loading system status…</p>}>
+        <SystemStatus />
+      </Suspense>
+    );
   else
     page = (
       <Empty title="Admin page not found">
@@ -492,14 +524,16 @@ function Dashboard() {
 }
 function EntryList({ kind }: { kind: 'article' | 'project' }) {
   const name = kind === 'article' ? 'Article' : 'Project';
-  const { state, query, setQuery, update, setPage, clear, searchParams } = useListing(adminEntryList);
+  const { state, query, setQuery, update, setPage, clear, searchParams } =
+    useListing(adminEntryList);
   const { status, category } = state;
   const [busy, setBusy] = useState('');
   const actionInFlight = useRef(false);
   const [notice, setNotice] = useState('');
   const { data: taxonomy } = useRemote<Taxonomies>('/api/admin/taxonomies');
   const listUrl = `/api/admin/entries?kind=${kind}&${searchParams}`;
-  const { data, resolvedUrl, error, setError, loading, refresh } = useRemote<ListResult<Entry>>(listUrl);
+  const { data, resolvedUrl, error, setError, loading, refresh } =
+    useRemote<ListResult<Entry>>(listUrl);
   useEffect(() => {
     if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
   }, [data, resolvedUrl, listUrl, loading, setPage]);
@@ -623,7 +657,12 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               <RefreshCw size={17} />
             </button>
           </div>
-          <ListOrder config={adminEntryList} sort={state.sort} pageSize={state.pageSize} onChange={update} />
+          <ListOrder
+            config={adminEntryList}
+            sort={state.sort}
+            pageSize={state.pageSize}
+            onChange={update}
+          />
         </div>
         {loading ? (
           <p className="admin-loading">Loading {name.toLowerCase()}s…</p>
@@ -799,9 +838,13 @@ function MediaLibrary({
   picker?: boolean;
   onSelect?: (media: Media) => void;
 }) {
-  const { state, query, setQuery, update, setPage, clear, searchParams } = useListing(adminMediaList, !picker);
+  const { state, query, setQuery, update, setPage, clear, searchParams } = useListing(
+    adminMediaList,
+    !picker,
+  );
   const listUrl = `/api/admin/media?${searchParams}`;
-  const { data, resolvedUrl, error, setError, loading, refresh } = useRemote<ListResult<Media>>(listUrl);
+  const { data, resolvedUrl, error, setError, loading, refresh } =
+    useRemote<ListResult<Media>>(listUrl);
   useEffect(() => {
     if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
   }, [data, resolvedUrl, listUrl, loading, setPage]);
@@ -809,31 +852,52 @@ function MediaLibrary({
   const [message, setMessage] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadInFlight = useRef(false);
-  async function upload(file?: File) {
-    if (!file || uploadInFlight.current) return;
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setError('Only PNG, JPEG, and WebP images are supported.');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Images cannot exceed 10 MB.');
+  const [uploads, setUploads] = useState<
+    { file: File; status: 'waiting' | 'uploading' | 'done' | 'error'; error?: string }[]
+  >([]);
+  async function upload(files: File[]) {
+    if (!files.length || uploadInFlight.current) return;
+    if (files.length > 20) {
+      setError('Choose up to 20 images at a time.');
       return;
     }
     uploadInFlight.current = true;
     setBusy(true);
     setError('');
     setMessage('');
-    const form = new FormData();
-    form.append('file', file);
-    form.append('alt', '');
+    const queue: typeof uploads = files.map((file) => ({ file, status: 'waiting' }));
+    setUploads([...queue]);
+    let succeeded = 0;
     try {
-      await api<Media>('/api/admin/media', { method: 'POST', body: form });
-      clear();
-      update({ q: '', sort: 'newest' });
-      refresh();
-      setMessage('Image added to your media library.');
-    } catch (e) {
-      setError(errorMessage(e));
+      for (const item of queue) {
+        item.status = 'uploading';
+        setUploads(queue.map((item) => ({ ...item })));
+        try {
+          if (!['image/png', 'image/jpeg', 'image/webp'].includes(item.file.type))
+            throw new Error('Only PNG, JPEG, and WebP images are supported.');
+          if (item.file.size > 10 * 1024 * 1024) throw new Error('Images cannot exceed 10 MB.');
+          const form = new FormData();
+          form.append('file', item.file);
+          form.append('alt', '');
+          await api<Media>('/api/admin/media', { method: 'POST', body: form });
+          item.status = 'done';
+          succeeded++;
+        } catch (e) {
+          item.status = 'error';
+          item.error = errorMessage(e);
+        }
+        setUploads(queue.map((item) => ({ ...item })));
+      }
+      if (succeeded) {
+        clear();
+        update({ q: '', sort: 'newest' });
+        refresh();
+      }
+      setMessage(
+        succeeded
+          ? `${succeeded} ${succeeded === 1 ? 'image' : 'images'} uploaded${queue.some((i) => i.status === 'error') ? ' · Some files need attention' : ''}`
+          : '',
+      );
     } finally {
       uploadInFlight.current = false;
       setBusy(false);
@@ -853,11 +917,12 @@ function MediaLibrary({
         ref={fileInput}
         hidden
         type="file"
+        multiple
         aria-label="Upload image file"
         accept="image/jpeg,image/png,image/webp"
         disabled={busy}
         onChange={(event) => {
-          void upload(event.target.files?.[0]);
+          void upload(Array.from(event.target.files || []));
           event.target.value = '';
         }}
       />
@@ -882,6 +947,43 @@ function MediaLibrary({
       )}
       <Alert message={error} />
       <Alert message={message} success />
+      {uploads.length > 0 && (
+        <section className="admin-panel admin-upload-queue" aria-label="Upload progress">
+          <div className="admin-panel-heading">
+            <h2>Upload progress</h2>
+            <span role="status">
+              {uploads.filter((i) => i.status === 'done').length} / {uploads.length} complete
+            </span>
+          </div>
+          <ul>
+            {uploads.map((item, index) => (
+              <li key={index}>
+                <span>{item.file.name}</span>
+                <span role={item.status === 'error' ? 'alert' : undefined}>
+                  {item.status === 'done'
+                    ? 'Uploaded'
+                    : item.status === 'error'
+                      ? item.error
+                      : item.status === 'uploading'
+                        ? 'Uploading…'
+                        : 'Waiting'}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!busy && uploads.some((item) => item.status === 'error') && (
+            <button
+              type="button"
+              className="admin-button small"
+              onClick={() =>
+                void upload(uploads.filter((i) => i.status === 'error').map((i) => i.file))
+              }
+            >
+              Retry failed uploads
+            </button>
+          )}
+        </section>
+      )}
       <div className="admin-media-search">
         <label className="admin-search">
           <Search size={17} />
@@ -910,7 +1012,12 @@ function MediaLibrary({
           <RefreshCw size={17} />
         </button>
       </div>
-      <ListOrder config={adminMediaList} sort={state.sort} pageSize={state.pageSize} onChange={update} />
+      <ListOrder
+        config={adminMediaList}
+        sort={state.sort}
+        pageSize={state.pageSize}
+        onChange={update}
+      />
       {!picker && (
         <div className="admin-media-info">
           <span>
@@ -924,10 +1031,15 @@ function MediaLibrary({
       ) : error && !data ? (
         <p className="admin-loading">Unable to load images. Use Refresh media to try again.</p>
       ) : !data?.items.length ? (
-        state.q ? <Empty title="No matching images">Try another filename or description, or clear the search.</Empty> :
-        <Empty title="Your image library starts here">
-          Upload a cover, avatar, or article image. Files are stored on your server.
-        </Empty>
+        state.q ? (
+          <Empty title="No matching images">
+            Try another filename or description, or clear the search.
+          </Empty>
+        ) : (
+          <Empty title="Your image library starts here">
+            Upload a cover, avatar, or article image. Files are stored on your server.
+          </Empty>
+        )
       ) : (
         <div className={`admin-media-grid ${picker ? 'picker' : ''}`}>
           {data.items.map((media) => (
@@ -996,14 +1108,14 @@ function MediaCard({
           aria-label={`Choose image ${media.name}`}
           onClick={() => onSelect?.(media)}
         >
-          <img src={media.url} alt={media.alt || media.name} loading="lazy" />
+          <img src={`${media.url}?w=480`} alt={media.alt || media.name} loading="lazy" />
           <span>
             Choose image <Plus size={16} />
           </span>
         </button>
       ) : (
         <a href={media.url} target="_blank" rel="noopener noreferrer" className="admin-media-image">
-          <img src={media.url} alt={media.alt || media.name} loading="lazy" />
+          <img src={`${media.url}?w=480`} alt={media.alt || media.name} loading="lazy" />
         </a>
       )}
       <div className="admin-media-details">
@@ -1102,10 +1214,20 @@ function TaxonomySection({
   onError: (value: string) => void;
 }) {
   const { state, query, setQuery, update, setPage } = useListing(taxonomyList, false);
-  const filtered = items.filter((item) => `${item.name} ${item.slug}`.toLocaleLowerCase().includes(state.q.toLocaleLowerCase()))
-    .sort((a, b) => (state.sort === 'name-desc' ? -1 : 1) * (a.name.localeCompare(b.name, 'zh-TW', { numeric: true, sensitivity: 'base' }) || a.id.localeCompare(b.id)));
+  const filtered = items
+    .filter((item) =>
+      `${item.name} ${item.slug}`.toLocaleLowerCase().includes(state.q.toLocaleLowerCase()),
+    )
+    .sort(
+      (a, b) =>
+        (state.sort === 'name-desc' ? -1 : 1) *
+        (a.name.localeCompare(b.name, 'zh-TW', { numeric: true, sensitivity: 'base' }) ||
+          a.id.localeCompare(b.id)),
+    );
   const page = paginate(filtered.length, state.page, state.pageSize);
-  useEffect(() => { setPage(page.page); }, [page.page, setPage]);
+  useEffect(() => {
+    setPage(page.page);
+  }, [page.page, setPage]);
   const pageItems = filtered.slice((page.page - 1) * page.pageSize, page.page * page.pageSize);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -1203,10 +1325,23 @@ function TaxonomySection({
         </div>
       </form>
       <div className="admin-taxonomy-search">
-        <label className="admin-search"><Search size={17} /><input type="search" maxLength={200}
-          aria-label={`Search ${label.toLowerCase()} items`} placeholder="Search names or slugs…"
-          value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-        <ListOrder config={taxonomyList} sort={state.sort} pageSize={state.pageSize} onChange={update} />
+        <label className="admin-search">
+          <Search size={17} />
+          <input
+            type="search"
+            maxLength={200}
+            aria-label={`Search ${label.toLowerCase()} items`}
+            placeholder="Search names or slugs…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <ListOrder
+          config={taxonomyList}
+          sort={state.sort}
+          pageSize={state.pageSize}
+          onChange={update}
+        />
       </div>
       <div className="admin-taxonomy-list">
         {pageItems.length ? (
@@ -1243,7 +1378,11 @@ function TaxonomySection({
             </div>
           ))
         ) : (
-          <p className="admin-subtle">{state.q ? 'No matching items. Try another search.' : `No ${label.toLowerCase()} items yet. Add one above.`}</p>
+          <p className="admin-subtle">
+            {state.q
+              ? 'No matching items. Try another search.'
+              : `No ${label.toLowerCase()} items yet. Add one above.`}
+          </p>
         )}
       </div>
       <ListPager info={page} onPage={setPage} label={`${label} pagination`} />

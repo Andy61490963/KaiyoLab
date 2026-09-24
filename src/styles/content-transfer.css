@@ -1,0 +1,93 @@
+.content-transfer {
+  display: grid;
+  gap: 24px;
+  max-width: 1000px;
+}
+.content-transfer .admin-form-body {
+  display: grid;
+  gap: 18px;
+}
+.content-transfer .admin-form-body > p {
+  margin: 0;
+  line-height: 1.7;
+}
+.content-transfer .admin-button {
+  width: fit-content;
+}
+.content-transfer .transfer-note {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.transfer-file {
+  display: grid;
+  gap: 10px;
+  font-weight: 600;
+}
+.transfer-file input {
+  max-width: 100%;
+  font-weight: 400;
+}
+.admin-app .transfer-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  gap: 10px;
+  cursor: pointer;
+}
+.transfer-checkbox input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  width: 16px;
+  height: 16px;
+}
+.transfer-checkbox small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.transfer-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  gap: 18px;
+}
+.transfer-counts dt {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.transfer-counts dd {
+  margin: 4px 0 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+.transfer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.transfer-adjustments {
+  overflow-x: auto;
+  max-height: 320px;
+}
+.transfer-adjustments table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.transfer-adjustments th,
+.transfer-adjustments td {
+  text-align: left;
+  padding: 10px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+}
+.transfer-review h2:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+}
+@media (max-width: 600px) {
+  .transfer-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -3,13 +3,18 @@ import Ui from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import Icon from '../../components/public/Icon.astro';
 import { uiLabel } from '../../lib/ui-language';
-import { getSettings, getPublished } from '../../lib/content';
+import { getSettings, getPublished, publishedRedirect } from '../../lib/content';
+import { mediaPresentation } from '../../lib/media-presentation';
 import { renderMarkdown } from '../../lib/markdown';
 const [settings, entry] = await Promise.all([
   getSettings(),
   getPublished('project', Astro.params.slug || ''),
 ]);
-if (!entry) return Astro.rewrite('/404');
+if (!entry) {
+  const redirect = await publishedRedirect('project', Astro.params.slug || '');
+  if (redirect) return Astro.redirect(redirect, 301);
+  return Astro.rewrite('/404');
+}
 const rendered = await renderMarkdown(entry.body);
 ---
 
@@ -64,7 +69,13 @@ const rendered = await renderMarkdown(entry.body);
     </header>
     {entry.cover && (
       <figure class="project-cover">
-        <img src={entry.cover} alt={entry.coverAlt || entry.title} width="1280" height="720" />
+        <img
+          {...mediaPresentation(entry.cover, entry.coverPosition)}
+          sizes="(max-width: 768px) 100vw, 960px"
+          alt={entry.coverAlt || entry.title}
+          width="1280"
+          height="720"
+        />
       </figure>
     )}
     <div class="reading-layout">
