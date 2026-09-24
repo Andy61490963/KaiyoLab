@@ -37,6 +37,8 @@ import {
   type Taxonomy,
 } from './api';
 import ThemeButton from './ThemeButton';
+import { ListOrder, ListPager, useListing } from './ListControls';
+import { adminEntryList, adminMediaList, taxonomyList, paginate, type ListResult } from '../../lib/listing';
 const EntryEditor = lazy(() => import('./EntryEditor'));
 
 export function Alert({ message, success = false }: { message: string; success?: boolean }) {
@@ -80,6 +82,7 @@ export function PageTitle({
 }
 function useRemote<T>(url: string) {
   const [data, setData] = useState<T | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
@@ -89,7 +92,10 @@ function useRemote<T>(url: string) {
     setError('');
     api<T>(url, { signal: controller.signal })
       .then((result) => {
-        if (!controller.signal.aborted) setData(result);
+        if (!controller.signal.aborted) {
+          setData(result);
+          setResolvedUrl(url);
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(errorMessage(e));
@@ -99,7 +105,7 @@ function useRemote<T>(url: string) {
       });
     return () => controller.abort();
   }, [url, revision]);
-  return { data, setData, error, setError, loading, refresh: () => setRevision((v) => v + 1) };
+  return { data, setData, resolvedUrl, error, setError, loading, refresh: () => setRevision((v) => v + 1) };
 }
 const navigation = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
@@ -486,42 +492,17 @@ function Dashboard() {
 }
 function EntryList({ kind }: { kind: 'article' | 'project' }) {
   const name = kind === 'article' ? 'Article' : 'Project';
-  const initialFilters = new URLSearchParams(
-    typeof window !== 'undefined' ? window.location.search : '',
-  );
-  const [query, setQuery] = useState(() => (initialFilters.get('q') || '').slice(0, 200));
-  const [search, setSearch] = useState(() => (initialFilters.get('q') || '').slice(0, 200));
-  const [status, setStatus] = useState(() => initialFilters.get('status') || '');
-  const [category, setCategory] = useState(() => initialFilters.get('category') || '');
+  const { state, query, setQuery, update, setPage, clear, searchParams } = useListing(adminEntryList);
+  const { status, category } = state;
   const [busy, setBusy] = useState('');
   const actionInFlight = useRef(false);
   const [notice, setNotice] = useState('');
   const { data: taxonomy } = useRemote<Taxonomies>('/api/admin/taxonomies');
-  const { data, error, setError, loading, refresh } = useRemote<{ items: Entry[] }>(
-    `/api/admin/entries?kind=${kind}&q=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&category=${encodeURIComponent(category)}`,
-  );
+  const listUrl = `/api/admin/entries?kind=${kind}&${searchParams}`;
+  const { data, resolvedUrl, error, setError, loading, refresh } = useRemote<ListResult<Entry>>(listUrl);
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(query), 250);
-    return () => clearTimeout(timer);
-  }, [query]);
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    for (const [key, value] of [
-      ['q', search],
-      ['status', status],
-      ['category', category],
-    ]) {
-      if (value) url.searchParams.set(key, value);
-      else url.searchParams.delete(key);
-    }
-    window.history.replaceState(window.history.state, '', url);
-  }, [search, status, category]);
-  function clearFilters() {
-    setQuery('');
-    setSearch('');
-    setCategory('');
-    setStatus('');
-  }
+    if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
+  }, [data, resolvedUrl, listUrl, loading, setPage]);
   async function action(entry: Entry, actionName: 'trash' | 'restore' | 'unpublish') {
     if (actionInFlight.current) return;
     if (
@@ -594,7 +575,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               <button
                 className={status === value ? 'active' : ''}
                 key={value}
-                onClick={() => setStatus(value)}
+                onClick={() => update({ status: value })}
                 aria-pressed={status === value}
               >
                 {value === 'trash' && <Trash2 size={14} />}
@@ -617,7 +598,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             <select
               aria-label="Filter by category"
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => update({ category: e.target.value })}
             >
               <option value="">All categories</option>
               {taxonomy?.categories.map((c) => (
@@ -627,7 +608,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               ))}
             </select>
             {(query || category || status) && (
-              <button className="admin-button small" type="button" onClick={clearFilters}>
+              <button className="admin-button small" type="button" onClick={clear}>
                 Clear filters
               </button>
             )}
@@ -642,6 +623,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               <RefreshCw size={17} />
             </button>
           </div>
+          <ListOrder config={adminEntryList} sort={state.sort} pageSize={state.pageSize} onChange={update} />
         </div>
         {loading ? (
           <p className="admin-loading">Loading {name.toLowerCase()}s…</p>
@@ -763,10 +745,8 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             </table>
           </div>
         )}
+        <ListPager info={data} loading={loading} onPage={setPage} />
         <div className="admin-table-footer">
-          <span role="status" aria-live="polite">
-            {loading ? 'Updating results…' : `${data?.items.length ?? 0} ${name.toLowerCase()}s`}
-          </span>
           <span>Draft content is only visible to you.</span>
         </div>
       </section>
@@ -819,18 +799,16 @@ function MediaLibrary({
   picker?: boolean;
   onSelect?: (media: Media) => void;
 }) {
-  const { data, error, setError, loading, refresh } = useRemote<{ items: Media[] }>(
-    '/api/admin/media',
-  );
+  const { state, query, setQuery, update, setPage, clear, searchParams } = useListing(adminMediaList, !picker);
+  const listUrl = `/api/admin/media?${searchParams}`;
+  const { data, resolvedUrl, error, setError, loading, refresh } = useRemote<ListResult<Media>>(listUrl);
+  useEffect(() => {
+    if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
+  }, [data, resolvedUrl, listUrl, loading, setPage]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const [query, setQuery] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadInFlight = useRef(false);
-  const filteredMedia =
-    data?.items.filter((item) =>
-      `${item.name} ${item.alt}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
-    ) || [];
   async function upload(file?: File) {
     if (!file || uploadInFlight.current) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
@@ -850,6 +828,8 @@ function MediaLibrary({
     form.append('alt', '');
     try {
       await api<Media>('/api/admin/media', { method: 'POST', body: form });
+      clear();
+      update({ q: '', sort: 'newest' });
       refresh();
       setMessage('Image added to your media library.');
     } catch (e) {
@@ -909,12 +889,13 @@ function MediaLibrary({
             type="search"
             aria-label="Search media"
             placeholder="Search filenames or alt text…"
+            maxLength={200}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
         {query && (
-          <button className="admin-button small" type="button" onClick={() => setQuery('')}>
+          <button className="admin-button small" type="button" onClick={clear}>
             Clear search
           </button>
         )}
@@ -929,10 +910,11 @@ function MediaLibrary({
           <RefreshCw size={17} />
         </button>
       </div>
+      <ListOrder config={adminMediaList} sort={state.sort} pageSize={state.pageSize} onChange={update} />
       {!picker && (
         <div className="admin-media-info">
           <span>
-            <Image size={16} /> {data?.items.length ?? 0} images
+            <Image size={16} /> {data?.total ?? 0} images
           </span>
           <span>JPG, PNG, WebP · Up to 10 MB</span>
         </div>
@@ -942,16 +924,13 @@ function MediaLibrary({
       ) : error && !data ? (
         <p className="admin-loading">Unable to load images. Use Refresh media to try again.</p>
       ) : !data?.items.length ? (
+        state.q ? <Empty title="No matching images">Try another filename or description, or clear the search.</Empty> :
         <Empty title="Your image library starts here">
           Upload a cover, avatar, or article image. Files are stored on your server.
         </Empty>
-      ) : !filteredMedia.length ? (
-        <Empty title="No matching images">
-          Try another filename or description, or clear the search.
-        </Empty>
       ) : (
         <div className={`admin-media-grid ${picker ? 'picker' : ''}`}>
-          {filteredMedia.map((media) => (
+          {data.items.map((media) => (
             <MediaCard
               key={`${media.id}-${media.alt}`}
               media={media}
@@ -963,6 +942,7 @@ function MediaLibrary({
           ))}
         </div>
       )}
+      <ListPager info={data} loading={loading} onPage={setPage} label="Media pagination" />
     </>
   );
 }
@@ -1121,6 +1101,12 @@ function TaxonomySection({
   refresh: () => void;
   onError: (value: string) => void;
 }) {
+  const { state, query, setQuery, update, setPage } = useListing(taxonomyList, false);
+  const filtered = items.filter((item) => `${item.name} ${item.slug}`.toLocaleLowerCase().includes(state.q.toLocaleLowerCase()))
+    .sort((a, b) => (state.sort === 'name-desc' ? -1 : 1) * (a.name.localeCompare(b.name, 'zh-TW', { numeric: true, sensitivity: 'base' }) || a.id.localeCompare(b.id)));
+  const page = paginate(filtered.length, state.page, state.pageSize);
+  useEffect(() => { setPage(page.page); }, [page.page, setPage]);
+  const pageItems = filtered.slice((page.page - 1) * page.pageSize, page.page * page.pageSize);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [edit, setEdit] = useState<string | null>(null);
@@ -1216,9 +1202,15 @@ function TaxonomySection({
           )}
         </div>
       </form>
+      <div className="admin-taxonomy-search">
+        <label className="admin-search"><Search size={17} /><input type="search" maxLength={200}
+          aria-label={`Search ${label.toLowerCase()} items`} placeholder="Search names or slugs…"
+          value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+        <ListOrder config={taxonomyList} sort={state.sort} pageSize={state.pageSize} onChange={update} />
+      </div>
       <div className="admin-taxonomy-list">
-        {items.length ? (
-          items.map((item) => (
+        {pageItems.length ? (
+          pageItems.map((item) => (
             <div key={item.id}>
               <span>
                 <strong>
@@ -1251,9 +1243,10 @@ function TaxonomySection({
             </div>
           ))
         ) : (
-          <p className="admin-subtle">No {label.toLowerCase()} items yet. Add one above.</p>
+          <p className="admin-subtle">{state.q ? 'No matching items. Try another search.' : `No ${label.toLowerCase()} items yet. Add one above.`}</p>
         )}
       </div>
+      <ListPager info={page} onPage={setPage} label={`${label} pagination`} />
     </section>
   );
 }

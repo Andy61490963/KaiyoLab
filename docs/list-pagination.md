@@ -1,0 +1,11 @@
+# Collection pagination and sorting
+
+Public articles and projects retain their existing cards and page layout. Native GET forms add selectable date/title sorting and page sizes (8, 12, 24), search on projects, result ranges, and accessible page links. Article category/tag/search criteria survive page navigation. Changing criteria resets page one. Interface labels, including native select options, support English and Traditional Chinese; authored content is unchanged. Controls work without JavaScript.
+
+Admin articles/projects use SQL filtering, ordering, count, LIMIT and OFFSET. Page sizes are 10/20/50, with recently/least-recently edited and title sorting. Media and image pickers use 12/24/48, filename/date/size sorting, server-side search and batched usage resolution. Taxonomy management filters/sorts/paginates its small metadata collection locally; the complete taxonomy endpoint remains available for editor dropdowns. Picker and taxonomy controls do not modify the editor URL. Default URL parameters are omitted; selected non-default list settings survive refresh and returning from an editor.
+
+All SQL sort choices are allowlisted and include deterministic ID tie-breakers. Page inputs are positive safe integers, page sizes are bounded, empty results use page 1, and out-of-range pages clamp after deletions. Public sorting uses published snapshots only, not private draft titles or edit times. No database migration, new dependency, authentication change, or production content change is required.
+
+Exact `/api/admin/entries` and `/api/admin/media` collection routes return `{ items, total, page, pages, pageSize, from, to }` on GET. Their ALL handlers delegate creation/upload to the existing validated catch-all implementation; detail, mutation and action URLs are unchanged. Existing admin authentication and no-store middleware still apply.
+
+Validation: `npm run check`, `npm test`, `npm run test:integration`, `npm run build`, and `npm run test:e2e`. Added suites cover hostile query parameters, deterministic global ordering, published/draft separation, media search and usage, deletion/clamping, no-JavaScript navigation, translated selects, responsive widths, admin state, picker isolation and anonymous API rejection. Integration and browser fixtures belong only to disposable test databases.

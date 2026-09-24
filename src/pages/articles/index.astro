@@ -4,27 +4,23 @@ import PublicLayout from '../../layouts/PublicLayout.astro';
 import EntryCard from '../../components/public/EntryCard.astro';
 import EmptyState from '../../components/public/EmptyState.astro';
 import Pagination from '../../components/public/Pagination.astro';
+import CollectionControls from '../../components/public/CollectionControls.astro';
 import Icon from '../../components/public/Icon.astro';
 import { uiLabel, uiPlaceholder } from '../../lib/ui-language';
 import { getSettings, listPublished, listTaxonomies } from '../../lib/content';
-const q = Astro.url.searchParams.get('q') || '';
+import { articleList, listingHref, readListing } from '../../lib/listing';
+const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 200);
 const category = Astro.url.searchParams.get('category') || '';
 const tag = Astro.url.searchParams.get('tag') || '';
-const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+const options = readListing(Astro.url.searchParams, articleList);
 const [settings, result, taxonomy] = await Promise.all([
   getSettings(),
-  listPublished({ kind: 'article', q, category, tag, page, pageSize: 8 }),
+  listPublished({ kind: 'article', q, category, tag, ...options }),
   listTaxonomies(),
 ]);
-const filterLink = (key: 'category' | 'tag', value: string) => {
-  const params = new URLSearchParams();
-  if (q) params.set('q', q);
-  if (category) params.set('category', category);
-  if (tag) params.set('tag', tag);
-  if (value) params.set(key, value);
-  else params.delete(key);
-  return `/articles${params.size ? `?${params}` : ''}`;
-};
+const filterLink = (key: 'category' | 'tag', value: string) =>
+  listingHref(Astro.url, { [key]: value, page: null, sort: options.sort, pageSize: options.pageSize });
+const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, page: null });
 ---
 
 <PublicLayout
@@ -106,10 +102,13 @@ const filterLink = (key: 'category' | 'tag', value: string) => {
           />
           {category && <input type="hidden" name="category" value={category} />}
           {tag && <input type="hidden" name="tag" value={tag} />}
+          <input type="hidden" name="sort" value={options.sort} />
+          <input type="hidden" name="pageSize" value={options.pageSize} />
           <button type="submit">
             <Ui text="Search" /> <Icon name="arrow" size={16} />
           </button>
         </form>
+        <CollectionControls config={articleList} sort={options.sort} pageSize={result.pageSize} />
         <div class="collection-results">
           <span>
             <Ui
@@ -121,18 +120,15 @@ const filterLink = (key: 'category' | 'tag', value: string) => {
             {tag && <Ui text=" tagged #{tag}" values={{ tag }} />}
           </span>
           {(q || tag || category) && (
-            <a href="/articles">
+            <a href={clearLink}>
               <Ui text="Clear filters" /> <Icon name="close" size={14} />
             </a>
           )}
-          <span class="result-order">
-            <Ui text="Newest first" />
-          </span>
         </div>
         <div class="article-list">
           {result.items.length ? (
             result.items.map((entry, index) => (
-              <EntryCard entry={entry} headingLevel="h2" index={index + (result.page - 1) * 8} />
+              <EntryCard entry={entry} headingLevel="h2" index={index + (result.page - 1) * result.pageSize} />
             ))
           ) : (
             <EmptyState
@@ -145,7 +141,7 @@ const filterLink = (key: 'category' | 'tag', value: string) => {
             />
           )}
         </div>
-        <Pagination page={result.page} pages={result.pages} />
+        <Pagination page={result.page} pages={result.pages} total={result.total} pageSize={result.pageSize} />
       </div>
     </div>
   </div>

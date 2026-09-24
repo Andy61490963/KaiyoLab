@@ -1,50 +1,49 @@
 ---
 import Icon from './Icon.astro';
+import Ui from './UiText.astro';
 import { uiLabel } from '../../lib/ui-language';
+import { listingHref, pageNumbers, paginate } from '../../lib/listing';
+import '../../styles/list-controls.css';
 interface Props {
   page: number;
   pages: number;
+  total?: number;
+  pageSize?: number;
 }
-const { page, pages } = Astro.props;
-const pageLink = (n: number) => {
-  const url = new URL(Astro.url);
-  url.searchParams.set('page', String(n));
-  return `${url.pathname}${url.search}`;
-};
-const visible = Array.from({ length: pages }, (_, i) => i + 1).filter(
-  (n) => n === 1 || n === pages || Math.abs(n - page) < 2,
-);
+const { page, pages, total, pageSize = 12 } = Astro.props;
+const pageLink = (n: number) => listingHref(Astro.url, { page: n });
+const visible = pageNumbers(page, pages);
+const range = paginate(total || 0, page, pageSize);
 ---
 
+{total !== undefined && (
+  <p class="collection-page-summary">
+    <Ui text="Showing {from}–{to} of {total}" values={{ from: range.from, to: range.to, total }} />
+  </p>
+)}
 {pages > 1 && (
   <nav class="pagination" {...uiLabel('Content pagination')}>
     {page > 1 ? (
-      <a class="pagination-direction" href={pageLink(page - 1)} {...uiLabel('Previous page')}>
+      <a class="pagination-direction" rel="prev" href={pageLink(page - 1)} {...uiLabel('Previous page')}>
         <Icon name="back" size={17} />
       </a>
     ) : (
-      <span class="pagination-direction disabled">
+      <span class="pagination-direction disabled" aria-disabled="true" {...uiLabel('Previous page')}>
         <Icon name="back" size={17} />
       </span>
     )}
-    {visible.map((n, i) => (
-      <>
-        {i > 0 && n - visible[i - 1] > 1 && <span class="pagination-gap">…</span>}
-        <a
-          href={pageLink(n)}
-          class:list={{ selected: n === page }}
-          aria-current={n === page ? 'page' : undefined}
-        >
-          {n}
-        </a>
-      </>
+    {visible.map((n) => n === 'gap' ? <span class="pagination-gap" aria-hidden="true">…</span> : (
+      <a href={pageLink(n)} class:list={{ selected: n === page }}
+        {...uiLabel('Page {page}', { page: n })} aria-current={n === page ? 'page' : undefined}>
+        {n}
+      </a>
     ))}
     {page < pages ? (
-      <a class="pagination-direction" href={pageLink(page + 1)} {...uiLabel('Next page')}>
+      <a class="pagination-direction" rel="next" href={pageLink(page + 1)} {...uiLabel('Next page')}>
         <Icon size={17} />
       </a>
     ) : (
-      <span class="pagination-direction disabled">
+      <span class="pagination-direction disabled" aria-disabled="true" {...uiLabel('Next page')}>
         <Icon size={17} />
       </span>
     )}

@@ -24,6 +24,11 @@ export function initializeUiLanguage() {
         (language === 'en' ? element.dataset.uiPlaceholderEn : element.dataset.uiPlaceholderZh) ||
         '';
     }
+    // Native options cannot contain the bilingual spans used by UiText.
+    for (const option of document.querySelectorAll<HTMLOptionElement>('option[data-ui-option-en]')) {
+      if (option.closest('[data-original-content]')) continue;
+      option.textContent = (language === 'en' ? option.dataset.uiOptionEn : option.dataset.uiOptionZh) || '';
+    }
     const title = document.querySelector<HTMLTitleElement>('title[data-ui-title-en]');
     if (title)
       title.textContent =

@@ -1,8 +1,9 @@
-import { and, desc, eq, isNull, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, isNotNull, sql } from 'drizzle-orm';
 import { db, entries, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
 import { defaultHomeIntro } from './home-intro';
 import { repairLegacySiteCopy } from './site-copy';
+import { paginate } from './listing';
 import type { Entry, EntryKind, PublicEntry, Taxonomy, SiteSettings } from './types';
 
 export function serializeEntry(row: typeof entries.$inferSelect): Entry {
@@ -58,6 +59,7 @@ export async function listPublished(opts: {
   page?: number;
   pageSize?: number;
   featured?: boolean;
+  sort?: string;
 }) {
   const parts = [visible(), eq(entries.kind, opts.kind)];
   if (opts.q) {
@@ -75,19 +77,22 @@ export async function listPublished(opts: {
     .select({ total: sql<number>`count(*)::int` })
     .from(entries)
     .where(where);
-  const total = count?.total || 0;
-  const pageSize = Math.min(100, Math.max(1, opts.pageSize || 12));
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const page = Math.min(pages, Math.max(1, Math.trunc(opts.page || 1) || 1));
+  const page = paginate(count?.total || 0, opts.page, opts.pageSize);
+  // Sort the complete published result before LIMIT/OFFSET, never private drafts.
+  // An ID tie-breaker prevents duplicate/missing rows when dates or titles match.
+  const title = sql`lower(${entries.published}->>'title')`;
+  const order = opts.sort === 'oldest' ? [asc(entries.publishedAt), asc(entries.id)]
+    : opts.sort === 'title-asc' ? [asc(title), asc(entries.id)]
+      : opts.sort === 'title-desc' ? [desc(title), desc(entries.id)]
+        : [desc(entries.publishedAt), desc(entries.id)];
   const rows = await db()
     .select()
     .from(entries)
     .where(where)
-    // The UI promises "Newest first". Featured posts must not displace newer posts.
-    .orderBy(desc(entries.publishedAt), desc(entries.id))
-    .limit(pageSize)
-    .offset((page - 1) * pageSize);
-  return { items: rows.map(asPublic), total, page, pages };
+    .orderBy(...order)
+    .limit(page.pageSize)
+    .offset((page.page - 1) * page.pageSize);
+  return { items: rows.map(asPublic), ...page };
 }
 export async function getPublished(kind: EntryKind, slug: string): Promise<PublicEntry | null> {
   const [row] = await db()

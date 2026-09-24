@@ -3,6 +3,20 @@ export type UiLanguage = 'en' | 'zh-TW';
 
 // Interface copy only. Never pass authored Markdown, titles, or taxonomy names here.
 export const chinese = {
+  'List options': '列表選項',
+  'Sort by': '排序方式',
+  'Per page': '每頁筆數',
+  Apply: '套用',
+  'Oldest first': '最舊優先',
+  'Title A–Z': '標題升冪',
+  'Title Z–A': '標題降冪',
+  'Showing {from}–{to} of {total}': '顯示第 {from}–{to} 筆，共 {total} 筆',
+  'Page {page}': '第 {page} 頁',
+  'Search projects': '搜尋作品',
+  '{count} project': '{count} 件作品',
+  '{count} projects': '{count} 件作品',
+  'No matching projects': '找不到符合的作品',
+  'Try another keyword or clear the search.': '試試其他關鍵字，或清除搜尋條件。',
   Home: '首頁',
   Articles: '文章',
   Projects: '作品',
