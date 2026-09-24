@@ -1,0 +1,26 @@
+/* Scoped additions; existing cards, navigation and editor are unchanged. */
+.collection-controls, .admin-list-options { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; }
+.collection-controls { margin-block: 1rem; }
+.collection-controls label, .admin-list-options label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; }
+.collection-controls select, .collection-controls button { min-height: 42px; padding: .45rem .7rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+.collection-controls button { cursor: pointer; font-size: .85rem; }
+.collection-controls button:hover { background: var(--accent-soft); }
+.collection-controls :is(select, button):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.collection-page-summary { color: var(--muted); font-size: .85rem; margin-block: 1.25rem .5rem; }
+.admin-list-options { margin-block: .75rem; }
+.admin-list-options select { min-height: 40px; max-width: 100%; }
+.admin-list-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem; font-size: .8rem; }
+.admin-list-pagination nav { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.admin-list-pagination button[aria-current='page'] { font-weight: 800; text-decoration: underline; text-underline-offset: .2em; }
+.admin-list-pagination button { min-width: 36px; min-height: 40px; }
+.admin-list-pagination .list-page-gap { padding-inline: .25rem; }
+.admin-taxonomy-search { padding: .75rem 1rem; }
+@media (max-width: 620px) {
+  .collection-controls { gap: .5rem; }
+  .collection-controls label:first-child { flex: 1 1 140px; }
+  .collection-controls select { width: 100%; }
+  .admin-list-pagination { align-items: flex-start; flex-direction: column; }
+  .admin-list-pagination nav { max-width: 100%; }
+}
+.public-site .pagination { flex-wrap: wrap; }
+.collection-controls label, .admin-list-options label { max-width: 100%; min-width: 0; }

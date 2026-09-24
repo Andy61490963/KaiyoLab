@@ -1,0 +1,34 @@
+---
+import Ui from './UiText.astro';
+import { uiLabel, uiText, type UiKey } from '../../lib/ui-language';
+import type { ListConfig } from '../../lib/listing';
+import '../../styles/list-controls.css';
+interface Props { config: ListConfig; sort: string; pageSize: number }
+const { config, sort, pageSize } = Astro.props;
+const labels: Record<string, UiKey> = {
+  newest: 'Newest first', oldest: 'Oldest first', 'title-asc': 'Title A–Z', 'title-desc': 'Title Z–A',
+};
+---
+<form class="collection-controls" method="get" action={Astro.url.pathname} {...uiLabel('List options')}>
+  {['q', 'category', 'tag'].map((name) => Astro.url.searchParams.get(name) && (
+    <input type="hidden" name={name} value={Astro.url.searchParams.get(name)!} />
+  ))}
+  <label for="collection-sort">
+    <Ui text="Sort by" />
+    <select id="collection-sort" name="sort">
+      {config.sorts.map((value) => (
+        <option value={value} selected={sort === value}
+          data-ui-option-en={uiText(labels[value])} data-ui-option-zh={uiText(labels[value], 'zh-TW')}>
+          {uiText(labels[value])}
+        </option>
+      ))}
+    </select>
+  </label>
+  <label for="collection-page-size">
+    <Ui text="Per page" />
+    <select id="collection-page-size" name="pageSize">
+      {config.sizes.map((size) => <option value={size} selected={pageSize === size}>{size}</option>)}
+    </select>
+  </label>
+  <button type="submit"><Ui text="Apply" /></button>
+</form>

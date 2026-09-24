@@ -4,13 +4,16 @@ import PublicLayout from '../../layouts/PublicLayout.astro';
 import ProjectCard from '../../components/public/ProjectCard.astro';
 import EmptyState from '../../components/public/EmptyState.astro';
 import Pagination from '../../components/public/Pagination.astro';
+import CollectionControls from '../../components/public/CollectionControls.astro';
 import Icon from '../../components/public/Icon.astro';
-import { uiLabel } from '../../lib/ui-language';
+import { uiLabel, uiPlaceholder } from '../../lib/ui-language';
 import { getSettings, listPublished } from '../../lib/content';
-const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+import { listingHref, projectList, readListing } from '../../lib/listing';
+const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 200);
+const options = readListing(Astro.url.searchParams, projectList);
 const [settings, result] = await Promise.all([
   getSettings(),
-  listPublished({ kind: 'project', page, pageSize: 12 }),
+  listPublished({ kind: 'project', q, ...options }),
 ]);
 ---
 
@@ -30,18 +33,34 @@ const [settings, result] = await Promise.all([
         <Ui text="Selected projects and open-source work, with details and related links." />
       </p>
     </header>
+    <form class="search-form" method="get" action="/projects" role="search">
+      <label class="sr-only" for="project-search"><Ui text="Search projects" /></label>
+      <Icon name="search" size={19} />
+      <input id="project-search" type="search" name="q" value={q} maxlength="200"
+        {...uiPlaceholder('Search titles or content…')} autocomplete="off" />
+      <input type="hidden" name="sort" value={options.sort} />
+      <input type="hidden" name="pageSize" value={options.pageSize} />
+      <button type="submit"><Ui text="Search" /> <Icon name="arrow" size={16} /></button>
+    </form>
+    <CollectionControls config={projectList} sort={options.sort} pageSize={result.pageSize} />
+    <div class="collection-results">
+      <span><Ui text={result.total === 1 ? '{count} project' : '{count} projects'} values={{ count: result.total }} />
+        {q && <Ui text=" matching “{query}”" values={{ query: q }} />}
+      </span>
+      {q && <a href={listingHref(Astro.url, { q: null, page: null })}><Ui text="Clear filters" /> <Icon name="close" size={14} /></a>}
+    </div>
     <section class="project-grid" {...uiLabel('Project list')}>
       {result.items.length ? (
         result.items.map((entry) => <ProjectCard entry={entry} />)
       ) : (
         <EmptyState
-          title="No published projects yet"
-          description="Published projects and links will appear here."
+          title={q ? 'No matching projects' : 'No published projects yet'}
+          description={q ? 'Try another keyword or clear the search.' : 'Published projects and links will appear here.'}
           icon="code"
         />
       )}
     </section>
-    <Pagination page={result.page} pages={result.pages} />
+    <Pagination page={result.page} pages={result.pages} total={result.total} pageSize={result.pageSize} />
   </div>
 </PublicLayout>
 
