@@ -43,6 +43,32 @@ Zeabur 會把 `SITE_URL` 傳入同名 Docker 建置參數。變更網域後必�
 
 ## 備份、升級與回復
 
+### 建置成功但網站回傳 502
+
+先區分 CI 建置、容器映像下載、應用程式啟動及網站健康檢查四個階段，建置成功不代表網站已上線
+
+若服務顯示 `PULL_FAILED` 或 Kubernetes 顯示 `ImagePullBackOff`，請先查看該 Pod 的事件，`timeout awaiting response headers` 表示映像下載階段失敗，此時應用程式可能尚未啟動，回退介面程式或刪除資料硬碟無法解決下載問題
+
+在自有主機比較 DNS 解析、HTTPS 狀態碼、完整下載大小與 SHA-256；只收到 HTTP 200 標頭不能證明映像內容已下載成功，不建議永久固定 CDN IP 或直接重啟整台共享主機
+
+### 使用 CI 復原映像
+
+設定 `PRODUCTION_URL` 後，CI 在型別、資料庫、Docker 與瀏覽器檢查通過後，另外建置正式網址使用的 amd64 映像，保留七天於 `production-image-完整版本` artifact，內含 `kaiyolab-image.tar`、`SHA256SUMS` 與 `REVISION`
+
+映像包含程式及內建素材，不包含執行中的資料庫、上傳檔案、登入密鑰或測試資料；這是應用程式復原來源，不能取代資料備份，PR 產物也不能視為已合併的正式版本
+
+映像儲存服務故障時，具備自有主機維護權限的人可採以下流程：
+
+1. 選擇已通過 CI 的 main 版本，下載對應 artifact，確認 `REVISION` 與預期部署版本相同
+2. 以 `sha256sum -c SHA256SUMS` 驗證下載檔案，使用已核對主機金鑰的 SSH／SFTP 傳到主機，再驗證一次
+3. 使用 `sudo k3s ctr -n k8s.io images import /tmp/kaiyolab-image.tar` 匯入內容快取，保留既有資料庫、環境變數與 volumes
+4. 先記錄目前 Deployment 名稱、容器名稱與映像參照，再將該應用程式容器切換到 `docker.io/library/kaiyolab-recovery:完整版本`，不要改動其他服務，也不要把重建的映像冒充為原 registry 的 digest
+5. 等待容器 Ready，執行正式部署驗證，確認健康端點回報精確版本、公開頁面成功及管理 API 回傳 401
+
+這是平台映像儲存故障期間的復原程序，直接調整 Kubernetes 映像可能被平台後續部署覆寫，不代表原 registry 已修好；恢復平台正常部署後需再次核對實際版本，正式部署工作流程仍以精確版本驗證作為成功條件
+
+需要重新產生產物時可手動執行「持續整合」工作流程，版本標籤的多平台 GHCR 發布流程維持不變
+
 更新前保留 PostgreSQL 備份、兩個應用程式硬碟，以及平台環境設定。Zeabur 的「備份還原」可建立平台快照；仍應另存可攜式備份到自己的安全儲存空間。資料庫與圖片必須對應同一個備份時間點，備份期間暫停後台寫入。
 
 在 PostgreSQL 服務終端可執行：
