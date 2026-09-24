@@ -19,29 +19,49 @@ export function settingsWithPreservedViews(value: SiteSettings) {
     ELSE '{}'::jsonb END`;
 }
 
-export async function getArticleViews(id: string, pool: pg.Pool = getPool()): Promise<number> {
-  const { rows } = await pool.query<CountRow>({
-    text: `SELECT s.value #> ARRAY[$1::text, $2::text] AS views,
+async function inViewTransaction<T>(
+  pool: pg.Pool,
+  readOnly: boolean,
+  operation: (client: pg.PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  let discard = false;
+  try {
+    await client.query(readOnly ? 'BEGIN READ ONLY' : 'BEGIN');
+    // Optional telemetry must not indefinitely block content or settings operations.
+    await client.query("SET LOCAL lock_timeout='1500ms'; SET LOCAL statement_timeout='2500ms'");
+    const result = await operation(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      discard = true;
+    }
+    throw error;
+  } finally {
+    client.release(discard);
+  }
+}
+
+export function getArticleViews(id: string, pool: pg.Pool = getPool()): Promise<number> {
+  return inViewTransaction(pool, true, async (client) => {
+    const { rows } = await client.query<CountRow>(
+      `SELECT s.value #> ARRAY[$1::text, $2::text] AS views,
       (s.value IS NULL OR NOT s.value ? $1 OR jsonb_typeof(s.value->$1)='object') AS valid
       FROM entries e LEFT JOIN settings s ON s.id=1
       WHERE e.id=$2 AND e.kind='article' AND e.deleted_at IS NULL AND e.published IS NOT NULL`,
-    values: [ARTICLE_VIEWS_KEY, id],
-    query_timeout: 2500,
+      [ARTICLE_VIEWS_KEY, id],
+    );
+    if (!rows[0]) throw new HttpError(404, 'Article not found.');
+    if (!rows[0].valid) throw new Error('Invalid article view metadata.');
+    return parseViewCount(rows[0].views);
   });
-  if (!rows[0]) throw new HttpError(404, 'Article not found.');
-  if (!rows[0].valid) throw new Error('Invalid article view metadata.');
-  return parseViewCount(rows[0].views);
 }
 
-export async function incrementArticleViews(
-  id: string,
-  pool: pg.Pool = getPool(),
-): Promise<number> {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    // Analytics must not indefinitely block publishing or settings writes.
-    await client.query("SET LOCAL lock_timeout='1500ms'; SET LOCAL statement_timeout='2500ms'");
+export function incrementArticleViews(id: string, pool: pg.Pool = getPool()): Promise<number> {
+  return inViewTransaction(pool, false, async (client) => {
     const visible = await client.query(
       `SELECT id FROM entries
       WHERE id=$1 AND kind='article' AND deleted_at IS NULL AND published IS NOT NULL FOR SHARE`,
@@ -62,14 +82,8 @@ export async function incrementArticleViews(
       WHERE id=1`,
       [ARTICLE_VIEWS_KEY, id, count],
     );
-    await client.query('COMMIT');
     return count;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 // A receipt records only an expiry, signed for this article. No visitor ID, IP, or fingerprint.
