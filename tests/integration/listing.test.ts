@@ -2,6 +2,7 @@ import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import pg from 'pg';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { cleanupTestDatabase } from '../helpers/database-cleanup';
 
 // Each integration file uses its own database; never seed or mutate production.
 describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL list pagination and ordering', () => {
@@ -84,9 +85,7 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL list pagination and order
       ]);
   });
   afterAll(async () => {
-    if (database) await database.getPool().end();
-    if (name) await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);
-    if (admin) await admin.end();
+    await cleanupTestDatabase(admin, name, database?.getPool());
   });
   it('sorts all public results before slicing and preserves snapshot privacy', async () => {
     const result = await content.listPublished({
