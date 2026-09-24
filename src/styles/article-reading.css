@@ -1,0 +1,176 @@
+/* Article-only refinement: preserve the existing site container, navigation, and themes. */
+.public-site .article-reading .back-link { margin: 24px 0 28px; }
+.article-reading .article-hero {
+  position: relative;
+  display: grid;
+  gap: 28px;
+  align-items: center;
+  padding-block: 12px 36px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--border);
+}
+.public-site .article-reading .article-heading {
+  min-width: 0;
+  width: 100%;
+  max-width: 74ch;
+  margin: 0;
+}
+.public-site .article-reading .entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.public-site .article-reading .article-heading h1 {
+  margin: 20px 0 18px;
+  max-width: 24ch;
+  font-size: clamp(30px, 3.2vw, 44px);
+  line-height: 1.32;
+  letter-spacing: -0.035em;
+  word-break: normal;
+  text-wrap: balance;
+}
+.public-site .article-reading .article-lead {
+  max-width: 64ch;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.85;
+  color: var(--muted);
+}
+.public-site .article-reading .article-byline { margin-top: 24px; gap: 12px; }
+.article-reading .article-byline img { flex-shrink: 0; border-radius: 50%; }
+.article-reading .entry-tags { min-width: 0; flex-wrap: wrap; gap: 8px; }
+.article-reading .entry-tags a { overflow-wrap: anywhere; line-height: 1.5; padding: 6px 10px; }
+.article-reading .article-views {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.article-reading .article-views svg { flex-shrink: 0; }
+.article-reading [data-view-number] { min-width: 1ch; }
+.public-site .article-reading .article-cover {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 16px 38px rgb(0 0 0 / 8%);
+}
+.public-site .article-reading .article-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: inherit;
+  object-fit: contain; /* Do not crop diagrams or important screenshot text. */
+}
+[data-theme='dark'] .article-reading .article-hero.has-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 95% 20%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+.article-reading .article-hero > * { position: relative; z-index: 1; }
+.public-site .article-reading .reading-layout { padding-top: 0; align-items: start; }
+.public-site .article-reading .prose { font-size: 18px; line-height: 1.9; max-width: 70ch; }
+.public-site .article-reading .prose p { margin: 0 0 1.4em; }
+.public-site .article-reading .prose h2 {
+  margin: 2.2em 0 0.9em;
+  font-size: 27px;
+  line-height: 1.4;
+  border: 0;
+  padding: 0;
+}
+.public-site .article-reading .prose h2::after {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 3px;
+  margin-top: 12px;
+  background: var(--accent);
+}
+.public-site .article-reading .prose h3 { margin-top: 1.8em; line-height: 1.45; }
+.public-site .article-reading .prose :where(h1,h2,h3,h4,h5,h6) { scroll-margin-top: 100px; }
+.public-site .article-reading .prose > :first-child { margin-top: 0; }
+.public-site .article-reading .prose pre { font-size: 14px; }
+.public-site .article-reading .toc-inner {
+  top: 88px;
+  padding: 0;
+  border: 0;
+}
+.public-site .article-reading .toc-inner h2 { font-size: 15px; margin-bottom: 18px; }
+.public-site .article-reading .toc-inner nav {
+  gap: 4px;
+  border-left: 1px solid var(--border);
+  padding-left: 0;
+  max-height: calc(100dvh - 235px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.public-site .article-reading .toc-inner nav a {
+  position: relative;
+  padding: 8px 12px 8px 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.public-site .article-reading .toc-inner nav a.toc-sub { padding-left: 30px; font-size: 13px; }
+.public-site .article-reading .toc-inner nav a[aria-current='location'] {
+  color: var(--accent);
+  font-weight: 650;
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+}
+.article-reading .toc-inner nav a[aria-current='location']::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 18px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.public-site .article-reading .mobile-toc { margin: 0 0 30px; }
+.public-site .article-reading .mobile-toc nav { max-height: 50dvh; overflow-y: auto; }
+.public-site .article-reading .mobile-toc nav a { min-height: 44px; padding-block: 10px; }
+.article-reading .mobile-toc [aria-current='location'] { font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+@media (min-width: 1200px) {
+  .article-reading .article-hero.has-cover { grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 32px; }
+}
+@media (min-width: 1320px) {
+  .public-site .article-reading .reading-layout { grid-template-columns: minmax(0,1fr) 220px; gap: 36px; }
+  .public-site .article-reading .reading-layout.without-toc { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 800px) {
+  .public-site .article-reading .back-link { margin: 18px 0 20px; }
+  .article-reading .article-hero { padding-block: 4px 28px; margin-bottom: 28px; gap: 24px; }
+  .public-site .article-reading .article-heading h1 { font-size: 30px; letter-spacing: -0.025em; }
+  .public-site .article-reading .prose, .public-site .article-reading .article-lead { font-size: 17px; }
+  .public-site .article-reading .prose h2 { font-size: 25px; }
+  .article-reading .article-byline .byline-line { display: none; }
+  .article-reading .article-byline .entry-tags { flex-basis: 100%; }
+  .public-site .article-reading .article-cover { aspect-ratio: 16/10; }
+}
+@media print {
+  .article-reading .article-views { display: none; }
+  .public-site .article-reading .article-hero, .public-site .article-reading .reading-layout { display: block; }
+  .article-reading .article-hero::before { display: none; }
+  .public-site .article-reading .article-cover { width: 60%; margin: 20px 0; break-inside: avoid; box-shadow: none; }
+}
