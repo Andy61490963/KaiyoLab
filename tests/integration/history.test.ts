@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 import type { Entry, EntryContent, EntryRevision } from '../../src/lib/types';
+import { cleanupTestDatabase } from '../helpers/database-cleanup';
 
 describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 版本紀錄與公開網址', () => {
   let admin: pg.Pool;
@@ -79,9 +80,7 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 版本紀錄與公開網�
     history = await import('../../src/lib/history');
   });
   afterAll(async () => {
-    if (database) await database.getPool().end();
-    if (name) await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);
-    if (admin) await admin.end();
+    await cleanupTestDatabase(admin, name, database?.getPool());
   });
 
   it('既有公開內容可遷移時間、版本與網址紀錄，重跑不重複建立', async () => {

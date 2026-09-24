@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import type { Entry, Media, Taxonomy } from '../../src/lib/types';
+import { cleanupTestDatabase } from '../helpers/database-cleanup';
 
 const enabled = !!process.env.DATABASE_URL;
 
@@ -101,11 +102,7 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
   });
 
   afterAll(async () => {
-    if (database) await database.getPool().end();
-    if (admin) {
-      await admin.query(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
-      await admin.end();
-    }
+    await cleanupTestDatabase(admin, databaseName, database?.getPool());
     if (dir) {
       const resolved = path.resolve(dir);
       const expectedRoot = path.resolve(os.tmpdir()) + path.sep;

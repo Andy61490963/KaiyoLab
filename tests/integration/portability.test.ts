@@ -7,6 +7,7 @@ import path from 'node:path';
 import os from 'node:os';
 import sharp from 'sharp';
 import { defaultSettings, emptyContent } from '../../src/lib/defaults';
+import { cleanupTestDatabase } from '../helpers/database-cleanup';
 
 describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () => {
   let admin: pg.Pool;
@@ -129,11 +130,7 @@ describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () 
   });
 
   afterAll(async () => {
-    if (database) await database.getPool().end();
-    if (admin) {
-      await admin.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
-      await admin.end();
-    }
+    await cleanupTestDatabase(admin, name, database?.getPool());
     if (directory) {
       const resolved = path.resolve(directory);
       if (
