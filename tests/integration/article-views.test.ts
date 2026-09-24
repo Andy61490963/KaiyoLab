@@ -14,6 +14,10 @@ describe.skipIf(!source)('persistent article views without schema changes', () =
   let route: typeof import('../../src/pages/api/article-views/[id]');
   let content: typeof import('../../src/lib/content');
   const origin = 'http://localhost:4321';
+  const closedConnections: Promise<void>[] = [];
+  const trackConnection = (client: pg.PoolClient) => {
+    closedConnections.push(new Promise<void>((resolve) => client.once('end', () => resolve())));
+  };
   beforeAll(async () => {
     admin = new pg.Pool({ connectionString: source });
     name = `view_test_${randomUUID().replaceAll('-', '')}`;
@@ -25,6 +29,7 @@ describe.skipIf(!source)('persistent article views without schema changes', () =
     process.env.BETTER_AUTH_SECRET = 'integration-view-secret-000000000000000000000';
     const database = await import('../../src/lib/db');
     pool = database.getPool();
+    pool.on('connect', trackConnection);
     await pool.query(
       await readFile(new URL('../../db/migrations/001_initial.sql', import.meta.url), 'utf8'),
     );
@@ -52,12 +57,16 @@ describe.skipIf(!source)('persistent article views without schema changes', () =
     content = await import('../../src/lib/content');
   });
   afterAll(async () => {
-    if (pool) await pool.end();
-    if (admin) {
-      await admin.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
-      await admin.end();
+    try {
+      if (pool) await pool.end();
+      // Pool.end() can finish removing idle clients before their sockets emit 'end'.
+      // Do not force-terminate those still-closing connections during fixture teardown.
+      await Promise.all(closedConnections);
+      if (admin && name) await admin.query(`DROP DATABASE IF EXISTS ${name}`);
+    } finally {
+      if (admin) await admin.end();
+      process.env.DATABASE_URL = source;
     }
-    process.env.DATABASE_URL = source;
   });
   it('GET never increments, and draft/project/trash IDs are not exposed', async () => {
     expect(await views.getArticleViews('public')).toBe(0);
@@ -76,6 +85,7 @@ describe.skipIf(!source)('persistent article views without schema changes', () =
     expect(await views.getArticleViews('public')).toBe(24);
     expect((await pool.query('SELECT * FROM entries ORDER BY id')).rows).toEqual(before);
     const other = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+    other.on('connect', trackConnection);
     try {
       expect(await views.getArticleViews('public', other)).toBe(24);
     } finally {
