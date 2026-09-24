@@ -21,6 +21,9 @@ test('article columns fit both languages and themes without changing other pages
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           `${width}px / ${theme} / ${language}`).toBe(true);
         await expect(page.locator('.article-heading h1')).toBeVisible();
+        expect(await page.locator('.article-byline .entry-tags a').first().evaluate(
+          (tag) => parseFloat(getComputedStyle(tag).fontSize),
+        )).toBeGreaterThanOrEqual(13);
         const rail = page.locator('.article-rail');
         const mobileToc = page.locator('.mobile-toc');
         if (width >= 1320) {
@@ -91,15 +94,16 @@ test('switching interface language preserves authored article and outline conten
   const url = page.url();
   await page.getByRole('button', { name: '繁體中文', exact: true }).click();
   await expect(page.getByRole('link', { name: '返回文章列表', exact: true })).toBeVisible();
-  await expect(page.locator('.article-rail > .article-rail-card > h2')).toHaveText('目錄');
+  await expect(page.locator('.article-rail > .article-rail-card > h2')).toHaveText('目錄', { useInnerText: true });
   expect(await authored()).toEqual(original);
   expect(page.url()).toBe(url);
   await page.getByRole('button', { name: 'English', exact: true }).click();
   expect(await authored()).toEqual(original);
   const related = page.locator('.article-rail-related a');
-  for (const link of await related.all()) {
-    expect(await link.getAttribute('href')).not.toBe(articlePath);
-  }
+  await expect(related).toHaveCount(3);
+  const hrefs = await related.evaluateAll((links) => links.map((link) => link.getAttribute('href')));
+  expect(new Set(hrefs).size).toBe(hrefs.length);
+  for (const href of hrefs) expect(href).not.toBe(articlePath);
   const tag = page.locator('.article-rail-tags a').first();
   const tagName = await tag.innerText();
   expect(new URL((await tag.getAttribute('href'))!, page.url()).searchParams.get('tag')).toBe(tagName);

@@ -20,6 +20,17 @@ const related = await listPublished({
   pageSize: 4,
 });
 const relatedItems = related.items.filter((item) => item.id !== entry.id).slice(0, 3);
+// Prefer the current category; a small collection can still offer other published reading.
+if (relatedItems.length < 3) {
+  const recent = await listPublished({ kind: 'article', pageSize: 6 });
+  const seen = new Set([entry.id, ...relatedItems.map((item) => item.id)]);
+  for (const candidate of recent.items) {
+    if (seen.has(candidate.id)) continue;
+    relatedItems.push(candidate);
+    seen.add(candidate.id);
+    if (relatedItems.length === 3) break;
+  }
+}
 const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
@@ -258,8 +269,10 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
           current = heading;
         }
         // Short final sections may never reach the top reading line before the page ends.
-        if (window.scrollY > 0 && window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2)
-          current = headings[headings.length - 1];
+        if (
+          window.scrollY > 0 &&
+          window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2
+        ) current = headings[headings.length - 1];
         if (current.id === activeId) return;
         activeId = current.id;
         for (const link of links) {
