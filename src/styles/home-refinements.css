@@ -1,0 +1,133 @@
+/* Only the interface language, a small portrait, and sidebar links change. */
+.public-site {
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    'Microsoft JhengHei', 'PingFang TC', 'Noto Sans CJK TC', 'WenQuanYi Zen Hei', sans-serif;
+}
+.ui-text > [lang='zh-TW'] {
+  display: none;
+}
+:root[data-ui-language='zh-TW'] .ui-text > [lang='en'] {
+  display: none;
+}
+:root[data-ui-language='zh-TW'] .ui-text > [lang='zh-TW'] {
+  display: inline;
+}
+.public-site .language-switch {
+  position: fixed;
+  top: 12px;
+  right: max(24px, calc((100vw - 1480px) / 2 + 40px));
+  z-index: 35;
+  display: flex;
+  isolation: isolate;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 4%);
+}
+.language-switch-thumb {
+  position: absolute;
+  inset: 3px auto 3px 3px;
+  width: calc((100% - 6px) / 2);
+  z-index: -1;
+  background: var(--surface-raised);
+  border-radius: inherit;
+  transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-ui-language='zh-TW'] .language-switch-thumb {
+  transform: translateX(100%);
+}
+.language-switch button {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.language-switch button[aria-pressed='true'] {
+  color: var(--text);
+}
+.language-switch button:hover {
+  color: var(--accent);
+}
+.public-intro > .ui-text {
+  display: inline;
+  margin: 0;
+  color: inherit;
+}
+.public-site .home-introduction {
+  max-width: none;
+}
+.home-intro-copy {
+  min-width: 0;
+}
+.home-mascot {
+  width: 224px;
+  max-width: 100%;
+  margin: 152px 0 0;
+  align-self: start;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 8px 28px rgb(75 54 31 / 8%);
+}
+.home-mascot img {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  object-fit: cover;
+  border-radius: 50%;
+}
+@media (min-width: 1200px) {
+  .public-site .home-introduction {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 224px;
+    gap: 32px;
+  }
+}
+@media (max-width: 1199px) {
+  .home-mascot {
+    width: 128px;
+    margin: 24px 0 0;
+  }
+}
+@media (max-width: 1023px) {
+  .public-site .language-switch {
+    position: relative;
+    inset: auto;
+    box-shadow: none;
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 800px) {
+  .public-header {
+    padding-inline: 12px;
+  }
+  .public-actions {
+    gap: 0;
+  }
+  .public-brand {
+    max-width: none;
+    flex: 1;
+    font-size: 20px;
+  }
+  .public-site .public-actions > a {
+    display: none;
+  } /* Search remains in the Articles page. */
+}
+@media (prefers-reduced-motion: reduce) {
+  .language-switch-thumb {
+    transition: none;
+  }
+}
+@media print {
+  .language-switch,
+  .home-mascot {
+    display: none !important;
+  }
+}

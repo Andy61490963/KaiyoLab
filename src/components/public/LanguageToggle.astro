@@ -1,0 +1,31 @@
+---
+import { uiLabel } from '../../lib/ui-language';
+import Ui from './UiText.astro';
+---
+
+<div class="language-switch" role="group" {...uiLabel('Interface language')} hidden>
+  <span class="language-switch-thumb" aria-hidden="true"></span>
+  <button
+    type="button"
+    data-language="en"
+    lang="en"
+    aria-label="English"
+    aria-pressed="true"
+    aria-describedby="language-scope"
+  >
+    EN
+  </button>
+  <button
+    type="button"
+    data-language="zh-TW"
+    lang="zh-TW"
+    aria-label="繁體中文"
+    aria-pressed="false"
+    aria-describedby="language-scope"
+  >
+    中文
+  </button>
+  <span id="language-scope" class="sr-only">
+    <Ui text="Only interface labels change. Your content stays in its original language." />
+  </span>
+</div>

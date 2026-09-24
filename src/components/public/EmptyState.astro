@@ -1,8 +1,10 @@
 ---
+import Ui from './UiText.astro';
 import Icon from './Icon.astro';
+import type { UiKey } from '../../lib/ui-language';
 interface Props {
-  title?: string;
-  description?: string;
+  title?: UiKey;
+  description?: UiKey;
   icon?: string;
 }
 const {
@@ -16,6 +18,10 @@ const {
   <span class="empty-orbit">
     <Icon name={icon} size={27} />
   </span>
-  <h3>{title}</h3>
-  <p>{description}</p>
+  <h3>
+    <Ui text={title} />
+  </h3>
+  <p>
+    <Ui text={description} />
+  </p>
 </div>
