@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext } from '@playwright/test';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { SiteSettings } from '../../src/lib/types';
 
 const noteSlugs = [
@@ -8,6 +9,27 @@ const noteSlugs = [
   'mes-timeouts-idempotency',
   'manufacturing-ai-poc-evaluation',
 ];
+
+// Earlier suites sign in repeatedly. Respect the real rate limiter instead of disabling it.
+async function signInForVisualFixture(request: APIRequestContext, origin: string) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await request.post('/api/auth/sign-in/email', {
+      headers: { Origin: origin },
+      data: {
+        email: process.env.E2E_EMAIL || 'e2e@example.test',
+        password: process.env.E2E_PASSWORD || 'KaiyoLab-e2e-password-2026',
+      },
+    });
+    if (response.status() !== 429 || attempt === 2) {
+      expect(response.ok(), `Fixture sign-in returned ${response.status()}: ${await response.text()}`).toBeTruthy();
+      return;
+    }
+    const seconds = Number(response.headers()['retry-after'] || response.headers()['x-retry-after']);
+    expect(Number.isFinite(seconds) && seconds >= 0 && seconds <= 60, 'Bounded server retry delay').toBe(true);
+    await response.dispose();
+    await delay((seconds + 1) * 1000);
+  }
+}
 
 test('language changes UI without navigating, rewriting content, or losing search state', async ({
   page,
@@ -67,14 +89,7 @@ test('home layout, portrait, and controls fit both languages in both themes', as
   request,
   baseURL,
 }, testInfo) => {
-  const response = await request.post('/api/auth/sign-in/email', {
-    headers: { Origin: baseURL! },
-    data: {
-      email: process.env.E2E_EMAIL || 'e2e@example.test',
-      password: process.env.E2E_PASSWORD || 'KaiyoLab-e2e-password-2026',
-    },
-  });
-  expect(response.ok()).toBeTruthy();
+  await signInForVisualFixture(request, baseURL!);
   const original = (await (await request.get('/api/admin/settings')).json()) as SiteSettings;
   const timeline =
     "# Hey, I'm Andy!\n\nSoftware engineer, builder, and knowledge sharer.\n\n## A Brief Timeline\n\n**2001–2020　Gamer**\n\nGrew up playing games and exploring technology.\n\n**2020–2024　Study @ NTTU**\n\nStarted building personal projects and sharing development notes and knowledge online.\n\n**2024–2025　Software Engineering Intern @ NTTU**\n\nDeveloped and maintained systems related to student affairs and university administration.\n\n**2025–Now　MES Backend Engineer**\n\nBuilding MES-related systems and integrating heterogeneous systems across manufacturing environments.";
