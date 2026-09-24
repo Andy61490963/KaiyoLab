@@ -1,22 +1,17 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import sharp from 'sharp';
 import type { Entry, Media, SiteSettings } from '../../src/lib/types';
+import { signInForFixture } from './helpers/auth';
 let state: Awaited<ReturnType<BrowserContext['storageState']>>;
 let editorEntry: Entry;
 let image: Media;
 
 // Reuse one session rather than bypassing the production sign-in rate limit.
 test.beforeAll(async ({ browser, baseURL }) => {
+  test.setTimeout(180000);
   const context = await browser.newContext({ baseURL });
   try {
-    const response = await context.request.post('/api/auth/sign-in/email', {
-      headers: { Origin: baseURL! },
-      data: {
-        email: process.env.E2E_EMAIL || 'e2e@example.test',
-        password: process.env.E2E_PASSWORD || 'KaiyoLab-e2e-password-2026',
-      },
-    });
-    expect(response.ok(), await response.text()).toBe(true);
+    await signInForFixture(context.request, baseURL!);
     state = await context.storageState();
     const created = await context.request.post('/api/admin/entries', {
       headers: { Origin: baseURL! },

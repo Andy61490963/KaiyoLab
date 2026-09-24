@@ -2121,3 +2121,66 @@
     outline: 2px solid Highlight;
   }
 }
+.admin-system-panel {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.admin-system-panel h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+.admin-system-list {
+  margin: 0;
+}
+.admin-system-list > div {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr);
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.admin-system-list dt {
+  color: var(--muted);
+}
+.admin-system-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.admin-system-list code {
+  font-size: 12px;
+}
+.admin-upload-queue {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.admin-upload-queue h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+.admin-upload-queue ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.admin-upload-queue li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.admin-upload-queue li > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .admin-system-panel {
+    padding: 18px;
+  }
+  .admin-system-list > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}

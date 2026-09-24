@@ -19,6 +19,13 @@ import { emptyContent } from '../../../lib/defaults';
 import { renderMarkdown } from '../../../lib/markdown';
 import { listMedia, mediaUsages, mediaUrl, lockContent, ensureMedia } from '../../../lib/media';
 import type { EntryContent } from '../../../lib/types';
+import {
+  checkpointDraft,
+  listRevisions,
+  recordRevision,
+  revisionContent,
+} from '../../../lib/history';
+import { assertAvailableSlug, reservePublishedSlug } from '../../../lib/publishing';
 const uploadDir = () => process.env.UPLOAD_DIR || path.resolve('data/uploads');
 const versionSchema = z.number().int().positive();
 const slugify = (name: string) =>
@@ -139,6 +146,44 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
       const input = z.object({ body: z.string().max(500000) }).parse(await body(request));
       return json(await renderMarkdown(input.body));
     }
+    if (resource === 'history' && id && !action) {
+      if (method === 'GET') {
+        await getEntry(id);
+        return json(await listRevisions(db(), id, url.searchParams.get('before')));
+      }
+      if (method === 'POST') {
+        const input = z
+          .object({ revisionId: z.string().min(1).max(200), version: versionSchema })
+          .parse(await body(request));
+        const result = await db().transaction(async (tx) => {
+          const database = tx as unknown as ReturnType<typeof db>;
+          await lockContent(database);
+          const [old] = await tx.select().from(entries).where(eq(entries.id, id));
+          if (!old) throw new HttpError(404, 'Content not found.');
+          if (old.deletedAt) throw new HttpError(409, 'Restore this content from the trash first.');
+          if (old.version !== input.version)
+            throw new HttpError(409, 'Content version conflict. Reload before restoring.');
+          const restored = contentSchema.parse(
+            await revisionContent(database, id, input.revisionId),
+          );
+          await assertAvailableSlug(database, old.kind, restored.slug, id);
+          await ensureMedia(database, restored);
+          await syncTaxonomies(database, restored);
+          await recordRevision(database, old, 'restore');
+          const [updated] = await tx
+            .update(entries)
+            .set({
+              content: restored,
+              version: old.version + 1,
+              updatedAt: new Date(),
+            })
+            .where(and(eq(entries.id, id), eq(entries.version, input.version)))
+            .returning();
+          return updated;
+        });
+        return json(serializeEntry(result));
+      }
+    }
     if (resource === 'entries') {
       if (method === 'GET' && id) return json(serializeEntry(await getEntry(id)));
       if (method === 'GET') {
@@ -172,19 +217,32 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           })
           .parse(await body(request));
         const entryId = randomUUID();
-        const [row] = await db()
-          .insert(entries)
-          .values({
-            id: entryId,
-            kind: input.kind,
-            content: {
-              ...emptyContent,
-              title:
-                input.title || (input.kind === 'project' ? 'Untitled project' : 'Untitled article'),
-              slug: `untitled-${entryId.slice(0, 8)}`,
-            },
-          })
-          .returning();
+        const row = await db().transaction(async (tx) => {
+          const database = tx as unknown as ReturnType<typeof db>;
+          await lockContent(database);
+          await assertAvailableSlug(
+            database,
+            input.kind,
+            `untitled-${entryId.slice(0, 8)}`,
+            entryId,
+          );
+          const [created] = await tx
+            .insert(entries)
+            .values({
+              id: entryId,
+              kind: input.kind,
+              content: {
+                ...emptyContent,
+                title:
+                  input.title ||
+                  (input.kind === 'project' ? 'Untitled project' : 'Untitled article'),
+                slug: `untitled-${entryId.slice(0, 8)}`,
+              },
+            })
+            .returning();
+          await recordRevision(database, created, 'draft');
+          return created;
+        });
         return json(serializeEntry(row), 201);
       }
       if (id && (method === 'PATCH' || (method === 'POST' && action === 'action'))) {
@@ -215,8 +273,10 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           };
           if ('content' in input) {
             if (old.deletedAt) throw new HttpError(409, 'Restore this content before editing.');
+            await assertAvailableSlug(database, old.kind, input.content.slug, id);
             await ensureMedia(database, input.content);
             await syncTaxonomies(database, input.content);
+            await checkpointDraft(database, old);
             changes.content = input.content;
           } else if (input.action === 'publish') {
             if (old.deletedAt) throw new HttpError(409, 'Restore this content first.');
@@ -224,16 +284,23 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
             if (!content.body.trim())
               throw new HttpError(400, 'Add some content before publishing.');
             await ensureMedia(database, content);
+            await reservePublishedSlug(database, old.kind, content.slug, id);
+            await recordRevision(
+              database,
+              { ...old, version: old.version + 1 },
+              'published',
+              content,
+            );
             changes.published = content;
-            changes.publishedAt = new Date();
+            changes.publishedAt = old.publishedAt || changes.updatedAt;
+            changes.publishedUpdatedAt = changes.updatedAt;
           } else if (input.action === 'unpublish') {
             changes.published = null;
-            changes.publishedAt = null;
           } else if (input.action === 'trash') changes.deletedAt = new Date();
           else if (input.action === 'restore') {
+            await assertAvailableSlug(database, old.kind, old.content.slug, id);
             changes.deletedAt = null;
             changes.published = null;
-            changes.publishedAt = null;
           }
           const [updated] = await tx
             .update(entries)
@@ -292,6 +359,11 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           await tx.delete(media).where(eq(media.id, id));
         });
         await unlink(path.join(uploadDir(), `${id}.webp`)).catch(() => {});
+        await Promise.all(
+          [480, 960, 1600].map((width) =>
+            unlink(path.join(uploadDir(), '.variants', `${id}-${width}.webp`)).catch(() => {}),
+          ),
+        );
         return json({ ok: true });
       }
     }
@@ -344,7 +416,15 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
               : old.kind === 'category'
                 ? { ...c, category: c.category === old.name ? input.name : c.category }
                 : { ...c, tags: c.tags.map((t) => (t === old.name ? input.name : t)) };
-          for (const entry of all.filter((e) => uses(e.content) || uses(e.published)))
+          for (const entry of all.filter((e) => uses(e.content) || uses(e.published))) {
+            await checkpointDraft(database, entry);
+            if (uses(entry.published))
+              await recordRevision(
+                database,
+                { ...entry, version: entry.version + 1 },
+                'published',
+                rename(entry.published)!,
+              );
             await tx
               .update(entries)
               .set({
@@ -352,8 +432,10 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
                 published: rename(entry.published),
                 version: entry.version + 1,
                 updatedAt: new Date(),
+                ...(uses(entry.published) ? { publishedUpdatedAt: new Date() } : {}),
               })
               .where(eq(entries.id, entry.id));
+          }
           const [item] = await tx
             .update(taxonomies)
             .set({ name: input.name, slug: slugify(input.slug || input.name) })

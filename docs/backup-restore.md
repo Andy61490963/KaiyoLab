@@ -26,6 +26,8 @@ docker compose up -d app
 
 任何一步失敗都不會顯示「備份已完成」，請保留錯誤訊息並修正後重試。應用程式需由操作者重新啟動；只有包含全部檔案且通過校驗的目錄可用於還原。備份資料夾的權限預設只允許建立備份的使用者讀取，在 Linux 上可能需要主機管理員權限才能搬移。
 
+成功備份會原子更新 `backups/.operations/.last-backup.json`，後台 **System status** 讀取此 UTC 時間。應用程式只掛載 `.operations` 紀錄子目錄，無法透過此掛載讀取備份本體與密鑰封存檔。此紀錄只代表腳本完成，不代表異地備份或還原驗證已完成。
+
 ## 還原到全新 volumes
 
 以下使用新的專案名稱 `kaiyolab-restore`，不會覆寫原站。將 `20260921T080000Z` 換成你的備份資料夾名稱，且使用與備份相容的程式版本。
@@ -47,6 +49,14 @@ docker compose -p kaiyolab-restore run --rm --no-deps -e SITE_URL=http://localho
 ```
 
 這個指令在前景執行暫時的驗證容器，按 Ctrl+C 會停止容器，資料仍保留。打開 [http://localhost:4322](http://localhost:4322)，使用原本的站長帳號登入，確認文章、草稿、圖片與網站設定。預設密鑰相同，但不同網址的 Cookie 不共用，需要重新登入。
+
+完成上述內容與登入驗證後，才執行下列指令記錄已驗證時間：
+
+```bash
+docker compose -p kaiyolab-restore --profile maintenance run --rm --no-deps --entrypoint sh backup /operations/record-restore.sh
+```
+
+未執行驗證時不要寫入此紀錄。CI 會在資料庫／檔案雜湊、登入、閱讀及帳號復原檢查全部通過後自動記錄。
 
 確認無誤後，將還原專案部署到正式網址：在獨立專案目錄設定自己的 `.env`，或者切換反向代理流量至還原專案。每次操作必須繼續使用 `-p kaiyolab-restore`，以讀取同一組還原的 volumes。原站先保留，待驗證完整後再由操作者安排移除。
 

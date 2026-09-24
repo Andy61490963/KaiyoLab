@@ -14,6 +14,10 @@ KaiyoLab 是可以自行部署的個人內容管理系統，結合公開文章�
 
 ![KaiyoLab 手機版文章編輯器](docs/screenshots/editor-mobile.png)
 
+![發布前檢查與內容差異，沿用現有後台樣式](docs/screenshots/publish-review.png)
+
+![手機版版本比較與還原草稿](docs/screenshots/history-mobile.png)
+
 以上截圖由本機端到端測試資料產生，用來展示有文章與作品時的畫面；正式網站的內容由站長自行建立。
 
 ## 快速開始
@@ -71,7 +75,11 @@ docker compose logs --tail=100 app
 
 Markdown 支援表格、任務清單與程式碼區塊，文章不執行 JavaScript 或 MDX。圖片保存於 Docker volume，媒體庫會防止刪除仍被內容使用的圖片。
 
-第一版適合**一個網站、一位站長**。不包含公開註冊、留言、電子報、多租戶、排程發布、拖拉版面或完整歷史版本管理。
+編輯器增加版本紀錄、文字差異、還原草稿與發布前檢查；文章可設定系列和封面焦點。發布更新保留首次發布日期，舊網址自動轉向新的公開網址。媒體庫支援批次上傳與不同尺寸縮圖。
+
+後台的 **Content transfer** 可完整匯出內容與圖片，再預覽匯入為私人草稿；**System status** 顯示版本、資料庫、圖片儲存與已記錄的備份／還原驗證時間。GitHub Actions 提供站外監測與失敗通知設定。操作方式見[內容搬移](docs/content-transfer.md)與[內容復原及維運](docs/maintenance.md)。
+
+第一版適合**一個網站、一位站長**。不包含公開註冊、留言、電子報、多租戶、排程發布或拖拉版面。版本紀錄從升級時開始累積，不提供每次按鍵的完整編輯歷程。
 
 ## 技術架構
 
@@ -102,16 +110,17 @@ Markdown 支援表格、任務清單與程式碼區塊，文章不執行 JavaScr
 
 本機預設無須修改環境變數。需要自訂時，將 `.env.example` 複製為 `.env`。
 
-| 設定                 | 預設值                   | 用途                                           |
-| -------------------- | ------------------------ | ---------------------------------------------- |
-| `SITE_URL`           | `http://localhost:4321`  | 建置及執行期的完整網址；變更後須 `--build`     |
-| `APP_PORT`           | `4321`                   | 本機對應連接埠；變更時也要同步 `SITE_URL`      |
-| `DOMAIN`             | 無                       | 正式部署的唯一網域來源，建置及執行統一為 HTTPS |
-| `DATABASE_URL`       | 由容器密鑰組成           | 本機 npm 開發時指定 PostgreSQL 連線            |
-| `BETTER_AUTH_SECRET` | 首次隨機產生             | 本機 npm 開發須自行設定隨機值                  |
-| `SETUP_TOKEN`        | 首次隨機產生             | 首次設定用的一次性初始化碼                     |
-| `UPLOAD_DIR`         | 容器 `/app/data/uploads` | 圖片儲存目錄；本機開發可使用 `./data/uploads`  |
-| `SECRETS_DIR`        | `/run/kaiyo-secrets`     | 容器密鑰檔案目錄                               |
+| 設定                 | 預設值                         | 用途                                           |
+| -------------------- | ------------------------------ | ---------------------------------------------- |
+| `SITE_URL`           | `http://localhost:4321`        | 建置及執行期的完整網址；變更後須 `--build`     |
+| `APP_PORT`           | `4321`                         | 本機對應連接埠；變更時也要同步 `SITE_URL`      |
+| `DOMAIN`             | 無                             | 正式部署的唯一網域來源，建置及執行統一為 HTTPS |
+| `DATABASE_URL`       | 由容器密鑰組成                 | 本機 npm 開發時指定 PostgreSQL 連線            |
+| `BETTER_AUTH_SECRET` | 首次隨機產生                   | 本機 npm 開發須自行設定隨機值                  |
+| `SETUP_TOKEN`        | 首次隨機產生                   | 首次設定用的一次性初始化碼                     |
+| `UPLOAD_DIR`         | 容器 `/app/data/uploads`       | 圖片儲存目錄；本機開發可使用 `./data/uploads`  |
+| `SECRETS_DIR`        | `/run/kaiyo-secrets`           | 容器密鑰檔案目錄                               |
+| `OPERATIONS_DIR`     | Compose `/app/data/operations` | 唯讀維運紀錄目錄，未設定時不顯示完成時間       |
 
 Compose 不會將 `.env` 中的全部值自動傳給容器；Docker 的資料庫密碼、Auth 密鑰與初始化碼以 named volume 保存。上表的本機開發變數僅供 `npm` 工作流程使用。
 

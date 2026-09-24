@@ -3,6 +3,9 @@ export type UiLanguage = 'en' | 'zh-TW';
 
 // Interface copy only. Never pass authored Markdown, titles, or taxonomy names here.
 export const chinese = {
+  Series: '文章系列',
+  'Previous article': '上一篇',
+  'Next article': '下一篇',
   'List options': '列表選項',
   'Sort by': '排序方式',
   'Per page': '每頁筆數',

@@ -99,6 +99,14 @@ export const contentSchema = z.object({
   seoDescription: z.string().max(500),
   demoUrl: safeUrl,
   repoUrl: safeUrl,
+  series: z.string().trim().max(100).optional(),
+  seriesOrder: z.number().int().min(0).max(100000).optional(),
+  coverPosition: z
+    .object({
+      x: z.number().min(0).max(100),
+      y: z.number().min(0).max(100),
+    })
+    .optional(),
 });
 export const settingsSchema = z.object({
   siteName: z.string().trim().min(1).max(80),

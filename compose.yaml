@@ -47,6 +47,7 @@ services:
     init: true
     environment:
       NODE_ENV: production
+      OPERATIONS_DIR: /app/data/operations
       HOST: 0.0.0.0
       PORT: '4321'
       SITE_URL: ${SITE_URL:-http://localhost:4321}
@@ -62,6 +63,7 @@ services:
     volumes:
       - uploads:/app/data/uploads
       - secrets:/run/kaiyo-secrets:ro
+      - ./backups/.operations:/app/data/operations:ro
     networks: [default, database]
     read_only: true
     tmpfs: [/tmp]

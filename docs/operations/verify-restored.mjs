@@ -73,3 +73,26 @@ assert.equal(
   '新密碼登入後應可使用後台。',
 );
 console.log('帳號復原、新密碼登入、舊密碼及舊 Session 失效驗證完成。');
+execFileSync(
+  'docker',
+  [
+    'compose',
+    '-p',
+    'kaiyolab-ci-restore',
+    '--profile',
+    'maintenance',
+    'run',
+    '--rm',
+    '--no-deps',
+    '--entrypoint',
+    'sh',
+    'backup',
+    '/operations/record-restore.sh',
+  ],
+  { stdio: 'inherit' },
+);
+const system = await fetch(base + '/api/admin/system', { headers: { Cookie: newCookie } });
+assert.equal(system.status, 200);
+const records = await system.json();
+assert.equal(records.backup.status, 'recorded', '應顯示成功備份紀錄');
+assert.equal(records.restore.status, 'recorded', '應顯示已完成還原驗證紀錄');

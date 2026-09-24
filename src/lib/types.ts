@@ -13,6 +13,9 @@ export interface EntryContent {
   seoDescription: string;
   demoUrl: string;
   repoUrl: string;
+  series?: string;
+  seriesOrder?: number;
+  coverPosition?: { x: number; y: number };
 }
 export interface Entry {
   id: string;
@@ -20,8 +23,17 @@ export interface Entry {
   content: EntryContent;
   published: EntryContent | null;
   publishedAt: string | null;
+  publishedUpdatedAt: string | null;
   updatedAt: string;
   deletedAt: string | null;
+  version: number;
+}
+export interface EntryRevision {
+  id: string;
+  entryId: string;
+  content: EntryContent;
+  source: 'draft' | 'published' | 'restore';
+  createdAt: string;
   version: number;
 }
 export interface PublicEntry extends EntryContent {
