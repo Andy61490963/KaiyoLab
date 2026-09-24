@@ -8,6 +8,7 @@ const revision = process.env.EXPECTED_REVISION;
 if (!/^[a-f0-9]{40}$/.test(revision || '')) throw new Error('缺少完整的預期 Git 版本。');
 const deadline = Date.now() + 20 * 60 * 1000;
 let ready = false;
+let lastStatus = '尚未收到回應';
 while (Date.now() < deadline) {
   try {
     const response = await fetch(new URL('/api/health', origin), {
@@ -15,18 +16,22 @@ while (Date.now() < deadline) {
       headers: { 'cache-control': 'no-cache' },
       redirect: 'error',
     });
-    const health = await response.json();
-    if (response.ok && health.status === 'ok' && health.revision === revision) {
+    lastStatus = `HTTP ${response.status}`;
+    const health = response.ok ? await response.json() : null;
+    if (health?.status === 'ok' && health.revision === revision) {
       ready = true;
       break;
     }
-  } catch {
+    if (health?.status === 'ok') lastStatus += '，執行版本與預期不符';
+  } catch (error) {
+    lastStatus += `，${error instanceof SyntaxError ? '健康端點未回傳有效 JSON' : '連線或讀取失敗'}`;
     // 部署切換期間容許短暫斷線，但不能把舊版健康狀態當成成功。
   }
-  console.log('等待 Zeabur 上線指定版本…');
+  console.log(`等待 Zeabur 上線指定版本：${lastStatus}`);
   await delay(15000);
 }
-if (!ready) throw new Error('指定版本未在 20 分鐘內健康上線，請檢查 Zeabur 建置與執行記錄。');
+if (!ready)
+  throw new Error(`指定版本未在 20 分鐘內健康上線（${lastStatus}），請先檢查容器事件與映像下載，再查看應用程式記錄。`);
 for (const path of ['/', '/articles', '/projects', '/about', '/rss.xml', '/sitemap.xml']) {
   const response = await fetch(new URL(path, origin), {
     signal: AbortSignal.timeout(15000),
