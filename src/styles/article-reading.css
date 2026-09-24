@@ -1,4 +1,13 @@
 /* Article-only refinement: preserve the existing site container, navigation, and themes. */
+.public-site .article-reading {
+  --article-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    'Noto Sans TC Variable', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+  font-family: var(--article-font);
+}
+.public-site .article-reading :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--article-font);
+  font-weight: 700;
+}
 .public-site .article-reading .back-link {
   margin: 24px 0 28px;
 }
@@ -49,15 +58,21 @@
   flex-shrink: 0;
   border-radius: 50%;
 }
-.article-reading .entry-tags {
+.public-site .article-reading .entry-tags {
   min-width: 0;
   flex-wrap: wrap;
   gap: 8px;
+  font-size: 13px;
 }
-.article-reading .entry-tags a {
+.public-site .article-reading .entry-tags a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
   overflow-wrap: anywhere;
   line-height: 1.5;
   padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface);
 }
 .article-reading .article-views {
   display: inline-flex;
@@ -254,6 +269,9 @@
   }
   .article-reading .article-byline .entry-tags {
     flex-basis: 100%;
+  }
+  .public-site .article-reading .entry-tags a {
+    min-height: 44px;
   }
   .public-site .article-reading .article-cover {
     aspect-ratio: 16/10;

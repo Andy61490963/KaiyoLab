@@ -118,6 +118,7 @@ test('article hero and reading columns fit both themes and languages without doc
         await page
           .locator('.article-cover img')
           .evaluate(async (image: HTMLImageElement) => image.decode());
+        await page.evaluate(() => document.fonts.ready);
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           `${width}/${theme}/${language}`,
@@ -130,6 +131,9 @@ test('article hero and reading columns fit both themes and languages without doc
         } else if (width <= 1024) {
           await expect(page.locator('.mobile-toc')).toBeVisible();
         }
+        expect(await page.locator('.article-byline .entry-tags a').first().evaluate(
+          element => parseFloat(getComputedStyle(element).fontSize),
+        )).toBeGreaterThanOrEqual(13);
         if ([375, 1440].includes(width) && language === '繁體中文') {
           await expect(page.locator('[data-article-views]')).toHaveAttribute(
             'data-view-state',
@@ -153,21 +157,26 @@ test('active table of contents follows sections, and native keyboard anchors sti
   await page.goto(`/articles/${slug}`);
   const nav = page.getByRole('navigation', { name: 'Article table of contents', exact: true });
   const link = nav.getByRole('link', { name: '註冊多個實作', exact: true });
+  // The Markdown pipeline intentionally prefixes IDs to prevent DOM-name collisions.
+  const target = await page.locator('.article-body h2').filter({ hasText: '註冊多個實作' }).getAttribute('id');
+  expect(target).toBeTruthy();
+  await expect(link).toHaveAttribute('href', `#${target}`);
   await link.focus();
   await page.keyboard.press('Enter');
   await expect(link).toHaveAttribute('aria-current', 'location');
-  expect(decodeURIComponent(new URL(page.url()).hash)).toBe('#註冊多個實作');
+  expect(decodeURIComponent(new URL(page.url()).hash)).toBe(`#${target}`);
   const next = nav.getByRole('link', { name: '生命週期與取捨', exact: true });
   await next.click();
   await expect(next).toHaveAttribute('aria-current', 'location');
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto(`/articles/${slug}`);
   await page.locator('.mobile-toc summary').click();
-  await page
+  const mobileLink = page
     .getByRole('navigation', { name: 'Mobile article table of contents' })
-    .getByRole('link', { name: '註冊多個實作', exact: true })
-    .click();
-  expect(decodeURIComponent(new URL(page.url()).hash)).toBe('#註冊多個實作');
+    .getByRole('link', { name: '註冊多個實作', exact: true });
+  await mobileLink.click();
+  await expect(mobileLink).toHaveAttribute('aria-current', 'location');
+  expect(decodeURIComponent(new URL(page.url()).hash)).toBe(`#${target}`);
 });
 
 test('missing covers and failed telemetry do not break reading or invent counts', async ({
