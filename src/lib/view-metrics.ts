@@ -22,6 +22,7 @@ export function parseViewCount(value: unknown): number {
 
 export function compactViewCount(value: number): string {
   return new Intl.NumberFormat('en', {
-    notation: 'compact', maximumFractionDigits: 1,
+    notation: 'compact',
+    maximumFractionDigits: 1,
   }).format(parseViewCount(value));
 }

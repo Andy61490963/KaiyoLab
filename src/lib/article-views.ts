@@ -6,7 +6,10 @@ import type { SiteSettings } from './types';
 import { HttpError } from './http';
 import { ARTICLE_VIEWS_KEY, VIEW_COOLDOWN_SECONDS, parseViewCount } from './view-metrics';
 
-interface CountRow { views: unknown; valid: boolean }
+interface CountRow {
+  views: unknown;
+  valid: boolean;
+}
 
 // Preserve the CURRENT counter document, not a stale copy read by the admin browser.
 export function settingsWithPreservedViews(value: SiteSettings) {
@@ -22,36 +25,51 @@ export async function getArticleViews(id: string, pool: pg.Pool = getPool()): Pr
       (s.value IS NULL OR NOT s.value ? $1 OR jsonb_typeof(s.value->$1)='object') AS valid
       FROM entries e LEFT JOIN settings s ON s.id=1
       WHERE e.id=$2 AND e.kind='article' AND e.deleted_at IS NULL AND e.published IS NOT NULL`,
-    values: [ARTICLE_VIEWS_KEY, id], query_timeout: 2500,
+    values: [ARTICLE_VIEWS_KEY, id],
+    query_timeout: 2500,
   });
   if (!rows[0]) throw new HttpError(404, 'Article not found.');
   if (!rows[0].valid) throw new Error('Invalid article view metadata.');
   return parseViewCount(rows[0].views);
 }
 
-export async function incrementArticleViews(id: string, pool: pg.Pool = getPool()): Promise<number> {
+export async function incrementArticleViews(
+  id: string,
+  pool: pg.Pool = getPool(),
+): Promise<number> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     // Analytics must not indefinitely block publishing or settings writes.
     await client.query("SET LOCAL lock_timeout='1500ms'; SET LOCAL statement_timeout='2500ms'");
-    const visible = await client.query(`SELECT id FROM entries
-      WHERE id=$1 AND kind='article' AND deleted_at IS NULL AND published IS NOT NULL FOR SHARE`, [id]);
+    const visible = await client.query(
+      `SELECT id FROM entries
+      WHERE id=$1 AND kind='article' AND deleted_at IS NULL AND published IS NOT NULL FOR SHARE`,
+      [id],
+    );
     if (!visible.rowCount) throw new HttpError(404, 'Article not found.');
-    const { rows } = await client.query<CountRow>(`SELECT value #> ARRAY[$1::text,$2::text] AS views,
+    const { rows } = await client.query<CountRow>(
+      `SELECT value #> ARRAY[$1::text,$2::text] AS views,
       (NOT value ? $1 OR jsonb_typeof(value->$1)='object') AS valid
-      FROM settings WHERE id=1 FOR UPDATE`, [ARTICLE_VIEWS_KEY, id]);
+      FROM settings WHERE id=1 FOR UPDATE`,
+      [ARTICLE_VIEWS_KEY, id],
+    );
     if (!rows[0] || !rows[0].valid) throw new Error('Article view storage is unavailable.');
     const count = Math.min(Number.MAX_SAFE_INTEGER, parseViewCount(rows[0].views) + 1);
-    await client.query(`UPDATE settings SET value=jsonb_set(value, ARRAY[$1::text],
+    await client.query(
+      `UPDATE settings SET value=jsonb_set(value, ARRAY[$1::text],
       COALESCE(value->$1, '{}'::jsonb) || jsonb_build_object($2::text,$3::bigint), true)
-      WHERE id=1`, [ARTICLE_VIEWS_KEY, id, count]);
+      WHERE id=1`,
+      [ARTICLE_VIEWS_KEY, id, count],
+    );
     await client.query('COMMIT');
     return count;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
-  } finally { client.release(); }
+  } finally {
+    client.release();
+  }
 }
 
 // A receipt records only an expiry, signed for this article. No visitor ID, IP, or fingerprint.
@@ -64,10 +82,16 @@ export function createViewReceipt(id: string, key: string, now = Date.now()): st
   const expiry = Math.floor(now / 1000) + VIEW_COOLDOWN_SECONDS;
   return `${expiry}.${signature(id, expiry, key)}`;
 }
-export function validViewReceipt(value: string | undefined, id: string, key: string, now = Date.now()): boolean {
+export function validViewReceipt(
+  value: string | undefined,
+  id: string,
+  key: string,
+  now = Date.now(),
+): boolean {
   if (!value || key.length < 32 || !/^\d{10}\.[A-Za-z0-9_-]{43}$/.test(value)) return false;
   const [expires, mac] = value.split('.');
-  const expiry = Number(expires), seconds = Math.floor(now / 1000);
+  const expiry = Number(expires),
+    seconds = Math.floor(now / 1000);
   if (expiry <= seconds || expiry > seconds + VIEW_COOLDOWN_SECONDS + 5) return false;
   const expected = signature(id, expiry, key);
   return timingSafeEqual(Buffer.from(mac), Buffer.from(expected));

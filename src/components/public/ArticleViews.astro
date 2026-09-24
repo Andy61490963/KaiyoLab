@@ -3,12 +3,24 @@ import Icon from './Icon.astro';
 import Ui from './UiText.astro';
 import { uiLabel } from '../../lib/ui-language';
 import { VIEW_COUNT_EXPLANATION } from '../../lib/view-metrics';
-interface Props { entryId: string }
+interface Props {
+  entryId: string;
+}
 const { entryId } = Astro.props;
 ---
-<span class="article-views" data-article-views={entryId} role="img"
-  {...uiLabel('Views unavailable')} title={VIEW_COUNT_EXPLANATION}>
+
+<span
+  class="article-views"
+  data-article-views={entryId}
+  role="img"
+  {...uiLabel('Views unavailable')}
+  title={VIEW_COUNT_EXPLANATION}
+>
   <Icon name="eye" size={17} />
-  <span data-view-number aria-hidden="true">—</span>
-  <span class="view-label" aria-hidden="true"><Ui text="views" /></span>
+  <span data-view-number aria-hidden="true">
+    —
+  </span>
+  <span class="view-label" aria-hidden="true">
+    <Ui text="views" />
+  </span>
 </span>

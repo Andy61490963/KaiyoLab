@@ -20,8 +20,10 @@ function initializeViews(article: HTMLElement) {
   const render = () => {
     const language = normalizeUiLanguage(document.documentElement.dataset.uiLanguage);
     if (number) number.textContent = count === null ? '—' : compactViewCount(count);
-    const label = (lang: 'en' | 'zh-TW') => count === null ? uiText('Views unavailable', lang)
-      : uiText('{count} views', lang, { count: count.toLocaleString('en-US') });
+    const label = (lang: 'en' | 'zh-TW') =>
+      count === null
+        ? uiText('Views unavailable', lang)
+        : uiText('{count} views', lang, { count: count.toLocaleString('en-US') });
     badge.dataset.uiLabelEn = label('en');
     badge.dataset.uiLabelZh = label('zh-TW');
     badge.setAttribute('aria-label', label(language));
@@ -30,7 +32,9 @@ function initializeViews(article: HTMLElement) {
   const request = async (method: 'GET' | 'POST') => {
     try {
       const response = await fetch(endpoint, {
-        method, credentials: 'same-origin', cache: 'no-store',
+        method,
+        credentials: 'same-origin',
+        cache: 'no-store',
         signal: AbortSignal.timeout(5000),
       });
       if (!response.ok) throw new Error('View request failed.');
@@ -68,17 +72,19 @@ function initializeViews(article: HTMLElement) {
 
 function initializeContents(article: HTMLElement) {
   const links = [...article.querySelectorAll<HTMLAnchorElement>('[data-article-toc-link]')];
-  const sections = [...new Set(links.map(link => decodeURIComponent(link.hash.slice(1))))]
-    .map(id => ({ id, element: document.getElementById(id) }))
-    .filter((item): item is {id: string; element: HTMLElement} => Boolean(item.element));
+  const sections = [...new Set(links.map((link) => decodeURIComponent(link.hash.slice(1))))]
+    .map((id) => ({ id, element: document.getElementById(id) }))
+    .filter((item): item is { id: string; element: HTMLElement } => Boolean(item.element));
   if (!sections.length) return;
   let positions: number[] = [];
+  let activationOffset = 132;
   let current = '';
   let frame = 0;
   const update = () => {
     frame = 0;
-    let low = 0, high = positions.length;
-    const line = window.scrollY + 132;
+    let low = 0;
+    let high = positions.length;
+    const line = window.scrollY + activationOffset;
     while (low < high) {
       const middle = (low + high) >>> 1;
       if (positions[middle] <= line) low = middle + 1;
@@ -87,14 +93,22 @@ function initializeContents(article: HTMLElement) {
     const id = sections[Math.max(0, low - 1)].id;
     if (id === current) return;
     current = id;
-    links.forEach(link => {
-      if (decodeURIComponent(link.hash.slice(1)) === id) link.setAttribute('aria-current', 'location');
+    links.forEach((link) => {
+      if (decodeURIComponent(link.hash.slice(1)) === id)
+        link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');
     });
   };
-  const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(update);
+  };
   const measure = () => {
-    positions = sections.map(section => section.element.getBoundingClientRect().top + window.scrollY);
+    positions = sections.map(
+      (section) => section.element.getBoundingClientRect().top + window.scrollY,
+    );
+    const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const margin = parseFloat(getComputedStyle(sections[0].element).scrollMarginTop) || 0;
+    activationOffset = Math.max(100, padding + margin + 8);
     schedule();
   };
   window.addEventListener('scroll', schedule, { passive: true });
