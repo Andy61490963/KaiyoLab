@@ -3,11 +3,6 @@ export type UiLanguage = 'en' | 'zh-TW';
 
 // Interface copy only. Never pass authored Markdown, titles, or taxonomy names here.
 export const chinese = {
-  views: '次瀏覽',
-  '{count} views': '{count} 次瀏覽',
-  'Views unavailable': '暫時無法取得瀏覽次數',
-  'Views since this counter was introduced. Repeat visits in the same browser within 30 minutes are usually counted once; this is not a unique-person count.':
-    '自此功能上線後累計；同一瀏覽器 30 分鐘內的重複瀏覽通常只計一次，並非不重複人數。',
   Home: '首頁',
   Articles: '文章',
   Projects: '作品',

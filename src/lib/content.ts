@@ -1,7 +1,6 @@
 import { and, desc, eq, isNull, isNotNull, sql } from 'drizzle-orm';
 import { db, entries, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
-import { publicSiteSettings } from './view-metrics';
 import { defaultHomeIntro } from './home-intro';
 import { repairLegacySiteCopy } from './site-copy';
 import type { Entry, EntryKind, PublicEntry, Taxonomy, SiteSettings } from './types';
@@ -19,7 +18,7 @@ export async function getSettings(): Promise<SiteSettings> {
   const [row] = await db().select().from(settings);
   const merged = repairLegacySiteCopy({
     ...defaultSettings,
-    ...publicSiteSettings(row?.value),
+    ...row?.value,
     siteUrl: process.env.SITE_URL || row?.value.siteUrl || defaultSettings.siteUrl,
   });
   return { ...merged, homeIntro: merged.homeIntro?.trim() || defaultHomeIntro(merged) };
