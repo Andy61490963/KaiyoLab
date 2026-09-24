@@ -68,6 +68,9 @@ test('outline follows scrolling and keyboard anchors while the rail stays availa
   await expect(target).toHaveAttribute('aria-current', 'location');
   expect(await page.evaluate((headingId) => document.activeElement?.id === headingId, id)).toBe(true);
   await expect.poll(() => page.locator('.article-rail-card').evaluate((card) => Math.round(card.getBoundingClientRect().top))).toBe(80);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(links.last()).toHaveAttribute('aria-current', 'location');
+  expect(await page.locator('.article-rail .article-outline').evaluate((nav) => getComputedStyle(nav).overflowY)).toBe('visible');
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(links.first()).toHaveAttribute('aria-current', 'location');
   await page.goBack();
@@ -145,6 +148,7 @@ test('technical images retain their ratio and wide code and tables scroll locall
       const figure = document.createElement('figure');
       figure.className = 'article-cover';
       const image = document.createElement('img');
+      image.id = 'article-media-fixture';
       image.src = '/__article-layout-test.svg';
       image.alt = 'Wide technical diagram test fixture';
       image.width = 1280;
@@ -154,11 +158,15 @@ test('technical images retain their ratio and wide code and tables scroll locall
       const table = document.createElement('table');
       table.id = 'article-overflow-fixture';
       const row = table.insertRow();
-      for (let i = 0; i < 12; i++) row.insertCell().textContent = `COLUMN_${i}_${'x'.repeat(80)}`;
+      for (let i = 0; i < 12; i++) {
+        const cell = row.insertCell();
+        cell.textContent = `COLUMN_${i}_${'x'.repeat(80)}`;
+        cell.style.whiteSpace = 'nowrap';
+      }
       document.querySelector('.article-prose')!.append(table);
       document.querySelector('.article-prose pre code')!.textContent = 'veryLongIdentifier'.repeat(80);
     });
-    const image = page.locator('.article-cover img').last();
+    const image = page.locator('#article-media-fixture');
     await image.evaluate((img: HTMLImageElement) => img.decode());
     expect(await image.evaluate((img) => {
       const box = img.getBoundingClientRect();

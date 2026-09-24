@@ -249,13 +249,17 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
       let scheduled = false;
       const update = () => {
         scheduled = false;
-        const headerHeight = document.querySelector('.public-header')?.getBoundingClientRect().height || 0;
+        const headerHeight =
+          document.querySelector('.public-header')?.getBoundingClientRect().height || 0;
         const offset = matchMedia('(min-width: 1024px)').matches ? 104 : headerHeight + 64;
         let current = headings[0];
         for (const heading of headings) {
           if (heading.getBoundingClientRect().top > offset) break;
           current = heading;
         }
+        // Short final sections may never reach the top reading line before the page ends.
+        if (window.scrollY > 0 && window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2)
+          current = headings[headings.length - 1];
         if (current.id === activeId) return;
         activeId = current.id;
         for (const link of links) {
