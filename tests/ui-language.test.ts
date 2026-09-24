@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { chinese, normalizeUiLanguage, uiText, uiLabel, uiPlaceholder } from '../src/lib/ui-language';
+import {
+  chinese,
+  normalizeUiLanguage,
+  uiText,
+  uiLabel,
+  uiPlaceholder,
+} from '../src/lib/ui-language';
 
 describe('public interface language', () => {
   it('uses an allowlist and defaults safely to English', () => {
@@ -26,6 +32,8 @@ describe('public interface language', () => {
     const name = '<script>alert(1)</script>';
     expect(uiLabel('{name} home', { name })['aria-label']).toBe(`${name} home`);
     expect(uiLabel('Search articles')['data-ui-label-zh']).toBe('搜尋文章');
-    expect(uiPlaceholder('Search titles or content…').placeholder).toBe('Search titles or content…');
+    expect(uiPlaceholder('Search titles or content…').placeholder).toBe(
+      'Search titles or content…',
+    );
   });
 });

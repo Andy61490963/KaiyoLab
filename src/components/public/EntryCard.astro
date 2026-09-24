@@ -1,5 +1,7 @@
 ---
+import Ui from './UiText.astro';
 import type { PublicEntry } from '../../lib/types';
+import { uiLabel } from '../../lib/ui-language';
 interface Props {
   entry: PublicEntry;
   variant?: 'row' | 'card' | 'feature';
@@ -35,17 +37,29 @@ const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
       {entry.kind === 'article' && (
         <>
           <span aria-hidden="true">·</span>
-          <span>{readTime} min read</span>
+          <span>
+            <Ui text="{count} min read" values={{ count: readTime }} />
+          </span>
         </>
       )}
-      {entry.featured && <span class="journal-entry-featured">Featured</span>}
+      {entry.featured && (
+        <span class="journal-entry-featured">
+          <Ui text="Featured" />
+        </span>
+      )}
     </div>
     <Heading class="journal-entry-title">
-      <a href={href}>{entry.title}</a>
+      <a href={href} data-original-content translate="no">
+        {entry.title}
+      </a>
     </Heading>
-    {entry.excerpt && <p class="journal-entry-excerpt">{entry.excerpt}</p>}
+    {entry.excerpt && (
+      <p class="journal-entry-excerpt" data-original-content translate="no">
+        {entry.excerpt}
+      </p>
+    )}
     {entry.tags.length > 0 && (
-      <ul class="journal-entry-tags" aria-label="Article tags">
+      <ul class="journal-entry-tags" {...uiLabel('Article tags')}>
         {entry.tags.slice(0, 3).map((tag) => (
           <li>
             <a href={`/articles?tag=${encodeURIComponent(tag)}`}>#{tag}</a>

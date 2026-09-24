@@ -1,9 +1,11 @@
 ---
+import Ui from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import ProjectCard from '../../components/public/ProjectCard.astro';
 import EmptyState from '../../components/public/EmptyState.astro';
 import Pagination from '../../components/public/Pagination.astro';
 import Icon from '../../components/public/Icon.astro';
+import { uiLabel } from '../../lib/ui-language';
 import { getSettings, listPublished } from '../../lib/content';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
 const [settings, result] = await Promise.all([
@@ -12,16 +14,23 @@ const [settings, result] = await Promise.all([
 ]);
 ---
 
-<PublicLayout settings={settings} title="Projects" description="Personal projects and open-source work.">
+<PublicLayout
+  settings={settings}
+  title="Projects"
+  titleKey="Projects"
+  description="Personal projects and open-source work."
+>
   <div class="page-shell projects-page">
     <header class="collection-header">
       <h1 class="page-title">
         <Icon name="code" size={36} />
-        Projects
+        <Ui text="Projects" />
       </h1>
-      <p>Selected projects and open-source work, with details and related links.</p>
+      <p>
+        <Ui text="Selected projects and open-source work, with details and related links." />
+      </p>
     </header>
-    <section class="project-grid" aria-label="Project list">
+    <section class="project-grid" {...uiLabel('Project list')}>
       {result.items.length ? (
         result.items.map((entry) => <ProjectCard entry={entry} />)
       ) : (

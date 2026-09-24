@@ -1,6 +1,8 @@
 ---
+import Ui from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import Icon from '../../components/public/Icon.astro';
+import { uiLabel } from '../../lib/ui-language';
 import { getSettings, getPublished } from '../../lib/content';
 import { renderMarkdown } from '../../lib/markdown';
 const [settings, entry] = await Promise.all([
@@ -19,12 +21,16 @@ const rendered = await renderMarkdown(entry.body);
 >
   <article class="page-shell project-detail">
     <a class="back-link" href="/projects">
-      <Icon name="back" size={17} /> Back to projects
+      <Icon name="back" size={17} /> <Ui text="Back to projects" />
     </a>
     <header class="project-detail-heading">
       <div>
-        <span class="eyebrow">A PROJECT BY {settings.authorName || settings.siteName}</span>
-        <h1>{entry.title}</h1>
+        <span class="eyebrow">
+          <Ui text="A PROJECT BY" /> {settings.authorName || settings.siteName}
+        </span>
+        <h1 data-original-content translate="no">
+          {entry.title}
+        </h1>
         <p>{entry.excerpt}</p>
         <div class="entry-tags">
           {entry.tags.map((tag) => (
@@ -40,7 +46,7 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            Open demo <Icon name="diagonal" size={18} />
+            <Ui text="Open demo" /> <Icon name="diagonal" size={18} />
           </a>
         )}
         {entry.repoUrl && (
@@ -50,7 +56,8 @@ const rendered = await renderMarkdown(entry.body);
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Icon name="code" size={18} /> Source code <Icon name="diagonal" size={16} />
+            <Icon name="code" size={18} /> <Ui text="Source code" />{' '}
+            <Icon name="diagonal" size={16} />
           </a>
         )}
       </div>
@@ -62,25 +69,33 @@ const rendered = await renderMarkdown(entry.body);
     )}
     <div class="reading-layout">
       <div class="article-body">
-        <div class="prose" set:html={rendered.html} />
+        <div class="prose" data-original-content translate="no" set:html={rendered.html} />
       </div>
       <aside class="article-toc">
         <div class="toc-inner">
-          <h2>Project details</h2>
+          <h2>
+            <Ui text="Project details" />
+          </h2>
           <dl class="project-facts">
-            <dt>Published</dt>
+            <dt>
+              <Ui text="Published" />
+            </dt>
             <dd>{new Date(entry.publishedAt).toLocaleDateString('en-US')}</dd>
-            <dt>Last updated</dt>
+            <dt>
+              <Ui text="Last updated" />
+            </dt>
             <dd>{new Date(entry.updatedAt).toLocaleDateString('zh-TW')}</dd>
             {entry.category && (
               <>
-                <dt>Category</dt>
+                <dt>
+                  <Ui text="Category" />
+                </dt>
                 <dd>{entry.category}</dd>
               </>
             )}
           </dl>
           {rendered.toc.length > 0 && (
-            <nav aria-label="Project table of contents">
+            <nav {...uiLabel('Project table of contents')}>
               {rendered.toc.map((item) => (
                 <a class:list={{ 'toc-sub': item.depth > 2 }} href={`#${item.id}`}>
                   {item.text}

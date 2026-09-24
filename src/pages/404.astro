@@ -8,7 +8,12 @@ Astro.response.status = 404;
 const settings = await getSettings().catch(() => defaultSettings);
 ---
 
-<PublicLayout settings={settings} title="Page not found" description="The requested page could not be found.">
+<PublicLayout
+  settings={settings}
+  title="Page not found"
+  titleKey="Page not found"
+  description="The requested page could not be found."
+>
   <ErrorView
     code="404"
     title="Page not found"

@@ -1,6 +1,13 @@
 ---
 import { uiText, type UiKey, type UiValues } from '../../lib/ui-language';
-interface Props { text: UiKey; values?: UiValues }
+interface Props {
+  text: UiKey;
+  values?: UiValues;
+}
 const { text, values = {} } = Astro.props;
 ---
-<span class="ui-text" translate="no"><span lang="en">{uiText(text, 'en', values)}</span><span lang="zh-TW">{uiText(text, 'zh-TW', values)}</span></span>
+
+<span class="ui-text" translate="no">
+  <span lang="en">{uiText(text, 'en', values)}</span>
+  <span lang="zh-TW">{uiText(text, 'zh-TW', values)}</span>
+</span>
