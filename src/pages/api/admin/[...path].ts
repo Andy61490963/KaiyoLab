@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, entries, taxonomies, media } from '../../../lib/db';
 import { json, body, HttpError, errorResponse, contentSchema } from '../../../lib/http';
@@ -125,7 +125,8 @@ async function upload(request: Request) {
 }
 export const ALL: APIRoute = async ({ request, params, url }) => {
   try {
-    const [resource, id, action] = String(params.path || '').split('/');
+    const segments = String(params.path || '').split('/');
+    const [resource, id, action] = segments;
     const method = request.method;
     if (resource === 'dashboard' && method === 'GET') {
       const all = await db().select().from(entries).orderBy(desc(entries.updatedAt));
@@ -244,6 +245,42 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           return created;
         });
         return json(serializeEntry(row), 201);
+      }
+      if (method === 'DELETE' && id && segments.length === 2) {
+        const input = z.strictObject({ version: versionSchema }).parse(await body(request));
+        await db().transaction(async (tx) => {
+          const database = tx as unknown as ReturnType<typeof db>;
+          await lockContent(database);
+          const [old] = await tx.select().from(entries).where(eq(entries.id, id));
+          if (!old) throw new HttpError(404, 'Content not found.');
+          if (old.version !== input.version)
+            throw new HttpError(
+              409,
+              'This content has changed. Refresh the list before deleting it permanently.',
+            );
+          if (!old.deletedAt)
+            throw new HttpError(
+              409,
+              'Move this content to the trash before deleting it permanently.',
+            );
+          // 外鍵一併刪除歷史版本與舊網址，媒體、分類及其他內容順位維持原狀
+          const [removed] = await tx
+            .delete(entries)
+            .where(
+              and(
+                eq(entries.id, id),
+                eq(entries.version, input.version),
+                isNotNull(entries.deletedAt),
+              ),
+            )
+            .returning({ id: entries.id });
+          if (!removed)
+            throw new HttpError(
+              409,
+              'This content has changed. Refresh the list before deleting it permanently.',
+            );
+        });
+        return json({ deleted: true, id });
       }
       if (id && (method === 'PATCH' || (method === 'POST' && action === 'action'))) {
         const input =

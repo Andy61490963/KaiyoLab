@@ -43,6 +43,7 @@ export const shellMessages: Record<string, string> = {
   'Close menu': '關閉選單',
   'Confirm new password': '確認新密碼',
   'Content moved to trash.': '內容已移至垃圾桶',
+  'Content permanently deleted.': '內容已永久刪除',
   'Content pagination': '內容分頁',
   'Content restored as a draft.': '內容已還原為草稿',
   'Content table. Scroll horizontally to see all columns.': '內容表格，可水平捲動查看所有欄位',
@@ -57,6 +58,10 @@ export const shellMessages: Record<string, string> = {
     '確定刪除分類「{name}」？仍在使用中的分類無法刪除',
   'Delete image {name}': '刪除圖片 {name}',
   'Delete permanently': '永久刪除',
+  'Delete {title} permanently': '永久刪除「{title}」',
+  'Delete “{title}” permanently? This cannot be undone.\n\nIts draft, published snapshot, version history, and old URL redirects will be deleted. Images will stay in the media library.':
+    '確定永久刪除「{title}」？這個操作無法還原\n\n草稿、發布快照、版本紀錄及舊網址轉址都會一併刪除\n圖片會保留在媒體庫',
+  'Deleting…': '正在刪除…',
   'Delete tag {name}': '刪除標籤 {name}',
   'Delete tag “{name}”? Items still in use cannot be deleted.':
     '確定刪除標籤「{name}」？仍在使用中的標籤無法刪除',
@@ -114,6 +119,7 @@ export const shellMessages: Record<string, string> = {
   'Media library': '媒體庫',
   'Media pagination': '媒體分頁',
   'Move {title} to trash': '將 {title} 移至垃圾桶',
+  'Move content to the trash from its list or editor.': '可從列表或編輯器將內容移至垃圾桶',
   'Move “{title}” to trash? Its public version will be removed. You can restore it later.':
     '確定將「{title}」移至垃圾桶？公開版本將會下架，之後可還原內容',
   'Name A–Z': '名稱由 A 到 Z',
@@ -230,6 +236,8 @@ export const shellMessages: Record<string, string> = {
   'Trash is empty': '垃圾桶是空的',
   Trashed: '已刪除',
   'Trashed content stays here until you restore it.': '刪除的內容會保留在這裡，可隨時還原',
+  'Trashed content can be restored or permanently deleted. Images remain in the media library.':
+    '垃圾桶中的內容可還原或永久刪除，圖片會保留在媒體庫',
   'Try another filename or description, or clear the search.': '請試試其他檔名、描述，或清除搜尋',
   'Try another keyword or clear the filters.': '請試試其他關鍵字，或清除篩選條件',
   URL: '網址',

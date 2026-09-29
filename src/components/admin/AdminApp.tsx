@@ -547,10 +547,15 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
   const { t, language } = useAdminLanguage();
   const [ordering, setOrdering] = useState(false);
   const orderButton = useRef<HTMLButtonElement>(null);
+  const refreshButton = useRef<HTMLButtonElement>(null);
+  const deleteFocus = useRef<{ id: string; previous: ListResult<Entry> | null } | null>(null);
+  const failedDeleteFocus = useRef<string | null>(null);
+  const deleteButtons = useRef(new Map<string, HTMLButtonElement>());
   const { state, query, setQuery, update, setPage, clear, searchParams } =
     useListing(adminEntryList);
   const { status, category } = state;
   const [busy, setBusy] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const actionInFlight = useRef(false);
   const [notice, setNotice] = useState('');
   const { data: taxonomy } = useRemote<Taxonomies>('/api/admin/taxonomies');
@@ -560,7 +565,23 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
   useEffect(() => {
     if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
   }, [data, resolvedUrl, listUrl, loading, setPage]);
-  async function action(entry: Entry, actionName: 'trash' | 'restore' | 'unpublish') {
+  useEffect(() => {
+    const pending = deleteFocus.current;
+    if (!pending || loading || !refreshButton.current) return;
+    const refreshed =
+      data !== pending.previous && resolvedUrl === listUrl && data?.page === state.page;
+    if (!error && (!refreshed || data?.items.some((entry) => entry.id === pending.id))) return;
+    refreshButton.current.focus({ preventScroll: true });
+    deleteFocus.current = null;
+  }, [loading, data, error, resolvedUrl, listUrl, state.page]);
+  useEffect(() => {
+    if (!failedDeleteFocus.current || busy || loading) return;
+    const button = deleteButtons.current.get(failedDeleteFocus.current) || refreshButton.current;
+    if (!button) return;
+    button.focus({ preventScroll: true });
+    failedDeleteFocus.current = null;
+  }, [busy, loading, error]);
+  async function action(entry: Entry, actionName: 'trash' | 'restore' | 'unpublish' | 'delete') {
     if (actionInFlight.current) return;
     if (
       actionName === 'trash' &&
@@ -582,28 +603,48 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
       )
     )
       return;
+    if (
+      actionName === 'delete' &&
+      !window.confirm(
+        t(
+          'Delete “{title}” permanently? This cannot be undone.\n\nIts draft, published snapshot, version history, and old URL redirects will be deleted. Images will stay in the media library.',
+          { title: entry.content.title || t('Untitled draft') },
+        ),
+      )
+    )
+      return;
     actionInFlight.current = true;
     setBusy(entry.id);
+    setDeleting(actionName === 'delete');
     setError('');
     setNotice('');
     try {
-      await api(
-        `/api/admin/entries/${entry.id}/action`,
-        json('POST', { action: actionName, version: entry.version }),
-      );
+      if (actionName === 'delete') {
+        await api(`/api/admin/entries/${entry.id}`, json('DELETE', { version: entry.version }));
+        deleteFocus.current = { id: entry.id, previous: data };
+      } else {
+        await api(
+          `/api/admin/entries/${entry.id}/action`,
+          json('POST', { action: actionName, version: entry.version }),
+        );
+      }
       setNotice(
-        actionName === 'restore'
-          ? 'Content restored as a draft.'
-          : actionName === 'trash'
-            ? 'Content moved to trash.'
-            : 'Content unpublished. Your draft is kept.',
+        actionName === 'delete'
+          ? 'Content permanently deleted.'
+          : actionName === 'restore'
+            ? 'Content restored as a draft.'
+            : actionName === 'trash'
+              ? 'Content moved to trash.'
+              : 'Content unpublished. Your draft is kept.',
       );
       refresh();
     } catch (e) {
+      if (actionName === 'delete') failedDeleteFocus.current = entry.id;
       setError(errorMessage(e));
     } finally {
       actionInFlight.current = false;
       setBusy('');
+      setDeleting(false);
     }
   }
   return (
@@ -705,6 +746,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                   </button>
                 )}
                 <button
+                  ref={refreshButton}
                   className="admin-icon-button"
                   type="button"
                   onClick={refresh}
@@ -745,7 +787,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                 {query || category
                   ? t('Try another keyword or clear the filters.')
                   : status === 'trash'
-                    ? t('Trashed content stays here until you restore it.')
+                    ? t('Move content to the trash from its list or editor.')
                     : kind === 'article'
                       ? t('Create a new article to get started.')
                       : t('Create a new project to get started.')}
@@ -822,13 +864,37 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                         <td>
                           <div className="admin-row-actions">
                             {entry.deletedAt ? (
-                              <button
-                                disabled={!!busy}
-                                onClick={() => action(entry, 'restore')}
-                                className="admin-button small"
-                              >
-                                <RefreshCw size={14} /> {t('Restore')}{' '}
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={!!busy}
+                                  onClick={() => action(entry, 'restore')}
+                                  className="admin-button small"
+                                >
+                                  <RefreshCw size={14} /> {t('Restore')}{' '}
+                                </button>
+                                <button
+                                  type="button"
+                                  ref={(button) => {
+                                    if (button) deleteButtons.current.set(entry.id, button);
+                                    else deleteButtons.current.delete(entry.id);
+                                  }}
+                                  disabled={!!busy}
+                                  onClick={() => action(entry, 'delete')}
+                                  className="admin-button small danger"
+                                  aria-label={t('Delete {title} permanently', {
+                                    title: entry.content.title || t('Untitled draft'),
+                                  })}
+                                  aria-busy={deleting && busy === entry.id}
+                                >
+                                  <Trash2 size={14} aria-hidden="true" />
+                                  {t(
+                                    deleting && busy === entry.id
+                                      ? 'Deleting…'
+                                      : 'Delete permanently',
+                                  )}
+                                </button>
+                              </>
                             ) : (
                               <>
                                 <a className="admin-button small" href={editorUrl(entry)}>
@@ -865,7 +931,13 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             )}
             <ListPager info={data} loading={loading} onPage={setPage} />
             <div className="admin-table-footer">
-              <span>{t('Draft content is only visible to you.')}</span>
+              <span>
+                {t(
+                  status === 'trash'
+                    ? 'Trashed content can be restored or permanently deleted. Images remain in the media library.'
+                    : 'Draft content is only visible to you.',
+                )}
+              </span>
             </div>
           </section>
         </>
