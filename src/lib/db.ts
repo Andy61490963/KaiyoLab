@@ -91,6 +91,7 @@ export const entries = pgTable('entries', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   version: integer().notNull().default(1),
+  sortOrder: integer('sort_order').notNull().default(0),
 });
 export const entryRevisions = pgTable('entry_revisions', {
   id: text().primaryKey(),

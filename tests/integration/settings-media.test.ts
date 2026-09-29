@@ -42,7 +42,7 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 設定版本與媒體提�
     process.env.SITE_URL = origin;
     directory = await mkdtemp(path.join(os.tmpdir(), 'kaiyo-media-recovery-'));
     database = await import('../../src/lib/db');
-    for (const migration of ['001_initial.sql', '007_content_history.sql'])
+    for (const migration of ['001_initial.sql', '007_content_history.sql', '009_entry_order.sql'])
       await database
         .getPool()
         .query(

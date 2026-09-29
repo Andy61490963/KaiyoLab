@@ -10,6 +10,7 @@ import '../../styles/list-controls.css';
 import { useAdminLanguage } from './AdminLanguage';
 
 export const sortLabels: Record<string, string> = {
+  manual: 'Manual order',
   'updated-desc': 'Recently edited',
   'updated-asc': 'Least recently edited',
   newest: 'Newest first',

@@ -80,8 +80,8 @@ export async function listPublished(opts: {
     .from(entries)
     .where(where);
   const page = paginate(count?.total || 0, opts.page, opts.pageSize);
-  // Sort the complete published result before LIMIT/OFFSET, never private drafts.
-  // An ID tie-breaker prevents duplicate/missing rows when dates or titles match.
+  // 先排完整公開結果再分頁，草稿內容不能影響公開標題及搜尋
+  // 手動順序使用固定 ID 作同值排序，不因編輯或發布而位移
   const title = sql`lower(${entries.published}->>'title')`;
   const order =
     opts.sort === 'oldest'
@@ -90,7 +90,9 @@ export async function listPublished(opts: {
         ? [asc(title), asc(entries.id)]
         : opts.sort === 'title-desc'
           ? [desc(title), desc(entries.id)]
-          : [desc(entries.publishedAt), desc(entries.id)];
+          : opts.sort === 'newest'
+            ? [desc(entries.publishedAt), desc(entries.id)]
+            : [asc(entries.sortOrder), asc(entries.id)];
   const rows = await db()
     .select()
     .from(entries)
@@ -108,8 +110,13 @@ export async function getPublished(kind: EntryKind, slug: string): Promise<Publi
   return row ? asPublic(row) : null;
 }
 export async function allPublished(): Promise<PublicEntry[]> {
+  // RSS 與 sitemap 的同時發布內容必須固定次序，不受手動排序或匯入重寫資料列影響
   return (
-    await db().select().from(entries).where(visible()).orderBy(desc(entries.publishedAt))
+    await db()
+      .select()
+      .from(entries)
+      .where(visible())
+      .orderBy(desc(entries.publishedAt), desc(entries.id))
   ).map(asPublic);
 }
 

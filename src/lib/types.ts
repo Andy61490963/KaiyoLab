@@ -27,6 +27,16 @@ export interface Entry {
   updatedAt: string;
   deletedAt: string | null;
   version: number;
+  sortOrder: number;
+}
+export interface EntryOrderItem {
+  id: string;
+  title: string;
+  published: boolean;
+}
+export interface EntryOrderSnapshot {
+  items: EntryOrderItem[];
+  revision: string;
 }
 export interface EntryRevision {
   id: string;

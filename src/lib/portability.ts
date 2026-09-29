@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/pr
 import path from 'node:path';
 import { gzip, gunzip } from 'node:zlib';
 import { promisify } from 'node:util';
-import { inArray, sql } from 'drizzle-orm';
+import { asc, inArray, sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import { z } from 'zod';
 import { db, entries, entryRevisions, entrySlugs, media, settings, taxonomies } from './db';
@@ -16,6 +16,7 @@ import { recordRevision } from './history';
 import { DRAFT_REVISION_LIMIT } from './history-rules';
 import type { EntryContent, SiteSettings } from './types';
 import { archiveUrl, rewriteMarkdownUrls } from './markdown-links';
+import { compactEntryOrder } from './entry-order';
 
 const compress = promisify(gzip);
 const decompress = promisify(gunzip);
@@ -82,6 +83,7 @@ const archiveSchema = z
           .object({
             id: z.uuid(),
             kind: z.enum(['article', 'project']),
+            sortOrder: z.number().int().min(0).max(2147483647).optional(),
             content,
             published: content.nullable(),
             publishedAt: date,
@@ -510,7 +512,7 @@ async function planImport(database: Database, loaded: LoadedArchive, applySettin
       JSON.stringify({
         archive: loaded.digest,
         applySettings,
-        current: current.map((entry) => [entry.id, entry.version]).sort(),
+        current: current.map((entry) => [entry.id, entry.version, entry.sortOrder]).sort(),
         media: currentMedia.map((item) => item.id).sort(),
         settings: currentSettings
           ? { value: currentSettings.value, version: currentSettings.version }
@@ -570,6 +572,21 @@ export async function importArchive(loaded: LoadedArchive, review: string, apply
           409,
           'The archive or site content has changed. Check the archive again before importing.',
         );
+      const importedOrder = new Map<string, number>();
+      for (const kind of ['article', 'project'] as const) {
+        const ordered = plan.plannedEntries
+          .filter((entry) => entry.kind === kind)
+          .sort(
+            (left, right) =>
+              (left.sortOrder ?? Number.MAX_SAFE_INTEGER) -
+              (right.sortOrder ?? Number.MAX_SAFE_INTEGER),
+          );
+        if (!ordered.length) continue;
+        // 保留既有內容的相對順序，先壓縮順位以避免整數溢位，再追加本批匯入
+        // 舊版未帶順位的項目依封存檔原順序排列在已標順位的項目之後
+        const last = await compactEntryOrder(database, kind);
+        ordered.forEach((entry, index) => importedOrder.set(entry.id, last + index + 1));
+      }
       if (plan.plannedTaxonomies.length)
         await tx
           .insert(taxonomies)
@@ -592,6 +609,7 @@ export async function importArchive(loaded: LoadedArchive, review: string, apply
         await tx.insert(entries).values({
           id,
           kind: entry.kind,
+          sortOrder: importedOrder.get(entry.id)!,
           content: rewriteImages(
             entry.content,
             mediaIds,
@@ -698,7 +716,10 @@ export async function exportArchive(): Promise<Buffer> {
         413,
         'The site content exceeds portable archive limits. Use the database backup procedure.',
       );
-    const allEntries = await tx.select().from(entries);
+    const allEntries = await tx
+      .select()
+      .from(entries)
+      .orderBy(asc(entries.kind), asc(entries.sortOrder), asc(entries.id));
     const allMedia = await tx.select().from(media);
     const allTaxonomies = await tx.select().from(taxonomies);
     const revisions = await tx.select().from(entryRevisions);
@@ -770,6 +791,7 @@ export async function exportArchive(): Promise<Buffer> {
       entries: allEntries.map((entry) => ({
         id: entry.id,
         kind: entry.kind,
+        sortOrder: entry.sortOrder,
         content: content.parse(entry.content),
         published: entry.published ? content.parse(entry.published) : null,
         publishedAt: entry.publishedAt?.toISOString() || null,
