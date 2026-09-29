@@ -375,6 +375,51 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 文章與作品跨頁手�
     expect(await snapshot()).toEqual(current);
   });
 
+  it('同時發布的 RSS 與 sitemap 維持固定時間順序，不受匯入重整或手動移動影響', async () => {
+    await database
+      .getPool()
+      .query(
+        "UPDATE entries SET published_at='2024-01-01T00:00:00Z' WHERE kind='article' AND published IS NOT NULL",
+      );
+    await database
+      .getPool()
+      .query("UPDATE entries SET published_at='2025-01-01T00:00:00Z' WHERE id='article-25'");
+    const expected = Array.from(
+      { length: 25 },
+      (_, index) => `article-${String(25 - index).padStart(2, '0')}`,
+    );
+    expect(
+      (await content.allPublished())
+        .filter((entry) => entry.kind === 'article')
+        .map((entry) => entry.id),
+    ).toEqual(expected);
+    const rss = await import('../../src/pages/rss.xml');
+    const sitemap = await import('../../src/pages/sitemap.xml');
+    const rssBody = async () => (await rss.GET!({} as any)).text();
+    const sitemapBody = async () => (await sitemap.GET!({} as any)).text();
+    const originalRss = await rssBody();
+    const originalSitemap = await sitemapBody();
+    expect(
+      [...originalRss.matchAll(/<guid isPermaLink="false">([^<]+)<\/guid>/g)].map(
+        (match) => match[1],
+      ),
+    ).toEqual(expected);
+    expect(originalRss).not.toContain('NEVER_PUBLIC');
+    const { lockContent } = await import('../../src/lib/media');
+    await database.db().transaction(async (tx) => {
+      const connection = tx as unknown as ReturnType<typeof database.db>;
+      await lockContent(connection);
+      await order.compactEntryOrder(connection, 'article');
+    });
+    expect(await rssBody()).toBe(originalRss);
+    expect(await sitemapBody()).toBe(originalSitemap);
+    const current = await snapshot();
+    expect((await move('article-01', current.items.length, current)).status).toBe(200);
+    expect((await snapshot()).items.at(-1)?.id).toBe('article-01');
+    expect(await rssBody()).toBe(originalRss);
+    expect(await sitemapBody()).toBe(originalSitemap);
+  });
+
   it('重整順位保留相對位置並回傳最大值供匯入附加，沒有整數溢位', async () => {
     await database
       .getPool()

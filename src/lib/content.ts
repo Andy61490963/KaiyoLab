@@ -110,8 +110,13 @@ export async function getPublished(kind: EntryKind, slug: string): Promise<Publi
   return row ? asPublic(row) : null;
 }
 export async function allPublished(): Promise<PublicEntry[]> {
+  // RSS 與 sitemap 的同時發布內容必須固定次序，不受手動排序或匯入重寫資料列影響
   return (
-    await db().select().from(entries).where(visible()).orderBy(desc(entries.publishedAt))
+    await db()
+      .select()
+      .from(entries)
+      .where(visible())
+      .orderBy(desc(entries.publishedAt), desc(entries.id))
   ).map(asPublic);
 }
 
