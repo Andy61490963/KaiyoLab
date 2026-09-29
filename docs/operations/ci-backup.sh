@@ -17,7 +17,7 @@ node -e "const v=JSON.parse(require('fs').readFileSync('backups/.operations/.las
 cat > .local/ci-backup/terminate-lock.sh <<'SH'
 #!/bin/sh
 set -eu
-sh /operations/backup-data-real.sh
+sh /tmp/backup-data-real.sh
 terminated="$(psql -XAt -w -v ON_ERROR_STOP=1 -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name='kaiyo-backup-terminated' AND pid <> pg_backend_pid()")"
 test "$terminated" = t
 SH
@@ -26,7 +26,7 @@ partial_before="$(find backups -mindepth 1 -maxdepth 1 -type d -name '.partial-*
 if docker compose --profile maintenance run --rm --no-deps \
   -e PGAPPNAME=kaiyo-backup-terminated \
   -v "$PWD/.local/ci-backup/terminate-lock.sh:/operations/backup-data.sh:ro" \
-  -v "$PWD/docs/operations/backup-data.sh:/operations/backup-data-real.sh:ro" backup; then
+  -v "$PWD/docs/operations/backup-data.sh:/tmp/backup-data-real.sh:ro" backup; then
   printf '持鎖連線中斷卻回報備份成功\n' >&2
   exit 1
 fi
