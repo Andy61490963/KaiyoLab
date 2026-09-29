@@ -4,7 +4,7 @@ import { unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getPool } from '../../../lib/db';
 import { json } from '../../../lib/http';
-import { readOperation, type SystemReport } from '../../../lib/operations';
+import { readOperation, readBackupStatus, type SystemReport } from '../../../lib/operations';
 
 export const GET: APIRoute = async () => {
   const report: SystemReport = {
@@ -45,7 +45,7 @@ export const GET: APIRoute = async () => {
     if (created) await unlink(probe).catch(() => {});
   }
   [report.backup, report.restore] = await Promise.all([
-    readOperation(process.env.OPERATIONS_DIR, 'backup'),
+    readBackupStatus(process.env.OPERATIONS_DIR, Number(process.env.BACKUP_MAX_AGE_HOURS || 36)),
     readOperation(process.env.OPERATIONS_DIR, 'restore'),
   ]);
   return json(report);

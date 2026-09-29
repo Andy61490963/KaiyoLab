@@ -6,6 +6,7 @@ import ProjectCard from '../components/public/ProjectCard.astro';
 import Icon from '../components/public/Icon.astro';
 import { getSettings, listPublished, listTaxonomies } from '../lib/content';
 import { renderMarkdown } from '../lib/markdown';
+import { contentLanguage } from '../lib/reading';
 
 const [settings, recent, featured, selectedProjects, taxonomy] = await Promise.all([
   getSettings(),
@@ -34,6 +35,7 @@ const hasTitle = homeIntro.toc.some((heading) => heading.depth === 1);
         )}
         <div
           class="home-intro-markdown prose"
+          lang={contentLanguage(settings.homeIntro)}
           data-original-content
           translate="no"
           set:html={homeIntro.html}

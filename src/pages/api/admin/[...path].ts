@@ -5,16 +5,11 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { eq, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
-import { db, entries, settings, taxonomies, media } from '../../../lib/db';
-import {
-  json,
-  body,
-  HttpError,
-  errorResponse,
-  contentSchema,
-  settingsSchema,
-} from '../../../lib/http';
-import { serializeEntry, getSettings, listTaxonomies } from '../../../lib/content';
+import { db, entries, taxonomies, media } from '../../../lib/db';
+import { json, body, HttpError, errorResponse, contentSchema } from '../../../lib/http';
+import { serializeEntry, listTaxonomies } from '../../../lib/content';
+import { getSettingsSnapshot, saveSettingsSnapshot } from '../../../lib/settings';
+import { persistMediaFile } from '../../../lib/media-persistence';
 import { emptyContent } from '../../../lib/defaults';
 import { renderMarkdown } from '../../../lib/markdown';
 import { listMedia, mediaUsages, mediaUrl, lockContent, ensureMedia } from '../../../lib/media';
@@ -104,24 +99,29 @@ async function upload(request: Request) {
   await mkdir(uploadDir(), { recursive: true });
   const target = path.join(uploadDir(), `${id}.webp`);
   await writeFile(target, result.data, { flag: 'wx' });
-  try {
-    const [m] = await db()
-      .insert(media)
-      .values({
-        id,
-        name: file.name.slice(0, 200),
-        alt,
-        mime: 'image/webp',
-        size: result.data.length,
-        width: result.info.width,
-        height: result.info.height,
-      })
-      .returning();
-    return json({ ...m, url: mediaUrl(id), createdAt: m.createdAt.toISOString(), usedBy: [] }, 201);
-  } catch (e) {
-    await unlink(target);
-    throw e;
-  }
+  const m = await persistMediaFile({
+    insert: async () => {
+      const [row] = await db()
+        .insert(media)
+        .values({
+          id,
+          name: file.name.slice(0, 200),
+          alt,
+          mime: 'image/webp',
+          size: result.data.length,
+          width: result.info.width,
+          height: result.info.height,
+        })
+        .returning();
+      return row;
+    },
+    find: async () => {
+      const [row] = await db().select().from(media).where(eq(media.id, id));
+      return row;
+    },
+    remove: () => unlink(target),
+  });
+  return json({ ...m, url: mediaUrl(id), createdAt: m.createdAt.toISOString(), usedBy: [] }, 201);
 }
 export const ALL: APIRoute = async ({ request, params, url }) => {
   try {
@@ -315,20 +315,9 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
       }
     }
     if (resource === 'settings') {
-      if (method === 'GET') return json(await getSettings());
+      if (method === 'GET') return json(await getSettingsSnapshot());
       if (method === 'PUT') {
-        const value = settingsSchema.parse(await body(request));
-        value.siteUrl = process.env.SITE_URL || value.siteUrl;
-        await db().transaction(async (tx) => {
-          const database = tx as unknown as ReturnType<typeof db>;
-          await lockContent(database);
-          await ensureMedia(database, value);
-          await tx
-            .insert(settings)
-            .values({ id: 1, value })
-            .onConflictDoUpdate({ target: settings.id, set: { value } });
-        });
-        return json(value);
+        return json(await saveSettingsSnapshot(await body(request)));
       }
     }
     if (resource === 'media') {

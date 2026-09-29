@@ -3,6 +3,7 @@ import Ui from './UiText.astro';
 import type { PublicEntry } from '../../lib/types';
 import { uiLabel } from '../../lib/ui-language';
 import { mediaPresentation } from '../../lib/media-presentation';
+import { contentLanguage, readingMinutes } from '../../lib/reading';
 interface Props {
   entry: PublicEntry;
   variant?: 'row' | 'card' | 'feature';
@@ -17,7 +18,8 @@ const date = new Date(entry.publishedAt).toLocaleDateString('en-US', {
   month: '2-digit',
   day: '2-digit',
 });
-const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
+const readTime = readingMinutes(entry.body);
+const language = contentLanguage(`${entry.title}\n${entry.excerpt}\n${entry.body}`);
 ---
 
 <article class:list={['journal-entry', `journal-entry-${variant}`]}>
@@ -57,12 +59,12 @@ const readTime = Math.max(1, Math.ceil(entry.body.length / 450));
       )}
     </div>
     <Heading class="journal-entry-title">
-      <a href={href} data-original-content translate="no">
+      <a href={href} lang={language} data-original-content translate="no">
         {entry.title}
       </a>
     </Heading>
     {entry.excerpt && (
-      <p class="journal-entry-excerpt" data-original-content translate="no">
+      <p class="journal-entry-excerpt" lang={language} data-original-content translate="no">
         {entry.excerpt}
       </p>
     )}

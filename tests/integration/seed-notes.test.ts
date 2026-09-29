@@ -18,7 +18,7 @@ describe.skipIf(!source)('owner-requested article seed', () => {
       CREATE TEMP TABLE entries (LIKE public.entries INCLUDING ALL) ON COMMIT DROP;
       CREATE TEMP TABLE taxonomies (LIKE public.taxonomies INCLUDING ALL) ON COMMIT DROP;
       CREATE TEMP TABLE settings (LIKE public.settings INCLUDING ALL) ON COMMIT DROP;
-      INSERT INTO settings VALUES(1, '{"homeIntro":"# My original timeline","about":"私人自訂介紹"}');
+      INSERT INTO settings(id,value) VALUES(1, '{"homeIntro":"# My original timeline","about":"私人自訂介紹"}');
     `);
   });
   afterEach(async () => {

@@ -1,6 +1,7 @@
 ---
 import Ui from './UiText.astro';
 import type { PublicEntry } from '../../lib/types';
+import { contentLanguage } from '../../lib/reading';
 
 import { uiLabel } from '../../lib/ui-language';
 interface Props {
@@ -12,6 +13,7 @@ const { entry, headingLevel = 'h2' } = Astro.props;
 const Heading = headingLevel;
 const href = `/projects/${encodeURIComponent(entry.slug)}`;
 const year = new Date(entry.publishedAt).getFullYear();
+const language = contentLanguage(`${entry.title}\n${entry.excerpt}\n${entry.body}`);
 ---
 
 <article class="project-card">
@@ -19,12 +21,12 @@ const year = new Date(entry.publishedAt).getFullYear();
     {year}
   </time>
   <Heading class="project-title">
-    <a href={href} data-original-content translate="no">
+    <a href={href} lang={language} data-original-content translate="no">
       {entry.title}
     </a>
   </Heading>
   {entry.excerpt && (
-    <p class="project-description" data-original-content translate="no">
+    <p class="project-description" lang={language} data-original-content translate="no">
       {entry.excerpt}
     </p>
   )}

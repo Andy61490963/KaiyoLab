@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import {
   api,
+  ApiError,
   dateLabel,
   editorUrl,
   errorMessage,
@@ -38,6 +39,7 @@ import {
   type Taxonomies,
   type Taxonomy,
 } from './api';
+import type { SettingsSnapshot } from '../../lib/settings';
 import ThemeButton from './ThemeButton';
 import { ListOrder, ListPager, useListing } from './ListControls';
 import {
@@ -1190,7 +1192,8 @@ function MediaCard({
   );
 }
 function TaxonomyManager() {
-  const { data, error, setError, refresh } = useRemote<Taxonomies>('/api/admin/taxonomies');
+  const { data, setData, error, setError, refresh } =
+    useRemote<Taxonomies>('/api/admin/taxonomies');
   return (
     <>
       <PageTitle
@@ -1205,6 +1208,23 @@ function TaxonomyManager() {
             key={kind}
             kind={kind}
             items={(kind === 'category' ? data?.categories : data?.tags) || []}
+            onSaved={(item) =>
+              setData((old) => {
+                const key = kind === 'category' ? 'categories' : 'tags';
+                const current = old || { categories: [], tags: [] };
+                return {
+                  ...current,
+                  [key]: [...current[key].filter((row) => row.id !== item.id), item],
+                };
+              })
+            }
+            onDeleted={(id) =>
+              setData((old) => {
+                if (!old) return old;
+                const key = kind === 'category' ? 'categories' : 'tags';
+                return { ...old, [key]: old[key].filter((row) => row.id !== id) };
+              })
+            }
             refresh={refresh}
             onError={setError}
           />
@@ -1216,19 +1236,26 @@ function TaxonomyManager() {
 function TaxonomySection({
   kind,
   items,
+  onSaved,
+  onDeleted,
   refresh,
   onError,
 }: {
   kind: 'category' | 'tag';
   items: Taxonomy[];
+  onSaved: (item: Taxonomy) => void;
+  onDeleted: (id: string) => void;
   refresh: () => void;
   onError: (value: string) => void;
 }) {
   const { state, query, setQuery, update, setPage } = useListing(taxonomyList, false);
+  const [revealed, setRevealed] = useState<Taxonomy | null>(null);
+  const [pendingReveal, setPendingReveal] = useState<string | null>(null);
+  const savedRow = useRef<HTMLDivElement>(null);
+  const matches = (item: Taxonomy) =>
+    `${item.name} ${item.slug}`.toLocaleLowerCase().includes(state.q.toLocaleLowerCase());
   const filtered = items
-    .filter((item) =>
-      `${item.name} ${item.slug}`.toLocaleLowerCase().includes(state.q.toLocaleLowerCase()),
-    )
+    .filter((item) => matches(item) || item.id === revealed?.id)
     .sort(
       (a, b) =>
         (state.sort === 'name-desc' ? -1 : 1) *
@@ -1237,8 +1264,26 @@ function TaxonomySection({
     );
   const page = paginate(filtered.length, state.page, state.pageSize);
   useEffect(() => {
+    if (pendingReveal) return;
     setPage(page.page);
-  }, [page.page, setPage]);
+  }, [page.page, setPage, pendingReveal]);
+  useEffect(() => {
+    if (!pendingReveal) return;
+    const index = filtered.findIndex((item) => item.id === pendingReveal);
+    if (index < 0) return;
+    const destination = Math.floor(index / page.pageSize) + 1;
+    if (state.page !== destination) {
+      setPage(destination);
+      return;
+    }
+    savedRow.current?.focus({ preventScroll: true });
+    savedRow.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    setPendingReveal(null);
+  }, [filtered, page.pageSize, pendingReveal, setPage, state.page]);
+  const dismissReveal = () => {
+    setRevealed(null);
+    setPendingReveal(null);
+  };
   const pageItems = filtered.slice((page.page - 1) * page.pageSize, page.page * page.pageSize);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -1251,13 +1296,16 @@ function TaxonomySection({
     setBusy(true);
     onError('');
     try {
-      await api(
+      const saved = await api<Taxonomy>(
         `/api/admin/taxonomies${edit ? `/${edit}` : ''}`,
         json(edit ? 'PATCH' : 'POST', { kind, name, slug }),
       );
       setName('');
       setSlug('');
       setEdit(null);
+      setRevealed(saved);
+      setPendingReveal(saved.id);
+      onSaved(saved);
       refresh();
     } catch (e) {
       onError(errorMessage(e));
@@ -1276,6 +1324,13 @@ function TaxonomySection({
     setBusy(true);
     try {
       await api(`/api/admin/taxonomies/${item.id}`, { method: 'DELETE' });
+      onDeleted(item.id);
+      if (revealed?.id === item.id) dismissReveal();
+      if (edit === item.id) {
+        setEdit(null);
+        setName('');
+        setSlug('');
+      }
       refresh();
     } catch (e) {
       onError(errorMessage(e));
@@ -1335,6 +1390,14 @@ function TaxonomySection({
           )}
         </div>
       </form>
+      {revealed && !matches(revealed) && (
+        <p className="admin-subtle" role="status">
+          已儲存「{revealed.name}」，暫時顯示這個項目，原搜尋條件已保留{' '}
+          <button className="admin-button small" type="button" onClick={dismissReveal}>
+            只看搜尋結果
+          </button>
+        </p>
+      )}
       <div className="admin-taxonomy-search">
         <label className="admin-search">
           <Search size={17} />
@@ -1344,20 +1407,26 @@ function TaxonomySection({
             aria-label={`Search ${label.toLowerCase()} items`}
             placeholder="Search names or slugs…"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              dismissReveal();
+              setQuery(event.target.value);
+            }}
           />
         </label>
         <ListOrder
           config={taxonomyList}
           sort={state.sort}
           pageSize={state.pageSize}
-          onChange={update}
+          onChange={(patch) => {
+            dismissReveal();
+            update(patch);
+          }}
         />
       </div>
       <div className="admin-taxonomy-list">
         {pageItems.length ? (
           pageItems.map((item) => (
-            <div key={item.id}>
+            <div key={item.id} ref={item.id === revealed?.id ? savedRow : undefined} tabIndex={-1}>
               <span>
                 <strong>
                   {kind === 'tag' && '# '}
@@ -1396,7 +1465,14 @@ function TaxonomySection({
           </p>
         )}
       </div>
-      <ListPager info={page} onPage={setPage} label={`${label} pagination`} />
+      <ListPager
+        info={page}
+        onPage={(page) => {
+          dismissReveal();
+          setPage(page);
+        }}
+        label={`${label} pagination`}
+      />
     </section>
   );
 }
@@ -1408,8 +1484,9 @@ function SettingsForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const { data, setData, error, setError, loading, refresh } =
-    useRemote<SiteSettings>('/api/admin/settings');
+    useRemote<SettingsSnapshot>('/api/admin/settings');
   const [baseline, setBaseline] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
   const saveInFlight = useRef(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -1438,17 +1515,52 @@ function SettingsForm({
   };
   async function save(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!data || saveInFlight.current) return;
+    if (!data || saveInFlight.current || conflict) return;
     saveInFlight.current = true;
     setBusy(true);
     setError('');
     setMessage('');
     try {
       const snapshot = JSON.stringify(data);
-      const result = await api<SiteSettings>('/api/admin/settings', json('PUT', data));
+      const result = await api<SettingsSnapshot>('/api/admin/settings', json('PUT', data));
       setBaseline(JSON.stringify(result));
-      setData((current) => (current && JSON.stringify(current) === snapshot ? result : current));
+      setData((current) =>
+        current && JSON.stringify(current) !== snapshot
+          ? { ...current, version: result.version }
+          : result,
+      );
       setMessage('Settings saved.');
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) setConflict(true);
+      setError(errorMessage(e));
+    } finally {
+      saveInFlight.current = false;
+      setBusy(false);
+    }
+  }
+  function downloadSettings() {
+    if (!data) return;
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '未儲存的網站設定.json';
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function reloadSettings() {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    setBusy(true);
+    try {
+      const latest = await api<SettingsSnapshot>('/api/admin/settings');
+      if (!window.confirm('重新載入會取代這個分頁的未儲存內容，請先下載副本以保留修改')) return;
+      setData(latest);
+      setBaseline(JSON.stringify(latest));
+      setConflict(false);
+      setError('');
+      setMessage('已載入最新設定');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -1538,6 +1650,25 @@ function SettingsForm({
         }
       />
       <Alert message={error} />
+      {conflict && (
+        <div className="admin-recovery" role="region" aria-label="設定版本衝突">
+          <div>
+            <strong>設定已有較新的版本</strong>
+            <p>這個分頁的修改仍保留，請下載副本，再重新載入最新設定後編輯</p>
+          </div>
+          <button className="admin-button small" type="button" onClick={downloadSettings}>
+            下載未儲存副本
+          </button>
+          <button
+            className="admin-button small"
+            type="button"
+            disabled={busy}
+            onClick={reloadSettings}
+          >
+            重新載入最新設定
+          </button>
+        </div>
+      )}
       <Alert
         message={
           message
@@ -1710,7 +1841,11 @@ function SettingsForm({
                 </strong>
                 <span>Changes go live when you save.</span>
               </div>
-              <button className="admin-button primary" disabled={busy || !dirty} type="submit">
+              <button
+                className="admin-button primary"
+                disabled={busy || !dirty || conflict}
+                type="submit"
+              >
                 <Check size={17} />
                 {busy ? 'Saving…' : 'Save settings'}
               </button>

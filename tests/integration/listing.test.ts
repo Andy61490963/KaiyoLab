@@ -20,7 +20,11 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL list pagination and order
     url.pathname = `/${name}`;
     process.env.DATABASE_URL = url.href;
     database = await import('../../src/lib/db');
-    for (const migration of ['001_initial.sql', '007_content_history.sql'])
+    for (const migration of [
+      '001_initial.sql',
+      '007_content_history.sql',
+      '008_settings_version.sql',
+    ])
       await database
         .getPool()
         .query(
@@ -120,6 +124,62 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL list pagination and order
     ).toEqual(['trash']);
     expect((await listing.listAdminEntries(new URLSearchParams('q=100%25_'))).total).toBe(0);
     expect((await listing.listAdminEntries(new URLSearchParams('kind=project'))).total).toBe(0);
+  });
+  it('公開搜尋以 AND 比對多詞、保留引號片語並將萬用字元視為文字', async () => {
+    const { emptyContent } = await import('../../src/lib/defaults');
+    const samples = [
+      {
+        id: 'search-a',
+        title: 'MES 控制',
+        body: '交易與併發控制，使用 FOR UPDATE，含 100%_ 文字',
+        published: true,
+      },
+      { id: 'search-b', title: 'MES 報工', body: 'FOR something UPDATE', published: true },
+      {
+        id: 'search-private',
+        title: 'MES 併發',
+        body: 'FOR UPDATE NEVER_PUBLIC_SEARCH',
+        published: false,
+      },
+    ];
+    try {
+      for (const sample of samples) {
+        const value = {
+          ...emptyContent,
+          title: sample.title,
+          slug: sample.id,
+          body: sample.body,
+          category: '搜尋測試',
+        };
+        await database
+          .getPool()
+          .query(
+            'INSERT INTO entries(id,kind,content,published,published_at) VALUES($1,$2,$3,$4,now())',
+            [
+              sample.id,
+              'article',
+              JSON.stringify(value),
+              sample.published ? JSON.stringify(value) : null,
+            ],
+          );
+      }
+      const ids = async (q: string) =>
+        (await content.listPublished({ kind: 'article', category: '搜尋測試', q })).items
+          .map((entry) => entry.id)
+          .sort();
+      expect(await ids('MES 併發')).toEqual(['search-a']);
+      expect(await ids('MES "FOR UPDATE"')).toEqual(['search-a']);
+      expect(await ids('MES FOR UPDATE')).toEqual(['search-a', 'search-b']);
+      expect(await ids('100%_')).toEqual(['search-a']);
+      expect(await ids("%' OR TRUE --")).toEqual([]);
+      expect(await ids('NEVER_PUBLIC_SEARCH')).toEqual([]);
+    } finally {
+      await database
+        .getPool()
+        .query('DELETE FROM entries WHERE id = ANY($1::text[])', [
+          samples.map((sample) => sample.id),
+        ]);
+    }
   });
   it('has stable ID tie-breakers across page boundaries', async () => {
     await database

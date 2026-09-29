@@ -6,7 +6,17 @@ import '../styles/home-refinements.css';
 import LanguageToggle from '../components/public/LanguageToggle.astro';
 import { uiLabel, uiText, type UiKey } from '../lib/ui-language';
 import Icon from '../components/public/Icon.astro';
-import type { SiteSettings } from '../lib/types';
+import type { PublicEntry, SiteSettings } from '../lib/types';
+import {
+  contentLanguage as detectContentLanguage,
+  openGraphLocale,
+  type ContentLanguage,
+} from '../lib/reading';
+import {
+  articleStructuredData,
+  defaultShareImage,
+  safeStructuredJson,
+} from '../lib/public-metadata';
 
 interface Props {
   settings: SiteSettings;
@@ -15,6 +25,8 @@ interface Props {
   description?: string;
   image?: string;
   article?: boolean;
+  entry?: PublicEntry;
+  contentLanguage?: ContentLanguage;
 }
 
 const {
@@ -24,6 +36,8 @@ const {
   description = settings.description,
   image,
   article = false,
+  entry,
+  contentLanguage = detectContentLanguage(`${settings.homeIntro}\n${settings.description}`),
 } = Astro.props;
 const author = settings.authorName || settings.siteName;
 const pageTitle = title
@@ -33,7 +47,14 @@ const titleZh = titleKey ? `${uiText(titleKey, 'zh-TW')} · ${settings.siteName}
 const siteUrl = settings.siteUrl || Astro.url.origin;
 const canonical = new URL(Astro.url.pathname, siteUrl).href;
 const socialImage =
-  image || (settings.heroImage !== '/images/kaiyo-hero.png' ? settings.heroImage : '');
+  image ||
+  (entry
+    ? defaultShareImage(entry)
+    : (settings.heroImage !== '/images/kaiyo-hero.png' ? settings.heroImage : '') ||
+      defaultShareImage());
+const generatedImage = socialImage.startsWith('/og/');
+const structuredArticle =
+  article && entry ? articleStructuredData(entry, settings, socialImage) : undefined;
 const navItems = [
   { href: '/', label: 'Home', icon: 'home' },
   { href: '/articles', label: 'Articles', icon: 'file' },
@@ -54,6 +75,7 @@ const active = (href: string) =>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#f8f4e6" />
     <title
+      lang={titleKey ? undefined : contentLanguage}
       data-ui-title-en={titleKey ? pageTitle : undefined}
       data-ui-title-zh={titleZh}
     >{pageTitle}</title>
@@ -70,9 +92,32 @@ const active = (href: string) =>
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     {socialImage && <meta property="og:image" content={new URL(socialImage, siteUrl).href} />}
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:image:alt" content={title || settings.siteName} />
+    {generatedImage && (
+      <>
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+      </>
+    )}
+    <meta property="og:locale" content={openGraphLocale(contentLanguage)} />
     <meta property="og:site_name" content={settings.siteName} />
     <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:image" content={new URL(socialImage, siteUrl).href} />
+    {article && entry && (
+      <>
+        <meta property="article:published_time" content={entry.publishedAt} />
+        <meta property="article:modified_time" content={entry.updatedAt} />
+        <meta property="article:author" content={new URL('/about', siteUrl).href} />
+      </>
+    )}
+    {structuredArticle && (
+      <script
+        type="application/ld+json"
+        is:inline
+        set:html={safeStructuredJson(structuredArticle)}
+      ></script>
+    )}
     <script is:inline>
       (() => {
         let saved;
@@ -163,7 +208,7 @@ const active = (href: string) =>
           <strong>{author}</strong>
         </a>
         .
-        <span data-original-content translate="no">
+        <span lang={detectContentLanguage(settings.bio)} data-original-content translate="no">
           {settings.bio || 'Software engineer sharing development notes and personal projects.'}
         </span>
       </p>

@@ -2,6 +2,7 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import sharp from 'sharp';
 import type { Entry, Media, SiteSettings } from '../../src/lib/types';
 import { signInForFixture } from './helpers/auth';
+import { restoreSettingsFixture } from './helpers/settings';
 let state: Awaited<ReturnType<BrowserContext['storageState']>>;
 let editorEntry: Entry;
 let image: Media;
@@ -295,10 +296,7 @@ test('settings warn before sign-out and retain edits typed during a save', async
   } finally {
     release();
     await page.unroute('**/api/admin/settings');
-    await page.request.put('/api/admin/settings', {
-      headers: { Origin: baseURL! },
-      data: original,
-    });
+    await restoreSettingsFixture(page.request, baseURL!, original);
   }
 });
 

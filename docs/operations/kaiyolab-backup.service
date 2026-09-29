@@ -1,0 +1,15 @@
+[Unit]
+Description=KaiyoLab 每日完整備份
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/kaiyolab-backup.conf
+ExecStart=/usr/bin/python3 /usr/local/lib/kaiyolab/backup-kubernetes.py --namespace ${NAMESPACE} --app-deployment ${APP_DEPLOYMENT} --database-deployment ${DATABASE_DEPLOYMENT} --backup-root ${BACKUP_ROOT} --retention-days 14
+UMask=0077
+PrivateTmp=true
+NoNewPrivileges=true
+TimeoutStartSec=900
+Nice=10

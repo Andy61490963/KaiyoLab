@@ -79,6 +79,7 @@ export const systemState = pgTable('system_state', {
 export const settings = pgTable('settings', {
   id: integer().primaryKey(),
   value: jsonb().$type<SiteSettings>().notNull(),
+  version: integer().notNull().default(1),
 });
 export const entries = pgTable('entries', {
   id: text().primaryKey(),

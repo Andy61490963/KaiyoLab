@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { inArray, sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import { z } from 'zod';
-import { db, entries, entryRevisions, media, settings, taxonomies } from './db';
+import { db, entries, entryRevisions, entrySlugs, media, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
 import { defaultHomeIntro } from './home-intro';
 import { contentSchema, HttpError, settingsSchema } from './http';
@@ -15,6 +15,7 @@ import { assertAvailableSlug } from './publishing';
 import { recordRevision } from './history';
 import { DRAFT_REVISION_LIMIT } from './history-rules';
 import type { EntryContent, SiteSettings } from './types';
+import { archiveUrl, rewriteMarkdownUrls } from './markdown-links';
 
 const compress = promisify(gzip);
 const decompress = promisify(gunzip);
@@ -50,6 +51,30 @@ const archiveSchema = z
     format: z.literal('kaiyolab-content'),
     version: z.literal(1),
     exportedAt: z.iso.datetime({ offset: true }),
+    sourceOrigin: z
+      .string()
+      .max(2048)
+      .refine((value) => {
+        try {
+          const url = new URL(value);
+          return ['http:', 'https:'].includes(url.protocol) && url.origin === value;
+        } catch {
+          return false;
+        }
+      }, '來源網域必須是 HTTP 或 HTTPS origin')
+      .optional(),
+    aliases: z
+      .array(
+        z
+          .object({
+            entryId: z.uuid(),
+            kind: z.enum(['article', 'project']),
+            slug: contentSchema.shape.slug,
+          })
+          .strict(),
+      )
+      .max(10000)
+      .optional(),
     settings: portableSettings,
     entries: z
       .array(
@@ -132,13 +157,29 @@ export interface TransferPreview {
     revisions: number;
     fromTrash: number;
     trimmedDraftRevisions: number;
+    rewrittenLinks: number;
   };
   adjustments: { type: string; from: string; to: string }[];
+  linkChanges: { location: string; from: string; to: string }[];
+  omittedLinkChanges: number;
   applySettings: boolean;
   settings: { siteName: string; authorName: string };
 }
 const uploadDir = () => path.resolve(process.env.UPLOAD_DIR || 'data/uploads');
 const digest = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
+function rejectedCommit(error: unknown) {
+  for (
+    let current = error, depth = 0;
+    depth < 4 && current && typeof current === 'object';
+    depth++
+  ) {
+    const { code, cause } = current as { code?: unknown; cause?: unknown };
+    // 明確的資料／約束／交易回復／SQL／使用者例外代表提交已被拒絕
+    if (typeof code === 'string' && /^(22|23|40|42|P0)[A-Z0-9]{3}$/.test(code)) return true;
+    current = cause;
+  }
+  return false;
+}
 const unique = (values: string[], label: string) => {
   if (new Set(values).size !== values.length)
     throw new HttpError(400, `Duplicate ${label} in the archive.`);
@@ -204,6 +245,17 @@ export async function decodeArchive(input: Buffer): Promise<LoadedArchive> {
   const entryIds = new Set(archive.entries.map((item) => item.id));
   if (archive.revisions.some((revision) => !entryIds.has(revision.entryId)))
     throw new HttpError(400, 'A revision references missing content.');
+  unique(
+    (archive.aliases || []).map((alias) => `${alias.kind}:${alias.slug}`),
+    'published URLs',
+  );
+  if (
+    (archive.aliases || []).some(
+      (alias) =>
+        !archive.entries.some((entry) => entry.id === alias.entryId && entry.kind === alias.kind),
+    )
+  )
+    throw new HttpError(400, '舊網址指向不存在或不同類型的內容');
   const images = new Map<string, Buffer>();
   let imageBytes = 0;
   let cleanedBytes = 0;
@@ -249,12 +301,32 @@ export async function decodeArchive(input: Buffer): Promise<LoadedArchive> {
   return { archive, images, digest: digest(input) };
 }
 
-function rewriteImages<T>(value: T, ids: Map<string, string>): T {
-  return JSON.parse(
-    JSON.stringify(value).replace(/\/media\/([a-f0-9-]+)\.webp/gi, (url, id) =>
-      ids.has(id) ? mediaUrl(ids.get(id)!) : url,
-    ),
-  );
+function rewriteImageUrl(
+  url: string,
+  ids: Map<string, string>,
+  currentPath: string,
+  origin?: string,
+) {
+  const target = archiveUrl(url, currentPath, origin);
+  const id = target?.pathname.match(/^\/media\/([a-f0-9-]+)\.webp$/i)?.[1];
+  return id && ids.has(id) ? `${mediaUrl(ids.get(id)!)}${target!.search}${target!.hash}` : url;
+}
+function rewriteImages<T extends EntryContent | Omit<SiteSettings, 'siteUrl'>>(
+  value: T,
+  ids: Map<string, string>,
+  currentPath: string,
+  origin?: string,
+): T {
+  const result = { ...value } as Record<string, unknown>;
+  for (const field of ['cover', 'logo', 'avatar', 'heroImage'])
+    if (typeof result[field] === 'string')
+      result[field] = rewriteImageUrl(result[field] as string, ids, currentPath, origin);
+  for (const field of ['body', 'about', 'homeIntro'])
+    if (typeof result[field] === 'string')
+      result[field] = rewriteMarkdownUrls(result[field] as string, (url) =>
+        rewriteImageUrl(url, ids, currentPath, origin),
+      ).text;
+  return result as T;
 }
 function available(base: string, used: Set<string>, max: number) {
   let candidate = base;
@@ -286,6 +358,65 @@ async function planImport(database: Database, loaded: LoadedArchive, applySettin
       adjustments.push({ type: entry.kind, from: entry.content.slug, to: slug });
     return { ...entry, content: { ...entry.content, slug } };
   });
+  const route = (kind: string, slug: string) =>
+    `/${kind === 'article' ? 'articles' : 'projects'}/${slug}`;
+  const targets = new Map(
+    plannedEntries.map((entry) => [
+      entry.id,
+      route(entry.kind, encodeURIComponent(entry.content.slug)),
+    ]),
+  );
+  const routeOwners = new Map<string, { entryId: string; priority: number }>();
+  const addRoute = (kind: string, slug: string, entryId: string, priority: number) => {
+    const source = route(kind, slug);
+    const current = routeOwners.get(source);
+    if (current && current.entryId !== entryId && current.priority === priority)
+      throw new HttpError(400, `封存檔含無法判別歸屬的站內網址：${source}`);
+    if (!current || priority > current.priority) routeOwners.set(source, { entryId, priority });
+  };
+  for (const entry of archive.entries) {
+    addRoute(entry.kind, entry.content.slug, entry.id, entry.deletedAt ? 1 : 2);
+    if (entry.published) addRoute(entry.kind, entry.published.slug, entry.id, 3);
+  }
+  for (const revision of archive.revisions.filter((item) => item.source === 'published')) {
+    const entry = archive.entries.find((entry) => entry.id === revision.entryId)!;
+    addRoute(entry.kind, revision.content.slug, entry.id, 3);
+  }
+  for (const alias of archive.aliases || []) addRoute(alias.kind, alias.slug, alias.entryId, 3);
+  const linkChanges: TransferPreview['linkChanges'] = [];
+  let rewrittenLinks = 0;
+  const rewriteLinks = (body: string, currentPath: string, location: string) => {
+    const rewritten = rewriteMarkdownUrls(body, (url) => {
+      const target = archiveUrl(url, currentPath, archive.sourceOrigin);
+      if (!target) return url;
+      let pathname: string;
+      try {
+        pathname = decodeURIComponent(target.pathname).replace(/\/$/, '');
+      } catch {
+        return url;
+      }
+      const owner = routeOwners.get(pathname);
+      return owner ? `${targets.get(owner.entryId)}${target.search}${target.hash}` : url;
+    });
+    rewrittenLinks += rewritten.changes.length;
+    for (const change of rewritten.changes)
+      if (linkChanges.length < 100) linkChanges.push({ location, ...change });
+    return rewritten.text;
+  };
+  // 先配置所有新代稱，第二輪才改寫，向前／跨類型連結也能對到本批匯入的草稿
+  for (const entry of plannedEntries) {
+    const original = archive.entries.find((source) => source.id === entry.id)!;
+    entry.content.body = rewriteLinks(
+      original.content.body,
+      route(entry.kind, original.content.slug),
+      `${original.content.title} · 草稿`,
+    );
+  }
+  const plannedSettings = { ...archive.settings };
+  if (applySettings) {
+    plannedSettings.about = rewriteLinks(plannedSettings.about, '/about', '關於我');
+    plannedSettings.homeIntro = rewriteLinks(plannedSettings.homeIntro, '/', '首頁介紹');
+  }
   const taxonomyNames = new Set(existingTaxonomies.map((item) => `${item.kind}:${item.name}`));
   const taxonomySlugs = new Map(
     ['category', 'tag'].map((kind) => [
@@ -363,7 +494,15 @@ async function planImport(database: Database, loaded: LoadedArchive, applySettin
     for (const revision of selected)
       plannedRevisions.push({
         ...revision,
-        content: { ...revision.content, slug: entry.content.slug },
+        content: {
+          ...revision.content,
+          slug: entry.content.slug,
+          body: rewriteLinks(
+            revision.content.body,
+            route(entry.kind, revision.content.slug),
+            `${revision.content.title} · ${revision.source === 'published' ? '發布版本' : '歷史草稿'}`,
+          ),
+        },
       });
   }
   const preview: TransferPreview = {
@@ -373,7 +512,9 @@ async function planImport(database: Database, loaded: LoadedArchive, applySettin
         applySettings,
         current: current.map((entry) => [entry.id, entry.version]).sort(),
         media: currentMedia.map((item) => item.id).sort(),
-        settings: currentSettings?.value,
+        settings: currentSettings
+          ? { value: currentSettings.value, version: currentSettings.version }
+          : undefined,
         slugs: plannedEntries.map((entry) => entry.content.slug),
         taxonomies: plannedTaxonomies,
         adjustments,
@@ -389,12 +530,15 @@ async function planImport(database: Database, loaded: LoadedArchive, applySettin
       revisions: plannedRevisions.length + plannedEntries.length,
       fromTrash: archive.entries.filter((entry) => entry.deletedAt).length,
       trimmedDraftRevisions,
+      rewrittenLinks,
     },
     adjustments,
+    linkChanges,
+    omittedLinkChanges: rewrittenLinks - linkChanges.length,
     applySettings,
     settings: { siteName: archive.settings.siteName, authorName: archive.settings.authorName },
   };
-  return { preview, plannedEntries, plannedTaxonomies, plannedRevisions };
+  return { preview, plannedEntries, plannedTaxonomies, plannedRevisions, plannedSettings };
 }
 
 export async function previewImport(loaded: LoadedArchive, applySettings = false) {
@@ -412,6 +556,7 @@ export async function importArchive(loaded: LoadedArchive, review: string, apply
   const mediaIds = new Map(loaded.archive.media.map((image) => [image.id, randomUUID()]));
   const entryIds = new Map(loaded.archive.entries.map((entry) => [entry.id, randomUUID()]));
   const placed: string[] = [];
+  let readyToCommit = false;
   await mkdir(stage, { recursive: true });
   try {
     for (const [oldId, newId] of mediaIds)
@@ -447,30 +592,47 @@ export async function importArchive(loaded: LoadedArchive, review: string, apply
         await tx.insert(entries).values({
           id,
           kind: entry.kind,
-          content: rewriteImages(entry.content, mediaIds) as EntryContent,
+          content: rewriteImages(
+            entry.content,
+            mediaIds,
+            `/${entry.kind === 'article' ? 'articles' : 'projects'}/${entry.content.slug}`,
+            loaded.archive.sourceOrigin,
+          ),
           published: null,
           publishedAt: null,
           version: 1,
         });
       }
       const importedAt = new Date();
-      for (const revision of plan.plannedRevisions)
+      for (const revision of plan.plannedRevisions) {
+        const entry = plan.plannedEntries.find((entry) => entry.id === revision.entryId)!;
         await tx.insert(entryRevisions).values({
           ...revision,
           id: randomUUID(),
           entryId: entryIds.get(revision.entryId)!,
-          content: rewriteImages(revision.content, mediaIds) as EntryContent,
+          content: rewriteImages(
+            revision.content,
+            mediaIds,
+            `/${entry.kind === 'article' ? 'articles' : 'projects'}/${revision.content.slug}`,
+            loaded.archive.sourceOrigin,
+          ),
           createdAt:
             revision.source === 'published'
               ? new Date(revision.createdAt)
               : new Date(Math.min(Date.parse(revision.createdAt), importedAt.getTime() - 1)),
         });
+      }
       for (const entry of plan.plannedEntries)
         await recordRevision(
           database,
           {
             id: entryIds.get(entry.id)!,
-            content: rewriteImages(entry.content, mediaIds) as EntryContent,
+            content: rewriteImages(
+              entry.content,
+              mediaIds,
+              `/${entry.kind === 'article' ? 'articles' : 'projects'}/${entry.content.slug}`,
+              loaded.archive.sourceOrigin,
+            ),
             version: 1,
           },
           'draft',
@@ -480,13 +642,16 @@ export async function importArchive(loaded: LoadedArchive, review: string, apply
       if (applySettings) {
         const [current] = await tx.select().from(settings);
         const value = settingsSchema.parse({
-          ...rewriteImages(loaded.archive.settings, mediaIds),
+          ...rewriteImages(plan.plannedSettings, mediaIds, '/', loaded.archive.sourceOrigin),
           siteUrl: process.env.SITE_URL || current?.value.siteUrl || defaultSettings.siteUrl,
         });
         await tx
           .insert(settings)
           .values({ id: 1, value })
-          .onConflictDoUpdate({ target: settings.id, set: { value } });
+          .onConflictDoUpdate({
+            target: settings.id,
+            set: { value, version: sql`${settings.version} + 1` },
+          });
       }
       // 檔案先原子搬入，資料庫最後提交；任一步驟失敗會回復交易並移除本次新檔
       for (const id of mediaIds.values()) {
@@ -494,12 +659,13 @@ export async function importArchive(loaded: LoadedArchive, review: string, apply
         await rename(path.join(stage, `${id}.webp`), destination);
         placed.push(destination);
       }
+      readyToCommit = true;
       return { ...plan.preview, entryIds: [...entryIds.values()] };
     });
     return result;
   } catch (error) {
     // COMMIT 後斷線可能只是回應遺失，重新查證後才清理，避免刪掉已提交的圖片
-    if (placed.length) {
+    if (placed.length && (!readyToCommit || rejectedCommit(error))) {
       const persisted = await db()
         .select({ id: media.id })
         .from(media)
@@ -536,6 +702,7 @@ export async function exportArchive(): Promise<Buffer> {
     const allMedia = await tx.select().from(media);
     const allTaxonomies = await tx.select().from(taxonomies);
     const revisions = await tx.select().from(entryRevisions);
+    const aliases = await tx.select().from(entrySlugs);
     const [config] = await tx.select().from(settings);
     const merged: SiteSettings = { ...defaultSettings, ...config?.value };
     merged.homeIntro ||= defaultHomeIntro(merged);
@@ -544,7 +711,8 @@ export async function exportArchive(): Promise<Buffer> {
       allEntries.length > transferLimits.entries ||
       allMedia.length > transferLimits.images ||
       revisions.length > transferLimits.revisions ||
-      allTaxonomies.length > transferLimits.taxonomies
+      allTaxonomies.length > transferLimits.taxonomies ||
+      aliases.length > 10000
     )
       throw new HttpError(
         413,
@@ -592,6 +760,12 @@ export async function exportArchive(): Promise<Buffer> {
       format: 'kaiyolab-content',
       version: 1,
       exportedAt: new Date().toISOString(),
+      sourceOrigin: new URL(process.env.SITE_URL || merged.siteUrl).origin,
+      aliases: aliases.map((alias) => ({
+        entryId: alias.entryId,
+        kind: alias.kind,
+        slug: alias.slug,
+      })),
       settings: publicSettings,
       entries: allEntries.map((entry) => ({
         id: entry.id,

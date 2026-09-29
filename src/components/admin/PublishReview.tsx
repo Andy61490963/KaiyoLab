@@ -72,7 +72,7 @@ export default function PublishReview({
                   </section>
                 ) : (
                   <p className="admin-review-ready">
-                    No missing summaries, image descriptions, or broken content links found
+                    摘要、圖片替代文字、站內連結、章節錨點與 Mermaid 圖表檢查未發現問題
                   </p>
                 )}
                 <ContentDifference diff={review.diff} />

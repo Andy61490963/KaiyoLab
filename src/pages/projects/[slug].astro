@@ -6,6 +6,7 @@ import { uiLabel } from '../../lib/ui-language';
 import { getSettings, getPublished, publishedRedirect } from '../../lib/content';
 import { mediaPresentation } from '../../lib/media-presentation';
 import { renderMarkdown } from '../../lib/markdown';
+import { contentLanguage } from '../../lib/reading';
 const [settings, entry] = await Promise.all([
   getSettings(),
   getPublished('project', Astro.params.slug || ''),
@@ -16,6 +17,7 @@ if (!entry) {
   return Astro.rewrite('/404');
 }
 const rendered = await renderMarkdown(entry.body);
+const language = contentLanguage(`${entry.title}\n${entry.excerpt}\n${entry.body}`);
 ---
 
 <PublicLayout
@@ -23,6 +25,8 @@ const rendered = await renderMarkdown(entry.body);
   title={entry.seoTitle || entry.title}
   description={entry.seoDescription || entry.excerpt}
   image={entry.cover || undefined}
+  entry={entry}
+  contentLanguage={language}
 >
   <article class="page-shell project-detail">
     <a class="back-link" href="/projects">
@@ -33,10 +37,12 @@ const rendered = await renderMarkdown(entry.body);
         <span class="eyebrow">
           <Ui text="A PROJECT BY" /> {settings.authorName || settings.siteName}
         </span>
-        <h1 data-original-content translate="no">
+        <h1 lang={language} data-original-content translate="no">
           {entry.title}
         </h1>
-        <p>{entry.excerpt}</p>
+        <p lang={language} data-original-content translate="no">
+          {entry.excerpt}
+        </p>
         <div class="entry-tags">
           {entry.tags.map((tag) => (
             <span class="technology-tag">{tag}</span>
@@ -80,7 +86,13 @@ const rendered = await renderMarkdown(entry.body);
     )}
     <div class="reading-layout">
       <div class="article-body">
-        <div class="prose" data-original-content translate="no" set:html={rendered.html} />
+        <div
+          class="prose"
+          lang={language}
+          data-original-content
+          translate="no"
+          set:html={rendered.html}
+        />
       </div>
       <aside class="article-toc">
         <div class="toc-inner">

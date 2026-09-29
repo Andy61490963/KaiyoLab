@@ -13,6 +13,7 @@ import {
 } from '../../lib/content';
 import { mediaPresentation } from '../../lib/media-presentation';
 import { renderMarkdown } from '../../lib/markdown';
+import { contentLanguage } from '../../lib/reading';
 import '../../styles/article-detail.css';
 
 const [settings, entry] = await Promise.all([
@@ -26,6 +27,7 @@ if (!entry) {
 }
 const series = await seriesNavigation(entry);
 const rendered = await renderMarkdown(entry.body);
+const language = contentLanguage(`${entry.title}\n${entry.excerpt}\n${entry.body}`);
 const related = await listPublished({
   kind: 'article',
   category: entry.category || undefined,
@@ -61,6 +63,8 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
   description={entry.seoDescription || entry.excerpt}
   image={entry.cover || undefined}
   article
+  entry={entry}
+  contentLanguage={language}
 >
   <article
     class="page-shell article-page article-detail"
@@ -103,11 +107,11 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
               <Ui text="{count} min read" values={{ count: rendered.readingMinutes }} />
             </span>
           </div>
-          <h1 id="article-title" data-original-content translate="no">
+          <h1 id="article-title" lang={language} data-original-content translate="no">
             {entry.title}
           </h1>
           {entry.excerpt && (
-            <p class="article-lead" data-original-content translate="no">
+            <p class="article-lead" lang={language} data-original-content translate="no">
               {entry.excerpt}
             </p>
           )}
@@ -151,6 +155,7 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
                   class:list={{ 'toc-sub': item.depth > 2 }}
                   href={`#${encodeURIComponent(item.id)}`}
                   data-toc-target={item.id}
+                  lang={language}
                   data-original-content
                   translate="no"
                 >
@@ -163,6 +168,7 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
         <div class="article-body">
           <div
             class="prose article-prose"
+            lang={language}
             data-original-content
             translate="no"
             set:html={rendered.html}
@@ -236,6 +242,7 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
                     class:list={{ 'toc-sub': item.depth > 2 }}
                     href={`#${encodeURIComponent(item.id)}`}
                     data-toc-target={item.id}
+                    lang={language}
                     data-original-content
                     translate="no"
                   >

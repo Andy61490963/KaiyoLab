@@ -7,6 +7,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeStringify from 'rehype-stringify';
 import rehypePrettyCode from 'rehype-pretty-code';
 import { visit } from 'unist-util-visit';
+import { readingMinutes } from './reading';
 export async function renderMarkdown(source: string) {
   const toc: { id: string; text: string; depth: number }[] = [];
   const result = await unified()
@@ -111,9 +112,6 @@ export async function renderMarkdown(source: string) {
   return {
     html: String(result),
     toc,
-    readingMinutes: Math.max(
-      1,
-      Math.ceil((source.match(/[\u3400-\u9fff]|[a-zA-Z0-9]+/g) || []).length / 350),
-    ),
+    readingMinutes: readingMinutes(source),
   };
 }
