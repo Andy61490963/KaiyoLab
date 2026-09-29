@@ -838,13 +838,19 @@ function MediaLibrary({
   picker?: boolean;
   onSelect?: (media: Media) => void;
 }) {
-  const { state, query, setQuery, update, setPage, clear, searchParams } = useListing(
-    adminMediaList,
-    !picker,
-  );
+  const { state, query, setQuery, update, setPage, clear, searchParams, searchPending } =
+    useListing(adminMediaList, !picker);
   const listUrl = `/api/admin/media?${searchParams}`;
-  const { data, resolvedUrl, error, setError, loading, refresh } =
-    useRemote<ListResult<Media>>(listUrl);
+  const {
+    data,
+    resolvedUrl,
+    error,
+    setError,
+    loading: requestLoading,
+    refresh,
+  } = useRemote<ListResult<Media>>(listUrl);
+  // 搜尋尚未提交、或畫面仍是上一個查詢時，舊頁碼不可用來翻頁
+  const loading = requestLoading || searchPending || (!error && resolvedUrl !== listUrl);
   useEffect(() => {
     if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
   }, [data, resolvedUrl, listUrl, loading, setPage]);
@@ -1028,7 +1034,7 @@ function MediaLibrary({
       )}
       {loading ? (
         <p className="admin-loading">Loading media library…</p>
-      ) : error && !data ? (
+      ) : error && (!data || resolvedUrl !== listUrl) ? (
         <p className="admin-loading">Unable to load images. Use Refresh media to try again.</p>
       ) : !data?.items.length ? (
         state.q ? (
@@ -1054,7 +1060,12 @@ function MediaLibrary({
           ))}
         </div>
       )}
-      <ListPager info={data} loading={loading} onPage={setPage} label="Media pagination" />
+      <ListPager
+        info={error && resolvedUrl !== listUrl ? null : data}
+        loading={loading}
+        onPage={setPage}
+        label="Media pagination"
+      />
     </>
   );
 }

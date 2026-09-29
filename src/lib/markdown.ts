@@ -14,6 +14,76 @@ export async function renderMarkdown(source: string) {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSanitize)
+    .use(() => (tree) => {
+      visit(tree, 'element', (node: any) => {
+        const code = node.tagName === 'pre' && node.children?.[0];
+        if (code?.tagName !== 'code' || !code.properties?.className?.includes('language-mermaid'))
+          return;
+        const text = code.children
+          .filter((n: any) => n.type === 'text')
+          .map((n: any) => n.value)
+          .join('');
+        node.tagName = 'figure';
+        node.properties = { className: ['markdown-diagram'], dataMarkdownDiagram: '' };
+        node.children = [
+          {
+            type: 'element',
+            tagName: 'div',
+            properties: {
+              className: ['diagram-canvas'],
+              dataDiagramCanvas: '',
+              hidden: true,
+              tabIndex: 0,
+              role: 'region',
+              ariaLabel: '流程圖 / Diagram',
+            },
+            children: [],
+          },
+          {
+            type: 'element',
+            tagName: 'p',
+            properties: { className: ['diagram-status'], dataDiagramStatus: '', role: 'status' },
+            children: [],
+          },
+          {
+            type: 'element',
+            tagName: 'p',
+            properties: {
+              className: ['diagram-scroll-hint'],
+              dataDiagramScrollHint: '',
+              hidden: true,
+            },
+            children: [{ type: 'text', value: 'Scroll sideways · 可左右捲動查看完整圖表' }],
+          },
+          {
+            type: 'element',
+            tagName: 'details',
+            properties: { open: true, dataDiagramSource: '' },
+            children: [
+              {
+                type: 'element',
+                tagName: 'summary',
+                properties: {},
+                children: [{ type: 'text', value: 'Mermaid · 圖表原始碼' }],
+              },
+              {
+                type: 'element',
+                tagName: 'pre',
+                properties: {},
+                children: [
+                  {
+                    type: 'element',
+                    tagName: 'code',
+                    properties: { className: ['language-text'] },
+                    children: [{ type: 'text', value: text }],
+                  },
+                ],
+              },
+            ],
+          },
+        ];
+      });
+    })
     .use(rehypeSlug, { prefix: 'section-' })
     .use(() => (tree) => {
       visit(tree, 'element', (node: any) => {

@@ -240,58 +240,62 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
               <Ui text="A short read without section headings." />
             </p>
           )}
-          {relatedItems.length > 0 && (
-            <section class="article-rail-section" aria-labelledby="article-related-heading">
-              <h2 id="article-related-heading">
-                <Icon name="file" size={18} /> <Ui text="You might also like" />
-              </h2>
-              <ul class="article-rail-related" data-original-content translate="no">
-                {relatedItems.map((item) => (
-                  <li>
-                    <a href={`/articles/${encodeURIComponent(item.slug)}`}>{item.title}</a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {entry.tags.length > 0 && (
-            <section class="article-rail-section" aria-labelledby="article-tags-heading">
-              <h2 id="article-tags-heading">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="m20 13-7 7a2 2 0 0 1-3 0L2 12V2h10l8 8a2 2 0 0 1 0 3Z" />
-                  <circle cx="7" cy="7" r="1" />
-                </svg>
-                <Ui text="Tags" />
-              </h2>
-              <div class="article-rail-tags" data-original-content translate="no">
-                {entry.tags.map((tag) => (
-                  <a href={`/articles?tag=${encodeURIComponent(tag)}`}>{tag}</a>
-                ))}
-              </div>
-            </section>
-          )}
-          {settings.tagline && (
-            <div class="article-rail-section">
-              <figure class="article-rail-note" data-original-content translate="no">
-                <p>{settings.tagline}</p>
-                <figcaption>— {settings.siteName}.</figcaption>
-              </figure>
-            </div>
-          )}
           <a class="toc-top" href="#main-content">
             <Ui text="Back to top ↑" />
           </a>
         </div>
+        {(relatedItems.length > 0 || entry.tags.length > 0 || settings.tagline) && (
+          <div class="article-rail-supplement">
+            {relatedItems.length > 0 && (
+              <section class="article-rail-section" aria-labelledby="article-related-heading">
+                <h2 id="article-related-heading">
+                  <Icon name="file" size={18} /> <Ui text="You might also like" />
+                </h2>
+                <ul class="article-rail-related" data-original-content translate="no">
+                  {relatedItems.map((item) => (
+                    <li>
+                      <a href={`/articles/${encodeURIComponent(item.slug)}`}>{item.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {entry.tags.length > 0 && (
+              <section class="article-rail-section" aria-labelledby="article-tags-heading">
+                <h2 id="article-tags-heading">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m20 13-7 7a2 2 0 0 1-3 0L2 12V2h10l8 8a2 2 0 0 1 0 3Z" />
+                    <circle cx="7" cy="7" r="1" />
+                  </svg>
+                  <Ui text="Tags" />
+                </h2>
+                <div class="article-rail-tags" data-original-content translate="no">
+                  {entry.tags.map((tag) => (
+                    <a href={`/articles?tag=${encodeURIComponent(tag)}`}>{tag}</a>
+                  ))}
+                </div>
+              </section>
+            )}
+            {settings.tagline && (
+              <div class="article-rail-section">
+                <figure class="article-rail-note" data-original-content translate="no">
+                  <p>{settings.tagline}</p>
+                  <figcaption>— {settings.siteName}.</figcaption>
+                </figure>
+              </div>
+            )}
+          </div>
+        )}
       </aside>
     </div>
   </article>
@@ -363,6 +367,15 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
     if (headings.length) {
       let activeId = '';
       let scheduled = false;
+      const fragmentHeading = () => {
+        try {
+          const id = decodeURIComponent(location.hash.slice(1));
+          return headings.find((heading) => heading.id === id)?.id || '';
+        } catch {
+          return '';
+        }
+      };
+      let anchoredId = fragmentHeading();
       const update = () => {
         scheduled = false;
         const headerHeight =
@@ -405,10 +418,36 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
       };
       window.addEventListener('scroll', schedule, { passive: true });
       window.addEventListener('resize', schedule, { passive: true });
-      window.addEventListener('hashchange', schedule);
+      window.addEventListener('hashchange', () => {
+        anchoredId = fragmentHeading();
+        schedule();
+      });
       window.addEventListener('pageshow', schedule);
       window.addEventListener('load', schedule);
       document.addEventListener('kaiyo:ui-language', schedule);
+      // Late-rendered diagrams can move an anchor after native fragment navigation.
+      // Preserve that reading target only until the reader starts navigating manually.
+      const releaseAnchor = () => {
+        anchoredId = '';
+      };
+      window.addEventListener('wheel', releaseAnchor, { passive: true });
+      window.addEventListener('touchstart', releaseAnchor, { passive: true });
+      window.addEventListener('pointerdown', releaseAnchor, { passive: true });
+      window.addEventListener('keydown', (event) => {
+        if (
+          ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', 'Tab', ' '].includes(
+            event.key,
+          )
+        )
+          releaseAnchor();
+      });
+      document.addEventListener('kaiyo:diagram-rendered', () => {
+        if (anchoredId && anchoredId === fragmentHeading())
+          document
+            .getElementById(anchoredId)
+            ?.scrollIntoView({ block: 'start', behavior: 'instant' });
+        schedule();
+      });
       const column = article.querySelector('.article-reading-column');
       if (typeof ResizeObserver !== 'undefined' && column)
         new ResizeObserver(schedule).observe(column);
@@ -424,6 +463,7 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
           ? document.getElementById(link.dataset.tocTarget)
           : null;
         if (!heading) return;
+        anchoredId = heading.id;
         heading.setAttribute('tabindex', '-1');
         heading.focus({ preventScroll: true });
       });

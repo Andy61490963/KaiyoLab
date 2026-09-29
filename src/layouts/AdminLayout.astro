@@ -34,5 +34,9 @@ const { title = 'Admin' } = Astro.props;
   </head>
   <body>
     <slot />
+    <script>
+      import { initializeDiagrams } from '../scripts/diagrams';
+      initializeDiagrams();
+    </script>
   </body>
 </html>

@@ -1,0 +1,49 @@
+.prose .markdown-diagram {
+  margin: 1.5rem 0;
+  max-width: 100%;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.diagram-canvas {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  max-width: 100%;
+}
+.diagram-canvas svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  min-width: 320px;
+}
+.prose .markdown-diagram details {
+  margin-top: 0.5rem;
+}
+.prose .markdown-diagram summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.prose .markdown-diagram summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.prose .markdown-diagram pre {
+  margin-bottom: 0;
+  white-space: pre;
+}
+.diagram-status {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.diagram-status:empty {
+  display: none;
+}
+.prose .diagram-scroll-hint {
+  margin: 0.5rem 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}

@@ -254,6 +254,7 @@
 }
 .public-site .article-detail .article-rail-card {
   position: sticky;
+  z-index: 1;
   top: 80px;
   max-height: calc(100dvh - 104px);
   overflow-y: auto;
@@ -262,9 +263,11 @@
   padding: 24px 22px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--surface) 24%, var(--bg));
+  /* Opaque while supplementary information scrolls behind the reading tools. */
+  background: var(--bg);
 }
-.public-site .article-detail .article-rail-card h2 {
+.public-site .article-detail .article-rail-card h2,
+.public-site .article-detail .article-rail-supplement h2 {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -276,6 +279,19 @@
 }
 .public-site .article-detail .article-rail-card > h2 {
   font-size: 19px;
+}
+.article-detail .article-rail-supplement {
+  position: relative;
+  margin-top: 24px;
+  padding: 24px 22px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 24%, var(--bg));
+}
+.article-detail .article-rail-supplement > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 .article-detail .article-rail-section {
   margin-top: 24px;
