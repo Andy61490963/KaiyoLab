@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import {
   ArrowRight,
   ArrowUpRight,
+  ArrowUpDown,
   Activity,
   Check,
   ChevronRight,
@@ -54,6 +55,7 @@ import {
 const EntryEditor = lazy(() => import('./EntryEditor'));
 const ContentTransfer = lazy(() => import('./ContentTransfer'));
 const SystemStatus = lazy(() => import('./SystemStatus'));
+const EntryOrderPanel = lazy(() => import('./EntryOrderPanel'));
 
 export function Alert({ message, success = false }: { message: string; success?: boolean }) {
   const { t } = useAdminLanguage();
@@ -543,6 +545,8 @@ function Dashboard() {
 }
 function EntryList({ kind }: { kind: 'article' | 'project' }) {
   const { t, language } = useAdminLanguage();
+  const [ordering, setOrdering] = useState(false);
+  const orderButton = useRef<HTMLButtonElement>(null);
   const { state, query, setQuery, update, setPage, clear, searchParams } =
     useListing(adminEntryList);
   const { status, category } = state;
@@ -613,227 +617,259 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             : t('Document your projects and the work behind them.')
         }
       >
-        <a
-          className="admin-button primary"
-          href={`/admin/${kind === 'article' ? 'articles' : 'projects'}/new`}
-        >
-          <Plus size={17} /> {t(kind === 'article' ? 'New article' : 'New project')}
-        </a>
-      </PageTitle>
-      <Alert message={error} />
-      <Alert message={notice} success />
-      <section className="admin-panel">
-        <div className="admin-list-toolbar">
-          <div className="admin-tabs" role="group" aria-label={t('Publication status')}>
-            {[
-              ['', t('All content')],
-              ['draft', t('Draft')],
-              ['published', t('Published')],
-              ['trash', t('Trash')],
-            ].map(([value, label]) => (
-              <button
-                className={status === value ? 'active' : ''}
-                key={value}
-                onClick={() => update({ status: value })}
-                aria-pressed={status === value}
-              >
-                {value === 'trash' && <Trash2 size={14} />}
-                {t(label)}
-              </button>
-            ))}
-          </div>
-          <div className="admin-filter-row">
-            <label className="admin-search">
-              <Search size={17} />
-              <input
-                aria-label={t(kind === 'article' ? 'Search articles' : 'Search projects')}
-                placeholder={t('Search titles or summaries…')}
-                type="search"
-                maxLength={200}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </label>
-            <select
-              aria-label={t('Filter by category')}
-              value={category}
-              onChange={(e) => update({ category: e.target.value })}
-            >
-              <option value="">{t('All categories')}</option>
-              {taxonomy?.categories.map((c) => (
-                <option value={c.name} key={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {(query || category || status) && (
-              <button className="admin-button small" type="button" onClick={clear}>
-                {t('Clear filters')}{' '}
-              </button>
-            )}
+        {!ordering && (
+          <div className="admin-entry-list-actions">
             <button
-              className="admin-icon-button"
+              ref={orderButton}
+              className="admin-button"
               type="button"
-              onClick={refresh}
-              aria-label={t('Refresh list')}
-              title={t('Refresh list')}
-              disabled={loading}
+              onClick={() => setOrdering(true)}
+              disabled={!!busy}
             >
-              <RefreshCw size={17} />
+              <ArrowUpDown size={17} /> {t('Adjust order')}
             </button>
-          </div>
-          <ListOrder
-            config={adminEntryList}
-            sort={state.sort}
-            pageSize={state.pageSize}
-            onChange={update}
-          />
-        </div>
-        {loading ? (
-          <p className="admin-loading">
-            {t(kind === 'article' ? 'Loading articles…' : 'Loading projects…')}
-          </p>
-        ) : error && !data ? (
-          <div className="admin-loading">
-            {t('Unable to load content. Use Refresh list to try again.')}{' '}
-          </div>
-        ) : !data?.items.length ? (
-          <Empty
-            title={
-              query || category
-                ? t('No matching content')
-                : status === 'trash'
-                  ? t('Trash is empty')
-                  : kind === 'article'
-                    ? t('No articles yet')
-                    : t('No projects yet')
-            }
-          >
-            {query || category
-              ? t('Try another keyword or clear the filters.')
-              : status === 'trash'
-                ? t('Trashed content stays here until you restore it.')
-                : kind === 'article'
-                  ? t('Create a new article to get started.')
-                  : t('Create a new project to get started.')}
-          </Empty>
-        ) : (
-          <div
-            className="admin-table-scroll"
-            tabIndex={0}
-            role="region"
-            aria-label={t('Content table. Scroll horizontally to see all columns.')}
-          >
-            <table className="admin-table">
-              <caption className="sr-only">
-                {t(
-                  kind === 'article'
-                    ? 'Articles matching the current filters'
-                    : 'Projects matching the current filters',
-                )}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">{t('Title')}</th>
-                  <th scope="col">{t('Status')}</th>
-                  <th scope="col">{t('Category')}</th>
-                  <th scope="col">{t('Last edited')}</th>
-                  <th scope="col" className="admin-align-right">
-                    {t('Actions')}{' '}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>
-                      <a className="admin-entry-title" href={editorUrl(entry)}>
-                        <span className="admin-table-thumbnail">
-                          {entry.content.cover ? (
-                            <img src={entry.content.cover} alt="" />
-                          ) : (
-                            <FileText size={20} />
-                          )}
-                        </span>
-                        <span>
-                          <strong>
-                            {entry.content.title || t('Untitled draft')}
-                            {entry.content.featured && (
-                              <span className="admin-featured-label">{t('Featured')}</span>
-                            )}
-                          </strong>
-                          <small>
-                            {entry.content.slug ? `/${entry.content.slug}` : t('No slug yet')}
-                          </small>
-                        </span>
-                      </a>
-                    </td>
-                    <td>
-                      <span
-                        className={`admin-badge ${entry.published && !entry.deletedAt ? 'published' : ''}`}
-                      >
-                        {entry.deletedAt
-                          ? t('Trashed')
-                          : entry.published
-                            ? t('Published')
-                            : t('Draft')}
-                      </span>
-                    </td>
-                    <td>
-                      {taxonomy?.categories.find((c) => c.name === entry.content.category)?.name ||
-                        entry.content.category ||
-                        '—'}
-                    </td>
-                    <td className="admin-nowrap">{dateLabel(entry.updatedAt, language)}</td>
-                    <td>
-                      <div className="admin-row-actions">
-                        {entry.deletedAt ? (
-                          <button
-                            disabled={!!busy}
-                            onClick={() => action(entry, 'restore')}
-                            className="admin-button small"
-                          >
-                            <RefreshCw size={14} /> {t('Restore')}{' '}
-                          </button>
-                        ) : (
-                          <>
-                            <a className="admin-button small" href={editorUrl(entry)}>
-                              {t('Edit')}{' '}
-                            </a>
-                            {entry.published && (
-                              <button
-                                className="admin-button small"
-                                disabled={!!busy}
-                                onClick={() => action(entry, 'unpublish')}
-                              >
-                                {t('Unpublish')}{' '}
-                              </button>
-                            )}
-                            <button
-                              className="admin-icon-button danger"
-                              aria-label={t('Move {title} to trash', {
-                                title: entry.content.title,
-                              })}
-                              disabled={!!busy}
-                              onClick={() => action(entry, 'trash')}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <a
+              className="admin-button primary"
+              href={`/admin/${kind === 'article' ? 'articles' : 'projects'}/new`}
+            >
+              <Plus size={17} /> {t(kind === 'article' ? 'New article' : 'New project')}
+            </a>
           </div>
         )}
-        <ListPager info={data} loading={loading} onPage={setPage} />
-        <div className="admin-table-footer">
-          <span>{t('Draft content is only visible to you.')}</span>
-        </div>
-      </section>
+      </PageTitle>
+      {ordering ? (
+        <Suspense fallback={<p className="admin-loading">{t('Loading content order…')}</p>}>
+          <EntryOrderPanel
+            kind={kind}
+            initialPageSize={state.pageSize}
+            onChanged={refresh}
+            onClose={() => {
+              setOrdering(false);
+              update({ sort: 'manual' });
+              refresh();
+              requestAnimationFrame(() => orderButton.current?.focus());
+            }}
+          />
+        </Suspense>
+      ) : (
+        <>
+          <Alert message={error} />
+          <Alert message={notice} success />
+          <section className="admin-panel">
+            <div className="admin-list-toolbar">
+              <div className="admin-tabs" role="group" aria-label={t('Publication status')}>
+                {[
+                  ['', t('All content')],
+                  ['draft', t('Draft')],
+                  ['published', t('Published')],
+                  ['trash', t('Trash')],
+                ].map(([value, label]) => (
+                  <button
+                    className={status === value ? 'active' : ''}
+                    key={value}
+                    onClick={() => update({ status: value })}
+                    aria-pressed={status === value}
+                  >
+                    {value === 'trash' && <Trash2 size={14} />}
+                    {t(label)}
+                  </button>
+                ))}
+              </div>
+              <div className="admin-filter-row">
+                <label className="admin-search">
+                  <Search size={17} />
+                  <input
+                    aria-label={t(kind === 'article' ? 'Search articles' : 'Search projects')}
+                    placeholder={t('Search titles or summaries…')}
+                    type="search"
+                    maxLength={200}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </label>
+                <select
+                  aria-label={t('Filter by category')}
+                  value={category}
+                  onChange={(e) => update({ category: e.target.value })}
+                >
+                  <option value="">{t('All categories')}</option>
+                  {taxonomy?.categories.map((c) => (
+                    <option value={c.name} key={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                {(query || category || status) && (
+                  <button className="admin-button small" type="button" onClick={clear}>
+                    {t('Clear filters')}{' '}
+                  </button>
+                )}
+                <button
+                  className="admin-icon-button"
+                  type="button"
+                  onClick={refresh}
+                  aria-label={t('Refresh list')}
+                  title={t('Refresh list')}
+                  disabled={loading}
+                >
+                  <RefreshCw size={17} />
+                </button>
+              </div>
+              <ListOrder
+                config={adminEntryList}
+                sort={state.sort}
+                pageSize={state.pageSize}
+                onChange={update}
+              />
+            </div>
+            {loading ? (
+              <p className="admin-loading">
+                {t(kind === 'article' ? 'Loading articles…' : 'Loading projects…')}
+              </p>
+            ) : error && !data ? (
+              <div className="admin-loading">
+                {t('Unable to load content. Use Refresh list to try again.')}{' '}
+              </div>
+            ) : !data?.items.length ? (
+              <Empty
+                title={
+                  query || category
+                    ? t('No matching content')
+                    : status === 'trash'
+                      ? t('Trash is empty')
+                      : kind === 'article'
+                        ? t('No articles yet')
+                        : t('No projects yet')
+                }
+              >
+                {query || category
+                  ? t('Try another keyword or clear the filters.')
+                  : status === 'trash'
+                    ? t('Trashed content stays here until you restore it.')
+                    : kind === 'article'
+                      ? t('Create a new article to get started.')
+                      : t('Create a new project to get started.')}
+              </Empty>
+            ) : (
+              <div
+                className="admin-table-scroll"
+                tabIndex={0}
+                role="region"
+                aria-label={t('Content table. Scroll horizontally to see all columns.')}
+              >
+                <table className="admin-table">
+                  <caption className="sr-only">
+                    {t(
+                      kind === 'article'
+                        ? 'Articles matching the current filters'
+                        : 'Projects matching the current filters',
+                    )}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('Title')}</th>
+                      <th scope="col">{t('Status')}</th>
+                      <th scope="col">{t('Category')}</th>
+                      <th scope="col">{t('Last edited')}</th>
+                      <th scope="col" className="admin-align-right">
+                        {t('Actions')}{' '}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.items.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>
+                          <a className="admin-entry-title" href={editorUrl(entry)}>
+                            <span className="admin-table-thumbnail">
+                              {entry.content.cover ? (
+                                <img src={entry.content.cover} alt="" />
+                              ) : (
+                                <FileText size={20} />
+                              )}
+                            </span>
+                            <span>
+                              <strong>
+                                {entry.content.title || t('Untitled draft')}
+                                {entry.content.featured && (
+                                  <span className="admin-featured-label">{t('Featured')}</span>
+                                )}
+                              </strong>
+                              <small>
+                                {entry.content.slug ? `/${entry.content.slug}` : t('No slug yet')}
+                              </small>
+                            </span>
+                          </a>
+                        </td>
+                        <td>
+                          <span
+                            className={`admin-badge ${entry.published && !entry.deletedAt ? 'published' : ''}`}
+                          >
+                            {entry.deletedAt
+                              ? t('Trashed')
+                              : entry.published
+                                ? t('Published')
+                                : t('Draft')}
+                          </span>
+                        </td>
+                        <td>
+                          {taxonomy?.categories.find((c) => c.name === entry.content.category)
+                            ?.name ||
+                            entry.content.category ||
+                            '—'}
+                        </td>
+                        <td className="admin-nowrap">{dateLabel(entry.updatedAt, language)}</td>
+                        <td>
+                          <div className="admin-row-actions">
+                            {entry.deletedAt ? (
+                              <button
+                                disabled={!!busy}
+                                onClick={() => action(entry, 'restore')}
+                                className="admin-button small"
+                              >
+                                <RefreshCw size={14} /> {t('Restore')}{' '}
+                              </button>
+                            ) : (
+                              <>
+                                <a className="admin-button small" href={editorUrl(entry)}>
+                                  {t('Edit')}{' '}
+                                </a>
+                                {entry.published && (
+                                  <button
+                                    className="admin-button small"
+                                    disabled={!!busy}
+                                    onClick={() => action(entry, 'unpublish')}
+                                  >
+                                    {t('Unpublish')}{' '}
+                                  </button>
+                                )}
+                                <button
+                                  className="admin-icon-button danger"
+                                  aria-label={t('Move {title} to trash', {
+                                    title: entry.content.title,
+                                  })}
+                                  disabled={!!busy}
+                                  onClick={() => action(entry, 'trash')}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <ListPager info={data} loading={loading} onPage={setPage} />
+            <div className="admin-table-footer">
+              <span>{t('Draft content is only visible to you.')}</span>
+            </div>
+          </section>
+        </>
+      )}
     </>
   );
 }

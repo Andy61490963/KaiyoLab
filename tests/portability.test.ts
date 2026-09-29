@@ -48,6 +48,29 @@ describe('內容封存檔的輸入邊界', () => {
     expect(loaded.digest).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it('舊封存檔不需要排序欄位，新排序只接受資料庫範圍內的非負整數', async () => {
+    const value = archive();
+    const entry = {
+      id: randomUUID(),
+      kind: 'article' as const,
+      content: { ...emptyContent, slug: 'ordered-article' },
+      published: null,
+      publishedAt: null,
+      updatedAt: value.exportedAt,
+      deletedAt: null,
+    };
+    const legacy = await decodeArchive(pack({ ...value, entries: [entry] }));
+    expect(legacy.archive.entries[0]).toEqual(entry);
+    for (const sortOrder of [0, 2147483647]) {
+      const loaded = await decodeArchive(pack({ ...value, entries: [{ ...entry, sortOrder }] }));
+      expect(loaded.archive.entries[0].sortOrder).toBe(sortOrder);
+    }
+    for (const sortOrder of [-1, 1.5, 2147483648, '1', null])
+      await expect(
+        decodeArchive(pack({ ...value, entries: [{ ...entry, sortOrder }] })),
+      ).rejects.toThrow();
+  });
+
   it('拒絕非gzip、損毀JSON、過大壓縮輸入及gzip bomb', async () => {
     await expect(decodeArchive(Buffer.from('{}'))).rejects.toThrow('valid gzip');
     await expect(decodeArchive(gzipSync('{'))).rejects.toThrow('valid gzip');

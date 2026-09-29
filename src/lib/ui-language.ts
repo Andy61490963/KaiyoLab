@@ -8,6 +8,7 @@ export const chinese = {
   'Next article': '下一篇',
   'List options': '列表選項',
   'Sort by': '排序方式',
+  'Manual order': '手動排序',
   'Per page': '每頁筆數',
   Apply: '套用',
   'Oldest first': '最舊優先',

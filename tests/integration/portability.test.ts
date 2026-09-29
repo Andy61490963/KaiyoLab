@@ -33,7 +33,12 @@ describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () 
     directory = await mkdtemp(path.join(os.tmpdir(), 'kaiyo-transfer-'));
     process.env.UPLOAD_DIR = directory;
     database = await import('../../src/lib/db');
-    for (const file of ['001_initial.sql', '007_content_history.sql', '008_settings_version.sql']) {
+    for (const file of [
+      '001_initial.sql',
+      '007_content_history.sql',
+      '008_settings_version.sql',
+      '009_entry_order.sql',
+    ]) {
       await database.getPool().query(await readFile(path.resolve('db/migrations', file), 'utf8'));
     }
     transfer = await import('../../src/lib/portability');
@@ -226,6 +231,159 @@ describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () 
     expect(rows[0].content.slug).toBe('article-one');
     expect(rows[0].published).toBeNull();
     expect((await database.getPool().query('SELECT count(*) FROM "user"')).rows[0].count).toBe('1');
+  });
+
+  it('匯出保持穩定順序，匯入依各類型手動順序追加且保留既有內容與發布狀態', async () => {
+    const value = JSON.parse(gunzipSync(sourceArchive).toString());
+    const source = value.entries[0];
+    const makeEntry = (slug: string, kind: 'article' | 'project', sortOrder: number) => ({
+      ...source,
+      id: randomUUID(),
+      kind,
+      sortOrder,
+      content: { ...emptyContent, title: slug, slug },
+      published: null,
+      publishedAt: null,
+    });
+    const articleLater = makeEntry('source-article-later', 'article', 80);
+    const projectLater = makeEntry('source-project-later', 'project', 20);
+    const articleFirst = makeEntry('source-article-first', 'article', 4);
+    const projectFirst = makeEntry('source-project-first', 'project', 2);
+    const articleTied = {
+      ...makeEntry('source-article-tied', 'article', 80),
+      deletedAt: '2026-01-01T00:00:00.000Z',
+    };
+    value.entries = [articleLater, projectLater, articleFirst, projectFirst, articleTied];
+    value.revisions = [];
+    value.aliases = [];
+    const existingFirst = randomUUID();
+    const existingProject = randomUUID();
+    await database.getPool().query('UPDATE entries SET sort_order = 2147483647');
+    await database
+      .db()
+      .insert(database.entries)
+      .values([
+        {
+          id: existingFirst,
+          kind: 'article',
+          sortOrder: 0,
+          content: { ...emptyContent, title: '原本第一篇', slug: 'existing-first' },
+        },
+        {
+          id: existingProject,
+          kind: 'project',
+          sortOrder: 2147483647,
+          content: { ...emptyContent, title: '原本的作品', slug: 'existing-project' },
+        },
+      ]);
+    const before = await database.db().select().from(database.entries);
+    const beforeExport = await transfer.decodeArchive(await transfer.exportArchive());
+    expect(beforeExport.archive.entries.map((entry) => entry.id)).toEqual([
+      existingFirst,
+      entryId,
+      existingProject,
+    ]);
+    expect(beforeExport.archive.entries.map((entry) => entry.sortOrder)).toEqual([
+      0, 2147483647, 2147483647,
+    ]);
+    const loaded = await transfer.decodeArchive(gzipSync(JSON.stringify(value)));
+    const preview = await transfer.previewImport(loaded);
+    expect(preview.counts.fromTrash).toBe(1);
+    const result = await transfer.importArchive(loaded, preview.review);
+    const afterExport = await transfer.decodeArchive(await transfer.exportArchive());
+    expect(
+      afterExport.archive.entries
+        .filter((entry) => entry.kind === 'article')
+        .map((entry) => entry.content.slug),
+    ).toEqual([
+      'existing-first',
+      'article-one',
+      'source-article-first',
+      'source-article-later',
+      'source-article-tied',
+    ]);
+    expect(
+      afterExport.archive.entries
+        .filter((entry) => entry.kind === 'project')
+        .map((entry) => entry.content.slug),
+    ).toEqual(['existing-project', 'source-project-first', 'source-project-later']);
+    const after = await database.db().select().from(database.entries);
+    for (const original of before) {
+      const current = after.find((entry) => entry.id === original.id)!;
+      expect({ ...current, sortOrder: original.sortOrder }).toEqual(original);
+    }
+    const importedIds = new Set<string>(result.entryIds);
+    const imported = after.filter((entry) => importedIds.has(entry.id));
+    expect(imported).toHaveLength(5);
+    expect(imported.every((entry) => !entry.published && !entry.deletedAt)).toBe(true);
+    expect(
+      imported.every(
+        (entry) => !value.entries.some((source: { id: string }) => source.id === entry.id),
+      ),
+    ).toBe(true);
+    for (const kind of ['article', 'project']) {
+      const rows = afterExport.archive.entries.filter((entry) => entry.kind === kind);
+      expect(rows.map((entry) => entry.sortOrder)).toEqual(rows.map((_, index) => index + 1));
+    }
+  });
+
+  it('沒有排序欄位的舊封存檔沿用檔案中的相對順序並追加到既有內容之後', async () => {
+    const value = JSON.parse(gunzipSync(sourceArchive).toString());
+    const source = value.entries[0];
+    delete source.sortOrder;
+    value.entries = ['legacy-z', 'legacy-a', 'legacy-m'].map((slug) => ({
+      ...source,
+      id: randomUUID(),
+      content: { ...emptyContent, title: slug, slug },
+      published: null,
+      publishedAt: null,
+    }));
+    value.revisions = [];
+    value.aliases = [];
+    const loaded = await transfer.decodeArchive(gzipSync(JSON.stringify(value)));
+    const preview = await transfer.previewImport(loaded);
+    await transfer.importArchive(loaded, preview.review);
+    const exported = await transfer.decodeArchive(await transfer.exportArchive());
+    expect(exported.archive.entries.map((entry) => entry.content.slug)).toEqual([
+      'article-one',
+      'legacy-z',
+      'legacy-a',
+      'legacy-m',
+    ]);
+  });
+
+  it('預覽後只調整排列而內容版本不變時也要求重新確認匯入', async () => {
+    const secondId = randomUUID();
+    await database
+      .db()
+      .insert(database.entries)
+      .values({
+        id: secondId,
+        kind: 'article',
+        sortOrder: 1,
+        content: { ...emptyContent, title: '第二篇', slug: 'another-existing-article' },
+      });
+    const loaded = await transfer.decodeArchive(sourceArchive);
+    const preview = await transfer.previewImport(loaded);
+    const files = await readdir(directory);
+    await database
+      .getPool()
+      .query('UPDATE entries SET sort_order = CASE WHEN id = $1 THEN 1 ELSE 0 END', [entryId]);
+    await expect(transfer.importArchive(loaded, preview.review)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(
+      (await database.db().select().from(database.entries)).map((entry) => entry.version),
+    ).toEqual([1, 1]);
+    expect(await readdir(directory)).toEqual(files);
+    const refreshed = await transfer.previewImport(loaded);
+    await transfer.importArchive(loaded, refreshed.review);
+    const exported = await transfer.decodeArchive(await transfer.exportArchive());
+    expect(exported.archive.entries.map((entry) => entry.content.slug)).toEqual([
+      'another-existing-article',
+      'article-one',
+      'article-one-import-1',
+    ]);
   });
 
   it('舊公開網址被保留時清楚調整匯入slug，不接管別篇網址', async () => {

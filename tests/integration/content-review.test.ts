@@ -19,7 +19,12 @@ describe.skipIf(!process.env.DATABASE_URL)('發布檢查使用真實公開版本
     process.env.DATABASE_URL = connection.href;
     process.env.SITE_URL = 'http://localhost:4321';
     database = await import('../../src/lib/db');
-    for (const file of ['001_initial.sql', '007_content_history.sql', '008_settings_version.sql'])
+    for (const file of [
+      '001_initial.sql',
+      '007_content_history.sql',
+      '008_settings_version.sql',
+      '009_entry_order.sql',
+    ])
       await database
         .getPool()
         .query(await readFile(new URL(`../../db/migrations/${file}`, import.meta.url), 'utf8'));

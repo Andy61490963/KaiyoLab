@@ -73,6 +73,7 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 版本紀錄與公開網�
       '001_initial.sql',
       '007_content_history.sql',
       '008_settings_version.sql',
+      '009_entry_order.sql',
     ])
       await database
         .getPool()

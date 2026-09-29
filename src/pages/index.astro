@@ -10,7 +10,7 @@ import { contentLanguage } from '../lib/reading';
 
 const [settings, recent, featured, selectedProjects, taxonomy] = await Promise.all([
   getSettings(),
-  listPublished({ kind: 'article', pageSize: 5 }),
+  listPublished({ kind: 'article', pageSize: 5, sort: 'newest' }),
   listPublished({ kind: 'article', featured: true, pageSize: 3 }),
   listPublished({ kind: 'project', featured: true, pageSize: 3 }),
   listTaxonomies(),

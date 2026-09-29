@@ -35,7 +35,9 @@ export async function listAdminEntries(params: URLSearchParams) {
         ? [desc(title), desc(entries.id)]
         : options.sort === 'updated-asc'
           ? [asc(entries.updatedAt), asc(entries.id)]
-          : [desc(entries.updatedAt), desc(entries.id)];
+          : options.sort === 'updated-desc'
+            ? [desc(entries.updatedAt), desc(entries.id)]
+            : [asc(entries.sortOrder), asc(entries.id)];
   const rows = await db()
     .select()
     .from(entries)
