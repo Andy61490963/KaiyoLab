@@ -6,6 +6,10 @@ let queue = Promise.resolve();
 let sequence = 0;
 const states = new WeakMap<HTMLElement, string>();
 const resizeObservers = new WeakMap<HTMLElement, ResizeObserver>();
+const diagramErrorText = () =>
+  document.documentElement.lang.startsWith('zh')
+    ? '流程圖無法顯示，請檢查語法，原始碼仍可閱讀'
+    : 'Unable to display diagram — check the syntax in the source below';
 
 function schedule(figure: HTMLElement) {
   const source = figure.querySelector('[data-diagram-source] code')?.textContent || '';
@@ -84,9 +88,7 @@ function schedule(figure: HTMLElement) {
       } catch {
         canvas.hidden = true;
         details.open = true;
-        status.textContent = document.documentElement.lang.startsWith('zh')
-          ? '流程圖無法顯示，請檢查語法，原始碼仍可閱讀'
-          : 'Unable to display diagram — check the syntax in the source below';
+        status.textContent = diagramErrorText();
         figure.dataset.diagramState = 'error';
       }
       document.dispatchEvent(new CustomEvent('kaiyo:diagram-rendered'));
@@ -136,8 +138,16 @@ export function initializeDiagrams() {
         states.delete(figure);
       }
   }).observe(document.body, { childList: true, subtree: true });
-  new MutationObserver(() => visible.forEach(schedule)).observe(document.documentElement, {
+  new MutationObserver((records) => {
+    if (records.some((record) => record.attributeName === 'data-theme')) visible.forEach(schedule);
+    if (records.some((record) => record.attributeName === 'lang'))
+      for (const figure of tracked) {
+        const status = figure.querySelector<HTMLElement>('[data-diagram-status]');
+        if (status && figure.dataset.diagramState === 'error')
+          status.textContent = diagramErrorText();
+      }
+  }).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme'],
+    attributeFilter: ['data-theme', 'lang'],
   });
 }

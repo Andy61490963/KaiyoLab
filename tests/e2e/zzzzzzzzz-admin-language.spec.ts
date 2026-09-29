@@ -114,7 +114,9 @@ test('編輯中切換不新增草稿、不清除正文，儲存失敗訊息可�
     );
     await page.getByLabel('文章標題').fill('未儲存的 Overview');
     const editor = page.locator('.cm-content[contenteditable=true]');
-    await editor.fill('# Original Title\n\n保留 **中文** 與 English，不能翻譯正文');
+    await editor.fill(
+      '# Original Title\n\n保留 **中文** 與 English，不能翻譯正文\n\n```mermaid\nflowchart TD\nA -->\n```',
+    );
     await expect(page.getByRole('alert').filter({ hasText: '無法連線到伺服器' })).toBeVisible();
     await editor.press('Control+f');
     await page.locator('.cm-search input[name="search"]').fill('English');
@@ -143,6 +145,11 @@ test('編輯中切換不新增草稿、不清除正文，儲存失敗訊息可�
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       ).toBe(true);
     }
+    await page.getByRole('button', { name: '預覽', exact: true }).click();
+    const diagramStatus = page.locator('[data-diagram-status]').first();
+    await expect(diagramStatus).toContainText('流程圖無法顯示');
+    await page.getByRole('button', { name: 'English', exact: true }).click();
+    await expect(diagramStatus).toContainText('Unable to display diagram');
   } finally {
     await page.unrouteAll({ behavior: 'wait' });
     await page.close();
