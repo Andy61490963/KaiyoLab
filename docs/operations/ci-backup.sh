@@ -2,10 +2,15 @@
 set -eu
 [ "${CI:-}" = true ] && [ "${COMPOSE_PROJECT_NAME:-}" = kaiyolab-ci ]
 docker compose stop backup-scheduler
+storage_permissions() {
+  docker compose exec -T app node -e 'const fs=require("node:fs"),p=require("node:path");const dir=process.env.UPLOAD_DIR;const stat=fs.statSync(dir);const probe=p.join(dir,".ci-backup-write-probe");fs.writeFileSync(probe,"ok",{flag:"wx"});fs.unlinkSync(probe);console.log(JSON.stringify({uid:stat.uid,gid:stat.gid,mode:stat.mode}));'
+}
+storage_before="$(storage_permissions)"
 # 確認失敗不會改寫最近成功紀錄，並驗證 psql 會傳遞子程序失敗
 mkdir -p .local/ci-backup
 printf '#!/bin/sh\nexit 53\n' > .local/ci-backup/failure.sh
 docker compose --profile maintenance run --rm backup
+test "$storage_before" = "$(storage_permissions)"
 before="$(cat backups/.operations/.last-backup.json)"
 if docker compose --profile maintenance run --rm -v "$PWD/.local/ci-backup/failure.sh:/operations/backup-data.sh:ro" backup; then
   printf '備份子程序失敗卻回報成功\n' >&2
@@ -102,4 +107,5 @@ test "$before" = "$(cat backups/.operations/.last-backup.json)"
 docker compose --profile maintenance run --rm --no-deps --entrypoint sh backup -c 'touch -d "2 days ago" /backups/.operations/.last-backup.json'
 docker compose run --rm --no-deps -e BACKUP_RUN_ONCE=true backup-scheduler
 test "$before" != "$(cat backups/.operations/.last-backup.json)"
+test "$storage_before" = "$(storage_permissions)"
 printf '自動備份、鎖定、失敗紀錄及重啟週期驗證完成\n'

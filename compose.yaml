@@ -89,8 +89,18 @@ services:
     volumes:
       - ./docs/operations:/operations:ro
       - ./backups:/backups
-      - uploads:/media:ro
-      - secrets:/secrets:ro
+      - type: volume
+        source: uploads
+        target: /media
+        read_only: true
+        volume:
+          nocopy: true
+      - type: volume
+        source: secrets
+        target: /secrets
+        read_only: true
+        volume:
+          nocopy: true
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
@@ -107,8 +117,18 @@ services:
     volumes:
       - ./docs/operations:/operations:ro
       - ./backups:/backups
-      - uploads:/media:ro
-      - secrets:/secrets:ro
+      - type: volume
+        source: uploads
+        target: /media
+        read_only: true
+        volume:
+          nocopy: true
+      - type: volume
+        source: secrets
+        target: /secrets
+        read_only: true
+        volume:
+          nocopy: true
 
   restore-files:
     image: postgres:18-bookworm
