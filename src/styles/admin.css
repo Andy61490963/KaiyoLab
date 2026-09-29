@@ -858,6 +858,9 @@
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
+.admin-table .admin-badge {
+  white-space: nowrap;
+}
 .admin-table tbody tr:last-child td {
   border-bottom: 0;
 }

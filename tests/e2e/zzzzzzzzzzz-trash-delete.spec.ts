@@ -418,6 +418,8 @@ test('永久刪除在中英文、明暗主題與手機平板桌面保持鍵盤�
           expect(
             await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           ).toBe(true);
+          const badge = await row(page, entry).locator('.admin-badge').boundingBox();
+          expect(badge!.height, '狀態標籤維持單行，不被動作按鈕擠成直排').toBeLessThan(40);
           const restore = row(page, entry).getByRole('button', {
             name: language === 'en' ? 'Restore' : '還原',
             exact: true,
