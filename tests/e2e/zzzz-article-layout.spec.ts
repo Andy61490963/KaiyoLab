@@ -94,7 +94,8 @@ test('switching interface language preserves authored article and outline conten
   const url = page.url();
   await page.getByRole('button', { name: '繁體中文', exact: true }).click();
   await expect(page.getByRole('link', { name: '返回文章列表', exact: true })).toBeVisible();
-  await expect(page.locator('.article-rail > .article-rail-card > h2')).toHaveText('目錄', { useInnerText: true });
+  await expect(page.locator('.article-rail').getByRole('heading', { name: '目錄', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '文章閱讀工具', exact: true })).toBeVisible();
   expect(await authored()).toEqual(original);
   expect(page.url()).toBe(url);
   await page.getByRole('button', { name: 'English', exact: true }).click();
