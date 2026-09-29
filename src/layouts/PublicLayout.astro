@@ -228,7 +228,9 @@ const active = (href: string) =>
     <span class="sr-only" id="language-status" role="status" aria-live="polite"></span>
     <span class="sr-only" id="copy-status" role="status" aria-live="polite"></span>
     <script>
+      import { initializeDiagrams } from '../scripts/diagrams';
       import { initializeUiLanguage, currentUiText } from '../scripts/public-language';
+      initializeDiagrams();
       initializeUiLanguage();
       const root = document.documentElement;
       const themeButton = document.querySelector<HTMLButtonElement>('.theme-toggle');

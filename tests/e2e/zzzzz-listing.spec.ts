@@ -211,3 +211,101 @@ test('new collection endpoints still require authentication', async ({ browser, 
     await guest.close();
   }
 });
+
+test('圖片選擇器立即提交搜尋與排序，延遲回應和舊計時器不會吞掉下一頁', async ({ page }) => {
+  await page.goto('/admin/about');
+  await page.getByRole('button', { name: 'Choose image', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose image', exact: true });
+  await picker.getByLabel('Per page', { exact: true }).selectOption('12');
+  await expect(picker.locator('.admin-media-card')).toHaveCount(12);
+  const next = picker.getByRole('button', { name: 'Next', exact: true });
+  await expect(next).toBeEnabled();
+  const originalUrl = page.url();
+  // 停住 debounce，確保排序與換頁真的處理最新輸入，而非靠測試等待 250ms
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(now + 60000);
+  let releaseOld: () => void = () => {};
+  let releaseCurrent: () => void = () => {};
+  const oldGate = new Promise<void>((resolve) => {
+    releaseOld = resolve;
+  });
+  const currentGate = new Promise<void>((resolve) => {
+    releaseCurrent = resolve;
+  });
+  const requests: { q: string | null; sort: string | null }[] = [];
+  await page.route('**/api/admin/media?*', async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const sort = params.get('sort');
+    if (params.get('page') !== '1' || !['name-asc', 'name-desc'].includes(sort || ''))
+      return route.continue();
+    requests.push({ q: params.get('q'), sort });
+    const response = await route.fetch();
+    await (sort === 'name-desc' ? oldGate : currentGate);
+    await route.fulfill({ response });
+  });
+  try {
+    await picker
+      .getByRole('searchbox', { name: 'Search media', exact: true })
+      .fill('pagination-image');
+    await expect(next).toBeDisabled();
+    await picker.getByLabel('Sort by', { exact: true }).selectOption('name-desc');
+    await expect.poll(() => requests.length).toBe(1);
+    expect(requests[0]).toEqual({ q: 'pagination-image', sort: 'name-desc' });
+    await picker.getByLabel('Sort by', { exact: true }).selectOption('name-asc');
+    await expect.poll(() => requests.length).toBe(2);
+    expect(requests[1]).toEqual({ q: 'pagination-image', sort: 'name-asc' });
+    await expect(next).toBeDisabled();
+    releaseCurrent();
+    await expect(picker.locator('.admin-media-card strong').first()).toHaveText(
+      'pagination-image-01.png',
+    );
+    await next.click();
+    await expect(picker.locator('.admin-media-card')).toHaveCount(1);
+    await expect(picker.locator('.admin-media-card strong')).toHaveText('pagination-image-13.png');
+    releaseOld();
+    await page.clock.runFor(1000);
+    await expect(picker.locator('.admin-media-card')).toHaveCount(1);
+    await expect(picker.getByRole('button', { name: 'Page 2', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(page.url()).toBe(originalUrl);
+  } finally {
+    releaseOld();
+    releaseCurrent();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
+test('圖片搜尋失敗後可重試，不以舊資料的頁碼繼續操作', async ({ page }) => {
+  await page.goto('/admin/about');
+  await page.getByRole('button', { name: 'Choose image', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose image', exact: true });
+  await expect(picker.locator('.admin-media-card').first()).toBeVisible();
+  let failed = false;
+  await page.route('**/api/admin/media?*', async (route) => {
+    if (!failed && new URL(route.request().url()).searchParams.get('q') === 'pagination-image') {
+      failed = true;
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Temporary media search outage' }),
+      });
+    }
+    await route.continue();
+  });
+  await picker
+    .getByRole('searchbox', { name: 'Search media', exact: true })
+    .fill('pagination-image');
+  await expect(picker.getByRole('alert')).toContainText('Temporary media search outage');
+  await expect(picker.locator('.admin-media-card')).toHaveCount(0);
+  await expect(
+    picker.getByRole('navigation', { name: 'Media pagination', exact: true }),
+  ).toHaveCount(0);
+  const refresh = picker.getByRole('button', { name: 'Refresh media', exact: true });
+  await expect(refresh).toBeEnabled();
+  await refresh.click();
+  await expect(picker.locator('.admin-media-card')).toHaveCount(13);
+  await expect(picker.getByRole('alert')).toHaveCount(0);
+});

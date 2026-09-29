@@ -75,6 +75,8 @@ docker compose logs --tail=100 app
 
 Markdown 支援表格、任務清單與程式碼區塊，文章不執行 JavaScript 或 MDX。圖片保存於 Docker volume，媒體庫會防止刪除仍被內容使用的圖片。
 
+Markdown 也支援 Mermaid 流程圖與循序圖，編輯器的 **Insert flowchart** 可插入範例，預覽和公開文章共用圖表渲染；文章目錄獨立固定在右欄，相關閱讀與標籤保留原位置，避免長卡片把目錄推到畫面外。使用方式見[Markdown 流程圖](docs/markdown-diagrams.md)
+
 編輯器增加版本紀錄、文字差異、還原草稿與發布前檢查；文章可設定系列和封面焦點。發布更新保留首次發布日期，舊網址自動轉向新的公開網址。媒體庫支援批次上傳與不同尺寸縮圖。
 
 後台的 **Content transfer** 可完整匯出內容與圖片，再預覽匯入為私人草稿；**System status** 顯示版本、資料庫、圖片儲存與已記錄的備份／還原驗證時間。GitHub Actions 提供站外監測與失敗通知設定。操作方式見[內容搬移](docs/content-transfer.md)與[內容復原及維運](docs/maintenance.md)。

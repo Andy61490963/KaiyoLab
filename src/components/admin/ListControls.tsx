@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { pageNumbers, positiveInteger, readListing, type ListConfig, type PageInfo } from '../../lib/listing';
 import '../../styles/list-controls.css';
 
@@ -17,20 +17,55 @@ function readState(config: ListConfig, syncUrl: boolean) {
 }
 export function useListing(config: ListConfig, syncUrl = true) {
   const [state, setState] = useState(() => readState(config, syncUrl));
-  const [query, setQuery] = useState(state.q);
-  const update = useCallback((patch: Partial<typeof state>) => {
-    setState((old) => ({ ...old, ...patch, page: 1 }));
+  const [query, setQueryValue] = useState(state.q);
+  const queryRef = useRef(query);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelDebounce = useCallback(() => {
+    if (debounceRef.current !== null) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
   }, []);
-  const setPage = useCallback((page: number) => {
-    setState((old) => old.page === page ? old : { ...old, page: positiveInteger(page) });
-  }, []);
+  const setQuery = useCallback(
+    (value: string) => {
+      if (queryRef.current !== value) cancelDebounce();
+      queryRef.current = value;
+      setQueryValue(value);
+    },
+    [cancelDebounce],
+  );
+  const update = useCallback(
+    (patch: Partial<typeof state>) => {
+      // 排序或每頁筆數是一個完整查詢，不讓舊的搜尋計時器稍後重設頁碼
+      cancelDebounce();
+      const q = patch.q ?? queryRef.current;
+      queryRef.current = q;
+      setQueryValue(q);
+      setState((old) => ({ ...old, ...patch, q, page: 1 }));
+    },
+    [cancelDebounce],
+  );
+  const setPage = useCallback(
+    (page: number) => {
+      cancelDebounce();
+      const q = queryRef.current;
+      const nextPage = positiveInteger(page);
+      setState((old) =>
+        old.page === nextPage && old.q === q ? old : { ...old, q, page: nextPage },
+      );
+    },
+    [cancelDebounce],
+  );
   useEffect(() => {
     if (query === state.q) return;
     const timer = setTimeout(() => update({ q: query }), 250);
-    return () => clearTimeout(timer);
+    debounceRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (debounceRef.current === timer) debounceRef.current = null;
+    };
   }, [query, state.q, update]);
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(state)) if (value !== '') params.set(key, String(value));
+  for (const [key, value] of Object.entries(state))
+    if (value !== '') params.set(key, String(value));
   const searchParams = params.toString();
   useEffect(() => {
     if (!syncUrl) return;
@@ -38,7 +73,8 @@ export function useListing(config: ListConfig, syncUrl = true) {
     const next = new URLSearchParams(searchParams);
     for (const key of ['q', 'category', 'status', 'page', 'pageSize', 'sort']) {
       const value = next.get(key);
-      const isDefault = (key === 'page' && value === '1') ||
+      const isDefault =
+        (key === 'page' && value === '1') ||
         (key === 'sort' && value === config.defaultSort) ||
         (key === 'pageSize' && value === String(config.defaultSize));
       if (value && !isDefault) url.searchParams.set(key, value);
@@ -49,15 +85,27 @@ export function useListing(config: ListConfig, syncUrl = true) {
   useEffect(() => {
     if (!syncUrl) return;
     const restore = () => {
+      cancelDebounce();
       const next = readState(config, true);
       setState(next);
       setQuery(next.q);
     };
     window.addEventListener('popstate', restore);
     return () => window.removeEventListener('popstate', restore);
-  }, [config, syncUrl]);
-  const clear = () => { setQuery(''); update({ q: '', category: '', status: '' }); };
-  return { state, query, setQuery, update, setPage, clear, searchParams };
+  }, [config, syncUrl, cancelDebounce, setQuery]);
+  const clear = () => {
+    update({ q: '', category: '', status: '' });
+  };
+  return {
+    state,
+    query,
+    setQuery,
+    update,
+    setPage,
+    clear,
+    searchParams,
+    searchPending: query !== state.q,
+  };
 }
 export function ListOrder({ config, sort, pageSize, onChange }: {
   config: ListConfig; sort: string; pageSize: number;

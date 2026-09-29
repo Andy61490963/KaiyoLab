@@ -16,6 +16,7 @@ import {
   Download,
   Eye,
   Heading2,
+  GitBranch,
   Image,
   Italic,
   Link,
@@ -656,6 +657,21 @@ export default function EntryEditor({
                   <tool.icon size={17} />
                 </button>
               ))}
+              <button
+                type="button"
+                className="admin-icon-button"
+                title="Insert flowchart"
+                aria-label="Insert flowchart"
+                disabled={editorLocked || !!entry.deletedAt || !!recovery}
+                onClick={() =>
+                  insert(
+                    '\n```mermaid\nflowchart TD\n  A[工單下達] --> B{前置條件通過}\n  B -->|是| C[開始作業]\n  B -->|否| D[保留原因並等待處理]\n',
+                    '\n```\n',
+                  )
+                }
+              >
+                <GitBranch size={17} />
+              </button>
               <button
                 className="admin-icon-button"
                 title="Insert image"

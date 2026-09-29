@@ -9,5 +9,6 @@ data/
 coverage/
 test-results/
 playwright-report/
+output/playwright/
 backups/
 *.log
