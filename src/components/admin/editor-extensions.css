@@ -15,6 +15,7 @@
   flex-shrink: 0;
 }
 .admin-content-difference {
+  min-width: 0;
   margin-block: 24px;
   font-size: 14px;
   overflow-wrap: anywhere;
@@ -37,49 +38,169 @@
   margin-bottom: 6px;
 }
 .admin-metadata-diff dd {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   margin: 0;
-  padding-block: 3px;
+  padding: 6px 10px;
+  border-inline-start: 3px solid transparent;
   white-space: pre-wrap;
 }
-.admin-metadata-diff dd span {
-  display: inline-block;
-  min-width: 76px;
-  color: var(--muted);
-  font-size: 12px;
+.admin-metadata-diff .admin-metadata-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .admin-content-difference summary {
   cursor: pointer;
   font-weight: 600;
 }
-.admin-content-difference summary span {
+.admin-content-difference .admin-diff-counts {
   display: block;
   margin: 6px 0 12px;
   color: var(--muted);
   font-weight: 400;
 }
-.admin-diff-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
+.admin-unified-diff {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 6px;
 }
-.admin-diff-columns section {
+.admin-diff-hunk {
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
 }
-.admin-diff-columns h3 {
+.admin-diff-hunk .admin-diff-range {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
   font-size: 13px;
 }
-.admin-diff-columns pre {
+.admin-diff-range code {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.admin-diff-table {
+  table-layout: fixed;
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.admin-diff-number-column {
+  width: calc(5ch + 8px);
+}
+.admin-diff-sign-column {
+  width: 3ch;
+}
+.admin-diff-table th {
+  padding: 6px 4px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+.admin-diff-table th:last-child {
+  text-align: start;
+}
+.admin-diff-table td {
+  padding: 1px 4px;
+  vertical-align: top;
+}
+.admin-diff-table .admin-diff-line-number {
+  color: var(--muted);
+  text-align: right;
+  user-select: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border-inline-end: 1px solid var(--border);
+}
+.admin-diff-sign {
+  flex: 0 0 1em;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  user-select: none;
+}
+.admin-diff-table .admin-diff-line-text {
+  padding-inline: 6px 10px;
+}
+.admin-content-difference .admin-diff-remove {
+  background: var(--danger-soft);
+  color: var(--text);
+  border-inline-start-color: var(--danger);
+}
+.admin-content-difference .admin-diff-add {
+  background: var(--success-soft);
+  color: var(--text);
+  border-inline-start-color: var(--success);
+}
+.admin-diff-remove .admin-diff-sign {
+  color: var(--danger);
+}
+.admin-diff-add .admin-diff-sign {
+  color: var(--success);
+}
+.admin-diff-table pre {
+  margin: 0;
+  min-height: 1.7em;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  padding: 12px;
-  max-height: 300px;
-  overflow-y: auto;
+  word-break: normal;
+  overflow: visible;
+  tab-size: 4;
+  font: inherit;
+}
+.admin-diff-table tr.admin-diff-note {
+  color: var(--muted);
+  font-size: 11px;
+}
+.admin-diff-cr {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding-inline: 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+.admin-unified-diff .admin-diff-omitted {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--muted);
   font-size: 12px;
+}
+.admin-diff-limit {
+  margin-block: 12px;
+  padding: 12px;
+  border-inline-start: 3px solid var(--warning);
+  border-radius: 3px;
+  background: var(--warning-soft);
+  color: var(--text);
+  font-size: 13px;
   line-height: 1.65;
 }
 .admin-diff-note {
@@ -123,8 +244,15 @@
   margin-bottom: 12px;
 }
 @media (max-width: 600px) {
-  .admin-diff-columns {
-    grid-template-columns: minmax(0, 1fr);
+  .admin-diff-table {
+    font-size: 12px;
+  }
+  .admin-diff-hunk .admin-diff-range {
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+  .admin-diff-table .admin-diff-line-text {
+    padding-inline: 4px 6px;
   }
   .admin-review-actions .admin-button {
     flex: 1;

@@ -212,6 +212,63 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 版本紀錄與公開網�
     ).toHaveLength(3);
   });
 
+  it.each(['article', 'project'])(
+    '%s 發布檢查比較公開快照與已儲存草稿，發布後差異歸零',
+    async (kind) => {
+      const { POST } = await import('../../src/pages/api/admin/entries/[id]/checks');
+      const check = (item: Entry) =>
+        POST!({
+          request: new Request(`${origin}/api/admin/entries/${item.id}/checks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ version: item.version }),
+          }),
+          params: { id: item.id },
+        } as any) as Promise<Response>;
+      const original = Array.from({ length: 40 }, (_, index) => `原始第 ${index + 1} 行`);
+      let entry = await create(`diff-review-${kind}`, kind);
+      entry = await action(
+        await save(entry, { body: original.join('\n'), excerpt: '差異驗收' }),
+        'publish',
+      );
+      const modified = [...original];
+      modified[5] = '更新工單狀態';
+      modified[32] = '加入併發檢查';
+      entry = await save(entry, { body: modified.join('\n'), title: '更新後的標題' });
+      const checked = await check(entry);
+      expect(checked.status).toBe(200);
+      const review = await checked.json();
+      expect(review.version).toBe(entry.version);
+      expect(review.diff.fields).toEqual(['Title']);
+      expect(review.diff.body).toMatchObject({
+        status: 'complete',
+        changed: true,
+        removedCount: 2,
+        addedCount: 2,
+        totalHunks: 2,
+      });
+      expect(review.diff.body.hunks).toHaveLength(2);
+      expect(JSON.stringify(review.diff.body)).not.toContain('原始第 20 行');
+      expect(
+        (await content.getPublished(kind as 'article' | 'project', entry.content.slug))?.body,
+      ).toBe(original.join('\n'));
+      expect((await entryResponse(await call(`entries/${entry.id}`))).version).toBe(entry.version);
+      entry = await action(entry, 'publish');
+      const after = await check(entry);
+      expect(after.status).toBe(200);
+      expect((await after.json()).diff.body).toMatchObject({
+        status: 'complete',
+        changed: false,
+        removedCount: 0,
+        addedCount: 0,
+        hunks: [],
+      });
+      expect(
+        (await content.getPublished(kind as 'article' | 'project', entry.content.slug))?.body,
+      ).toBe(modified.join('\n'));
+    },
+  );
+
   it('每個舊網址直接指向目前公開網址，改回自己的舊網址不形成迴圈', async () => {
     let entry = await action(await create('original-address'), 'publish');
     entry = await action(await save(entry, { slug: 'second-address' }), 'publish');
