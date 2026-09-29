@@ -3,14 +3,22 @@ import { Check, CircleHelp, Download, FileArchive, Upload } from 'lucide-react';
 import { errorMessage } from './api';
 import type { TransferPreview } from '../../lib/portability';
 import '../../styles/content-transfer.css';
+import { useAdminLanguage } from './AdminLanguage';
+
+interface TransferSuccess {
+  key: string;
+  values?: Record<string, number>;
+  settingsApplied?: boolean;
+}
 
 export default function ContentTransfer() {
+  const { t, language } = useAdminLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [applySettings, setApplySettings] = useState(false);
   const [preview, setPreview] = useState<TransferPreview | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success, setSuccess] = useState<TransferSuccess | null>(null);
   const reviewHeading = useRef<HTMLHeadingElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
@@ -28,7 +36,7 @@ export default function ContentTransfer() {
     inFlight.current = true;
     setBusy('export');
     setError('');
-    setSuccess('');
+    setSuccess(null);
     try {
       const response = await fetch('/api/admin/transfer', { credentials: 'same-origin' });
       if (!response.ok) await responseError(response);
@@ -40,7 +48,9 @@ export default function ContentTransfer() {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-      setSuccess('Archive downloaded. Keep it private: it includes drafts and unpublished images.');
+      setSuccess({
+        key: 'Archive downloaded. Keep it private: it includes drafts and unpublished images.',
+      });
     } catch (error) {
       setError(errorMessage(error));
     } finally {
@@ -53,7 +63,7 @@ export default function ContentTransfer() {
     inFlight.current = true;
     setBusy(action);
     setError('');
-    setSuccess('');
+    setSuccess(null);
     try {
       const query = new URLSearchParams({ action, settings: applySettings ? '1' : '0' });
       if (preview && action === 'import') query.set('review', preview.review);
@@ -75,9 +85,15 @@ export default function ContentTransfer() {
         setPreview(null);
         setFile(null);
         if (fileInput.current) fileInput.current.value = '';
-        setSuccess(
-          `Imported ${result.counts.articles} articles and ${result.counts.projects} projects as private drafts, with ${result.counts.images} images. Review and publish each item when ready.${applySettings ? ' Site settings have been applied.' : ''}`,
-        );
+        setSuccess({
+          key: 'Imported {articles} articles and {projects} projects as private drafts, with {images} images. Review and publish each item when ready.',
+          values: {
+            articles: result.counts.articles,
+            projects: result.counts.projects,
+            images: result.counts.images,
+          },
+          settingsApplied: applySettings,
+        });
       }
     } catch (error) {
       setError(errorMessage(error));
@@ -91,24 +107,28 @@ export default function ContentTransfer() {
     <>
       <header className="admin-page-title">
         <div>
-          <div className="admin-eyebrow">Workspace</div>
-          <h1>Content transfer</h1>
+          <div className="admin-eyebrow">{t('Workspace')}</div>
+          <h1>{t('Content transfer')}</h1>
           <p>
-            Move your articles, projects, images, and site settings between KaiyoLab installations.
+            {t(
+              'Move your articles, projects, images, and site settings between KaiyoLab installations.',
+            )}
           </p>
         </div>
       </header>
       {error && (
         <div className="admin-alert" role="alert">
           <CircleHelp size={17} />
-          <span>{error}</span>
+          <span>{t(error)}</span>
         </div>
       )}
       {success && (
         <div className="admin-alert success" role="status">
           <Check size={17} />
           <span>
-            {success} <a href="/admin/articles">View articles</a>
+            {t(success.key, success.values)}{' '}
+            {success.settingsApplied && <>{t('Site settings have been applied.')} </>}
+            <a href="/admin/articles">{t('View articles')}</a>
           </span>
         </div>
       )}
@@ -116,37 +136,38 @@ export default function ContentTransfer() {
         <section className="admin-panel">
           <div className="admin-panel-heading">
             <div>
-              <h2>Export content</h2>
-              <p>Download a portable .kaiyo.json.gz archive.</p>
+              <h2>{t('Export content')}</h2>
+              <p>{t('Download a portable .kaiyo.json.gz archive.')}</p>
             </div>
             <FileArchive size={20} aria-hidden="true" />
           </div>
           <div className="admin-form-body">
             <p>
-              Includes drafts, published snapshots, revision history, categories, tags, site
-              content, and the image library. Account credentials and deployment settings are
-              excluded.
+              {t(
+                'Includes drafts, published snapshots, revision history, categories, tags, site content, and the image library. Account credentials and deployment settings are excluded.',
+              )}
             </p>
             <p className="transfer-note">
-              This archive contains private content. Store it securely. Use a database and volume
-              backup for a complete disaster recovery copy.
+              {t(
+                'This archive contains private content. Store it securely. Use a database and volume backup for a complete disaster recovery copy.',
+              )}
             </p>
             <button className="admin-button" disabled={!!busy} onClick={exportContent}>
               <Download size={16} />
-              {busy === 'export' ? 'Preparing archive…' : 'Download archive'}
+              {t(busy === 'export' ? 'Preparing archive…' : 'Download archive')}
             </button>
           </div>
         </section>
         <section className="admin-panel">
           <div className="admin-panel-heading">
             <div>
-              <h2>Import content</h2>
-              <p>Check an archive before adding content to this site.</p>
+              <h2>{t('Import content')}</h2>
+              <p>{t('Check an archive before adding content to this site.')}</p>
             </div>
           </div>
           <div className="admin-form-body">
             <label className="transfer-file">
-              KaiyoLab archive
+              {t('KaiyoLab archive')}
               <input
                 ref={fileInput}
                 type="file"
@@ -156,13 +177,14 @@ export default function ContentTransfer() {
                   setFile(event.target.files?.[0] || null);
                   setPreview(null);
                   setError('');
-                  setSuccess('');
+                  setSuccess(null);
                 }}
               />
             </label>
             <p className="transfer-note">
-              Up to 32 MB compressed / 64 MB expanded, 2,000 entries, and 500 images. Images must
-              total 30 MB or less.
+              {t(
+                'Up to 32 MB compressed / 64 MB expanded, 2,000 entries, and 500 images. Images must total 30 MB or less.',
+              )}
             </p>
             <label className="transfer-checkbox">
               <input
@@ -175,17 +197,20 @@ export default function ContentTransfer() {
                 }}
               />
               <span>
-                Also apply site settings and About me content
+                {t('Also apply site settings and About me content')}
                 <small>
-                  This replaces the current public introduction, branding, and social links
-                  immediately. Your site URL and owner account stay unchanged.
+                  {t(
+                    'This replaces the current public introduction, branding, and social links immediately. Your site URL and owner account stay unchanged.',
+                  )}
                 </small>
               </span>
             </label>
             <p>
-              All imported articles and projects are added as <strong>private drafts</strong>,
-              including items from the trash. Published snapshots remain available in revision
-              history. Existing content is never overwritten or deleted.
+              {t('All imported articles and projects are added as')}{' '}
+              <strong>{t('private drafts')}</strong>
+              {t(
+                ', including items from the trash. Published snapshots remain available in revision history. Existing content is never overwritten or deleted.',
+              )}
             </p>
             <button
               className="admin-button"
@@ -193,7 +218,7 @@ export default function ContentTransfer() {
               onClick={() => transfer('preview')}
             >
               <FileArchive size={16} />
-              {busy === 'preview' ? 'Checking archive…' : 'Check archive'}
+              {t(busy === 'preview' ? 'Checking archive…' : 'Check archive')}
             </button>
           </div>
         </section>
@@ -205,9 +230,13 @@ export default function ContentTransfer() {
             <div className="admin-panel-heading">
               <div>
                 <h2 id="transfer-review-heading" tabIndex={-1} ref={reviewHeading}>
-                  Review import
+                  {t('Review import')}
                 </h2>
-                <p>Archive created {new Date(preview.exportedAt).toLocaleString('en-US')}</p>
+                <p>
+                  {t('Archive created {date}', {
+                    date: new Date(preview.exportedAt).toLocaleString(language),
+                  })}
+                </p>
               </div>
             </div>
             <div className="admin-form-body">
@@ -219,49 +248,56 @@ export default function ContentTransfer() {
                   'New categories': preview.counts.categories,
                   'New tags': preview.counts.tags,
                   Revisions: preview.counts.revisions,
-                  改寫的站內連結: preview.counts.rewrittenLinks,
+                  'Rewritten internal links': preview.counts.rewrittenLinks,
                 }).map(([label, count]) => (
                   <div key={label}>
-                    <dt>{label}</dt>
+                    <dt>{t(label)}</dt>
                     <dd>{count}</dd>
                   </div>
                 ))}
               </dl>
               {preview.counts.fromTrash > 0 && (
                 <p>
-                  {preview.counts.fromTrash} items from the archive trash will be restored as
-                  private drafts.
+                  {t('{count} items from the archive trash will be restored as private drafts.', {
+                    count: preview.counts.fromTrash,
+                  })}
                 </p>
               )}
               {preview.counts.trimmedDraftRevisions > 0 && (
                 <p>
-                  {preview.counts.trimmedDraftRevisions} older draft versions will be omitted. Each
-                  entry keeps its latest 99 draft versions and a snapshot of the imported draft;
-                  published versions are kept.
+                  {t(
+                    '{count} older draft versions will be omitted. Each entry keeps its latest 99 draft versions and a snapshot of the imported draft; published versions are kept.',
+                    { count: preview.counts.trimmedDraftRevisions },
+                  )}
                 </p>
               )}
               {preview.adjustments.length > 0 && (
                 <>
-                  <h3>Names and URLs</h3>
+                  <h3>{t('Names and URLs')}</h3>
                   <p>
-                    Existing categories and tags with matching names are reused. Conflicting URLs
-                    receive an import suffix, including URLs stored in imported version history.
+                    {t(
+                      'Existing categories and tags with matching names are reused. Conflicting URLs receive an import suffix, including URLs stored in imported version history.',
+                    )}
                   </p>
                   <div className="transfer-adjustments">
                     <table>
                       <thead>
                         <tr>
-                          <th>Type</th>
-                          <th>In archive</th>
-                          <th>After import</th>
+                          <th>{t('Type')}</th>
+                          <th>{t('In archive')}</th>
+                          <th>{t('After import')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {preview.adjustments.map((item, index) => (
                           <tr key={index}>
-                            <td>{item.type}</td>
+                            <td>{t(item.type)}</td>
                             <td>{item.from}</td>
-                            <td>{item.to}</td>
+                            <td>
+                              {item.to === 'Reuse existing name'
+                                ? t('Reuse existing name')
+                                : item.to}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -271,23 +307,25 @@ export default function ContentTransfer() {
               )}
               {preview.linkChanges.length > 0 && (
                 <>
-                  <h3>站內連結調整</h3>
+                  <h3>{t('Internal link changes')}</h3>
                   <p>
-                    下列連結會指向本次匯入的文章或作品，保留查詢參數與章節錨點，避免連到目的站原本的同名內容
+                    {t(
+                      'These links will point to the imported articles or projects, preserving query parameters and section anchors instead of linking to existing content with the same URL.',
+                    )}
                   </p>
                   <div className="transfer-adjustments">
                     <table>
                       <thead>
                         <tr>
-                          <th>位置</th>
-                          <th>封存檔連結</th>
-                          <th>匯入後連結</th>
+                          <th>{t('Location')}</th>
+                          <th>{t('Archive link')}</th>
+                          <th>{t('Imported link')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {preview.linkChanges.map((change, index) => (
                           <tr key={index}>
-                            <td>{change.location}</td>
+                            <td>{t(change.location)}</td>
                             <td>{change.from}</td>
                             <td>{change.to}</td>
                           </tr>
@@ -296,14 +334,24 @@ export default function ContentTransfer() {
                     </table>
                   </div>
                   {preview.omittedLinkChanges > 0 && (
-                    <p>另外 {preview.omittedLinkChanges} 個連結調整未逐項列出</p>
+                    <p>
+                      {t('{count} additional link changes are not listed.', {
+                        count: preview.omittedLinkChanges,
+                      })}
+                    </p>
                   )}
                 </>
               )}
               <p>
                 {preview.applySettings
-                  ? `Site settings and About me will be replaced with “${preview.settings.siteName}” by ${preview.settings.authorName} when you confirm.`
-                  : 'Current site settings and About me will be kept.'}
+                  ? t(
+                      'Site settings and About me will be replaced with “{siteName}” by {authorName} when you confirm.',
+                      {
+                        siteName: preview.settings.siteName,
+                        authorName: preview.settings.authorName,
+                      },
+                    )
+                  : t('Current site settings and About me will be kept.')}
               </p>
               <div className="transfer-actions">
                 <button
@@ -312,10 +360,10 @@ export default function ContentTransfer() {
                   onClick={() => transfer('import')}
                 >
                   <Upload size={16} />
-                  {busy === 'import' ? 'Importing…' : 'Import as private drafts'}
+                  {t(busy === 'import' ? 'Importing…' : 'Import as private drafts')}
                 </button>
                 <button className="admin-button" disabled={!!busy} onClick={() => setPreview(null)}>
-                  Cancel
+                  {t('Cancel')}
                 </button>
               </div>
             </div>

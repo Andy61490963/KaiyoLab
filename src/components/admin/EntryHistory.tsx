@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useAdminLanguage } from './AdminLanguage';
 import * as Dialog from '@radix-ui/react-dialog';
 import { History, X } from 'lucide-react';
 import { api, dateLabel, errorMessage, json, type Entry, type EntryContent } from './api';
@@ -29,6 +30,7 @@ export default function EntryHistory({
   onRestored: (entry: Entry) => void;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t, language } = useAdminLanguage();
   const [open, setOpen] = useState(false);
   const [entry, setEntry] = useState<Entry | null>(null);
   const [items, setItems] = useState<Revision[]>([]);
@@ -99,9 +101,9 @@ export default function EntryHistory({
         disabled={disabled || busy}
         onClick={() => void show()}
       >
-        <History size={16} /> {busy && !open ? 'Saving draft…' : 'Version history'}
+        <History size={16} /> {t(busy && !open ? 'Saving draft…' : 'Version history')}
       </button>
-      {!open && error && <p role="alert">{error}</p>}
+      {!open && error && <p role="alert">{t(error)}</p>}
       <Dialog.Root open={open} onOpenChange={changeOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="admin-dialog-overlay" />
@@ -117,16 +119,17 @@ export default function EntryHistory({
           >
             <div className="admin-dialog-heading">
               <div>
-                <Dialog.Title>Version history</Dialog.Title>
+                <Dialog.Title>{t('Version history')}</Dialog.Title>
                 <Dialog.Description>
-                  Your current edits are saved before opening history. Restoring changes the draft
-                  only
+                  {t(
+                    'Your current edits are saved before opening history. Restoring changes the draft only',
+                  )}
                 </Dialog.Description>
               </div>
               <Dialog.Close
                 className="admin-icon-button"
                 disabled={busy}
-                aria-label="Close version history"
+                aria-label={t('Close version history')}
               >
                 <X size={20} />
               </Dialog.Close>
@@ -134,15 +137,15 @@ export default function EntryHistory({
             <div className="admin-review-body">
               {error && (
                 <div className="admin-alert" role="alert">
-                  {error}
+                  {t(error)}
                 </div>
               )}
-              {busy && !items.length && <p role="status">Loading versions…</p>}
-              {!busy && !items.length && !error && <p>No saved versions yet</p>}
+              {busy && !items.length && <p role="status">{t('Loading versions…')}</p>}
+              {!busy && !items.length && !error && <p>{t('No saved versions yet')}</p>}
               {items.length > 0 && (
                 <>
                   <label className="admin-field">
-                    Saved version
+                    {t('Saved version')}
                     <select
                       value={selectedId}
                       disabled={busy}
@@ -151,12 +154,14 @@ export default function EntryHistory({
                       {items.map((item) => (
                         <option key={item.id} value={item.id}>
                           v{item.version} ·{' '}
-                          {item.source === 'published'
-                            ? 'Published'
-                            : item.source === 'restore'
-                              ? 'Before restore'
-                              : 'Draft'}{' '}
-                          · {dateLabel(item.createdAt)}
+                          {t(
+                            item.source === 'published'
+                              ? 'Published'
+                              : item.source === 'restore'
+                                ? 'Before restore'
+                                : 'Draft',
+                          )}{' '}
+                          · {dateLabel(item.createdAt, language)}
                         </option>
                       ))}
                     </select>
@@ -178,10 +183,12 @@ export default function EntryHistory({
                         }
                       }}
                     >
-                      Load older versions
+                      {t('Load older versions')}
                     </button>
                   )}
-                  <p className="admin-diff-note">Comparison: current draft → selected version</p>
+                  <p className="admin-diff-note">
+                    {t('Comparison: current draft → selected version')}
+                  </p>
                   {diff && <ContentDifference diff={diff} />}
                 </>
               )}
@@ -202,20 +209,20 @@ export default function EntryHistory({
                     }
                   }}
                 >
-                  Retry
+                  {t('Retry')}
                 </button>
               )}
             </div>
             <div className="admin-review-actions">
               <Dialog.Close className="admin-button" disabled={busy}>
-                Cancel
+                {t('Cancel')}
               </Dialog.Close>
               <button
                 className="admin-button primary"
                 disabled={busy || !selected || !!error}
                 onClick={() => void restore()}
               >
-                {busy ? 'Working…' : 'Restore as draft'}
+                {t(busy ? 'Working…' : 'Restore as draft')}
               </button>
             </div>
           </Dialog.Content>

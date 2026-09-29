@@ -13,8 +13,8 @@ if (session?.user.id === state.ownerId) return Astro.redirect('/admin');
 <AdminLayout title="Sign in">
   <AuthForm mode="login" client:only="react">
     <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
-      Opening sign-in…
+      正在開啟登入頁…
     </div>
   </AuthForm>
-  <noscript>Enable JavaScript to sign in.</noscript>
+  <noscript>請啟用 JavaScript 以登入後台</noscript>
 </AdminLayout>

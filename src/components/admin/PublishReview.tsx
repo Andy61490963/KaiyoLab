@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useAdminLanguage } from './AdminLanguage';
 import { X } from 'lucide-react';
 import type { ContentReview } from '../../lib/content-review';
 import ContentDifference from './ContentDifference';
@@ -18,6 +19,7 @@ export default function PublishReview({
   onPublish: () => void;
   returnFocus: () => void;
 }) {
+  const { t } = useAdminLanguage();
   return (
     <Dialog.Root
       open={!!review}
@@ -39,15 +41,17 @@ export default function PublishReview({
         >
           <div className="admin-dialog-heading">
             <div>
-              <Dialog.Title>Review before publishing</Dialog.Title>
+              <Dialog.Title>{t('Review before publishing')}</Dialog.Title>
               <Dialog.Description>
-                Review saved draft v{review?.version} against the public version
+                {t('Review saved draft v{version} against the public version', {
+                  version: review?.version ?? '',
+                })}
               </Dialog.Description>
             </div>
             <Dialog.Close
               className="admin-icon-button"
               disabled={busy}
-              aria-label="Close publish review"
+              aria-label={t('Close publish review')}
             >
               <X size={20} />
             </Dialog.Close>
@@ -55,24 +59,29 @@ export default function PublishReview({
           <div className="admin-review-body">
             {error && (
               <div className="admin-alert" role="alert">
-                {error}
+                {t(error)}
               </div>
             )}
             {review && (
               <>
                 {review.warnings.length > 0 ? (
-                  <section className="admin-review-warnings" aria-label="Publication suggestions">
-                    <h3>Suggestions</h3>
+                  <section
+                    className="admin-review-warnings"
+                    aria-label={t('Publication suggestions')}
+                  >
+                    <h3>{t('Suggestions')}</h3>
                     <ul>
                       {review.warnings.map((warning, index) => (
-                        <li key={`${warning.code}-${index}`}>{warning.message}</li>
+                        <li key={`${warning.code}-${index}`}>{t(warning.message)}</li>
                       ))}
                     </ul>
-                    <p>These suggestions do not block publishing</p>
+                    <p>{t('These suggestions do not block publishing')}</p>
                   </section>
                 ) : (
                   <p className="admin-review-ready">
-                    摘要、圖片替代文字、站內連結、章節錨點與 Mermaid 圖表檢查未發現問題
+                    {t(
+                      'No issues found with the summary, image alt text, internal links, section anchors or Mermaid diagrams',
+                    )}
                   </p>
                 )}
                 <ContentDifference diff={review.diff} />
@@ -81,10 +90,10 @@ export default function PublishReview({
           </div>
           <div className="admin-review-actions">
             <Dialog.Close className="admin-button" disabled={busy}>
-              Keep editing
+              {t('Keep editing')}
             </Dialog.Close>
             <button className="admin-button primary" disabled={busy || !review} onClick={onPublish}>
-              {busy ? 'Publishing…' : 'Confirm publication'}
+              {t(busy ? 'Publishing…' : 'Confirm publication')}
             </button>
           </div>
         </Dialog.Content>

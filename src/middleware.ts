@@ -28,9 +28,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     } catch {
       return pathname.startsWith('/api/')
         ? json({ error: 'Unable to reach the authentication service.' }, 503)
-        : new Response('The service is temporarily unavailable. Please try again.', {
-            status: 503,
-          });
+        : new Response(
+            '服務暫時無法使用，請稍後再試\nThe service is temporarily unavailable. Please try again.',
+            {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+            },
+          );
     }
   }
   const response = await next();

@@ -54,8 +54,8 @@ export const errorMessage = (error: unknown) =>
     : error instanceof Error
       ? error.message
       : 'The request failed. Please try again.';
-export const dateLabel = (value: string) =>
-  new Intl.DateTimeFormat('en-US', {
+export const dateLabel = (value: string, language: 'zh-TW' | 'en' = 'zh-TW') =>
+  new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'zh-TW', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
