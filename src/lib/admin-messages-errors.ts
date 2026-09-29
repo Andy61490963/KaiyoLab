@@ -82,6 +82,10 @@ export const errorMessages: Record<string, string> = {
   'Only PNG, JPEG, and WebP images are supported.': '只支援 PNG、JPEG 及 WebP 圖片',
   'The image is invalid or exceeds the pixel limit.': '圖片無效或超過像素上限',
   'Restore this content from the trash first.': '請先從垃圾桶還原內容',
+  'Move this content to the trash before deleting it permanently.':
+    '請先將內容移至垃圾桶，再永久刪除',
+  'This content has changed. Refresh the list before deleting it permanently.':
+    '內容已變更，請重新整理列表後再永久刪除',
   'Content version conflict. Reload before restoring.': '內容版本衝突，請重新載入再還原',
   'This content has changed in another tab. Keep your edits or save a copy before reloading.':
     '內容已在其他分頁變更，重新載入前請保留編輯內容或下載副本',
