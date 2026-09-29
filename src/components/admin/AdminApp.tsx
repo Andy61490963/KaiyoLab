@@ -45,6 +45,7 @@ import ThemeButton from './ThemeButton';
 import AdminLanguageSwitch, { useAdminLanguage } from './AdminLanguage';
 import { mediaUsageLabel } from '../../lib/admin-language';
 import { ListOrder, ListPager, useListing } from './ListControls';
+import { EntryDragHandle, EntrySortableRow, EntrySortableScope } from './EntrySortableList';
 import {
   adminEntryList,
   adminMediaList,
@@ -546,6 +547,7 @@ function Dashboard() {
 function EntryList({ kind }: { kind: 'article' | 'project' }) {
   const { t, language } = useAdminLanguage();
   const [ordering, setOrdering] = useState(false);
+  const [sortingBusy, setSortingBusy] = useState(false);
   const orderButton = useRef<HTMLButtonElement>(null);
   const refreshButton = useRef<HTMLButtonElement>(null);
   const deleteFocus = useRef<{ id: string; previous: ListResult<Entry> | null } | null>(null);
@@ -562,6 +564,8 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
   const listUrl = `/api/admin/entries?kind=${kind}&${searchParams}`;
   const { data, resolvedUrl, error, setError, loading, refresh } =
     useRemote<ListResult<Entry>>(listUrl);
+  const dragEligible = state.sort === 'manual' && !query && !state.q && !category && !status;
+  const writeBusy = !!busy || sortingBusy;
   useEffect(() => {
     if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
   }, [data, resolvedUrl, listUrl, loading, setPage]);
@@ -582,7 +586,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
     failedDeleteFocus.current = null;
   }, [busy, loading, error]);
   async function action(entry: Entry, actionName: 'trash' | 'restore' | 'unpublish' | 'delete') {
-    if (actionInFlight.current) return;
+    if (actionInFlight.current || sortingBusy) return;
     if (
       actionName === 'trash' &&
       !window.confirm(
@@ -665,7 +669,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               className="admin-button"
               type="button"
               onClick={() => setOrdering(true)}
-              disabled={!!busy}
+              disabled={writeBusy}
             >
               <ArrowUpDown size={17} /> {t('Adjust order')}
             </button>
@@ -697,7 +701,8 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
           <Alert message={error} />
           <Alert message={notice} success />
           <section className="admin-panel">
-            <div className="admin-list-toolbar">
+            <fieldset className="admin-list-toolbar admin-entry-list-controls" disabled={writeBusy}>
+              <legend className="sr-only">{t('Content list filters')}</legend>
               <div className="admin-tabs" role="group" aria-label={t('Publication status')}>
                 {[
                   ['', t('All content')],
@@ -763,173 +768,207 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                 pageSize={state.pageSize}
                 onChange={update}
               />
-            </div>
-            {loading ? (
-              <p className="admin-loading">
-                {t(kind === 'article' ? 'Loading articles…' : 'Loading projects…')}
-              </p>
-            ) : error && !data ? (
-              <div className="admin-loading">
-                {t('Unable to load content. Use Refresh list to try again.')}{' '}
-              </div>
-            ) : !data?.items.length ? (
-              <Empty
-                title={
-                  query || category
-                    ? t('No matching content')
+            </fieldset>
+            <EntrySortableScope
+              kind={kind}
+              eligible={dragEligible}
+              reason={
+                status === 'trash'
+                  ? 'Trashed content cannot be reordered. Restore it first.'
+                  : 'Direct dragging is available in manual order with no filters.'
+              }
+              info={data}
+              page={state.page}
+              pageSize={state.pageSize}
+              loading={loading || resolvedUrl !== listUrl}
+              busy={!!busy}
+              onPage={setPage}
+              onChanged={refresh}
+              onInteractionChange={setSortingBusy}
+              onEnable={() => update({ sort: 'manual', q: '', category: '', status: '' })}
+            >
+              {loading ? (
+                <p className="admin-loading">
+                  {t(kind === 'article' ? 'Loading articles…' : 'Loading projects…')}
+                </p>
+              ) : error && !data ? (
+                <div className="admin-loading">
+                  {t('Unable to load content. Use Refresh list to try again.')}{' '}
+                </div>
+              ) : !data?.items.length ? (
+                <Empty
+                  title={
+                    query || category
+                      ? t('No matching content')
+                      : status === 'trash'
+                        ? t('Trash is empty')
+                        : kind === 'article'
+                          ? t('No articles yet')
+                          : t('No projects yet')
+                  }
+                >
+                  {query || category
+                    ? t('Try another keyword or clear the filters.')
                     : status === 'trash'
-                      ? t('Trash is empty')
+                      ? t('Move content to the trash from its list or editor.')
                       : kind === 'article'
-                        ? t('No articles yet')
-                        : t('No projects yet')
-                }
-              >
-                {query || category
-                  ? t('Try another keyword or clear the filters.')
-                  : status === 'trash'
-                    ? t('Move content to the trash from its list or editor.')
-                    : kind === 'article'
-                      ? t('Create a new article to get started.')
-                      : t('Create a new project to get started.')}
-              </Empty>
-            ) : (
-              <div
-                className="admin-table-scroll"
-                tabIndex={0}
-                role="region"
-                aria-label={t('Content table. Scroll horizontally to see all columns.')}
-              >
-                <table className="admin-table">
-                  <caption className="sr-only">
-                    {t(
-                      kind === 'article'
-                        ? 'Articles matching the current filters'
-                        : 'Projects matching the current filters',
-                    )}
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">{t('Title')}</th>
-                      <th scope="col">{t('Status')}</th>
-                      <th scope="col">{t('Category')}</th>
-                      <th scope="col">{t('Last edited')}</th>
-                      <th scope="col" className="admin-align-right">
-                        {t('Actions')}{' '}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.items.map((entry) => (
-                      <tr key={entry.id}>
-                        <td>
-                          <a className="admin-entry-title" href={editorUrl(entry)}>
-                            <span className="admin-table-thumbnail">
-                              {entry.content.cover ? (
-                                <img src={entry.content.cover} alt="" />
-                              ) : (
-                                <FileText size={20} />
-                              )}
-                            </span>
-                            <span>
-                              <strong>
-                                {entry.content.title || t('Untitled draft')}
-                                {entry.content.featured && (
-                                  <span className="admin-featured-label">{t('Featured')}</span>
-                                )}
-                              </strong>
-                              <small>
-                                {entry.content.slug ? `/${entry.content.slug}` : t('No slug yet')}
-                              </small>
-                            </span>
-                          </a>
-                        </td>
-                        <td>
-                          <span
-                            className={`admin-badge ${entry.published && !entry.deletedAt ? 'published' : ''}`}
-                          >
-                            {entry.deletedAt
-                              ? t('Trashed')
-                              : entry.published
-                                ? t('Published')
-                                : t('Draft')}
-                          </span>
-                        </td>
-                        <td>
-                          {taxonomy?.categories.find((c) => c.name === entry.content.category)
-                            ?.name ||
-                            entry.content.category ||
-                            '—'}
-                        </td>
-                        <td className="admin-nowrap">{dateLabel(entry.updatedAt, language)}</td>
-                        <td>
-                          <div className="admin-row-actions">
-                            {entry.deletedAt ? (
-                              <>
-                                <button
-                                  type="button"
-                                  disabled={!!busy}
-                                  onClick={() => action(entry, 'restore')}
-                                  className="admin-button small"
-                                >
-                                  <RefreshCw size={14} /> {t('Restore')}{' '}
-                                </button>
-                                <button
-                                  type="button"
-                                  ref={(button) => {
-                                    if (button) deleteButtons.current.set(entry.id, button);
-                                    else deleteButtons.current.delete(entry.id);
-                                  }}
-                                  disabled={!!busy}
-                                  onClick={() => action(entry, 'delete')}
-                                  className="admin-button small danger"
-                                  aria-label={t('Delete {title} permanently', {
-                                    title: entry.content.title || t('Untitled draft'),
-                                  })}
-                                  aria-busy={deleting && busy === entry.id}
-                                >
-                                  <Trash2 size={14} aria-hidden="true" />
-                                  {t(
-                                    deleting && busy === entry.id
-                                      ? 'Deleting…'
-                                      : 'Delete permanently',
-                                  )}
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <a className="admin-button small" href={editorUrl(entry)}>
-                                  {t('Edit')}{' '}
-                                </a>
-                                {entry.published && (
-                                  <button
-                                    className="admin-button small"
-                                    disabled={!!busy}
-                                    onClick={() => action(entry, 'unpublish')}
-                                  >
-                                    {t('Unpublish')}{' '}
-                                  </button>
-                                )}
-                                <button
-                                  className="admin-icon-button danger"
-                                  aria-label={t('Move {title} to trash', {
-                                    title: entry.content.title,
-                                  })}
-                                  disabled={!!busy}
-                                  onClick={() => action(entry, 'trash')}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+                        ? t('Create a new article to get started.')
+                        : t('Create a new project to get started.')}
+                </Empty>
+              ) : (
+                <div
+                  className="admin-table-scroll"
+                  tabIndex={0}
+                  role="region"
+                  aria-label={t('Content table. Scroll horizontally to see all columns.')}
+                >
+                  <table className="admin-table">
+                    <caption className="sr-only">
+                      {t(
+                        kind === 'article'
+                          ? 'Articles matching the current filters'
+                          : 'Projects matching the current filters',
+                      )}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t('Title')}</th>
+                        <th scope="col">{t('Status')}</th>
+                        <th scope="col">{t('Category')}</th>
+                        <th scope="col">{t('Last edited')}</th>
+                        <th scope="col" className="admin-align-right">
+                          {t('Actions')}{' '}
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <ListPager info={data} loading={loading} onPage={setPage} />
+                    </thead>
+                    <tbody>
+                      {data.items.map((entry, index) => (
+                        <EntrySortableRow key={entry.id} entry={entry} position={data.from + index}>
+                          <td>
+                            <div className="admin-entry-title-group">
+                              <EntryDragHandle entry={entry} />
+                              <a
+                                className="admin-entry-title"
+                                href={editorUrl(entry)}
+                                draggable={false}
+                              >
+                                <span className="admin-table-thumbnail">
+                                  {entry.content.cover ? (
+                                    <img src={entry.content.cover} alt="" />
+                                  ) : (
+                                    <FileText size={20} />
+                                  )}
+                                </span>
+                                <span>
+                                  <strong>
+                                    {entry.content.title || t('Untitled draft')}
+                                    {entry.content.featured && (
+                                      <span className="admin-featured-label">{t('Featured')}</span>
+                                    )}
+                                  </strong>
+                                  <small>
+                                    {entry.content.slug
+                                      ? `/${entry.content.slug}`
+                                      : t('No slug yet')}
+                                  </small>
+                                </span>
+                              </a>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className={`admin-badge ${entry.published && !entry.deletedAt ? 'published' : ''}`}
+                            >
+                              {entry.deletedAt
+                                ? t('Trashed')
+                                : entry.published
+                                  ? t('Published')
+                                  : t('Draft')}
+                            </span>
+                          </td>
+                          <td>
+                            {taxonomy?.categories.find((c) => c.name === entry.content.category)
+                              ?.name ||
+                              entry.content.category ||
+                              '—'}
+                          </td>
+                          <td className="admin-nowrap">{dateLabel(entry.updatedAt, language)}</td>
+                          <td>
+                            <div className="admin-row-actions">
+                              {entry.deletedAt ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={writeBusy}
+                                    onClick={() => action(entry, 'restore')}
+                                    className="admin-button small"
+                                  >
+                                    <RefreshCw size={14} /> {t('Restore')}{' '}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    ref={(button) => {
+                                      if (button) deleteButtons.current.set(entry.id, button);
+                                      else deleteButtons.current.delete(entry.id);
+                                    }}
+                                    disabled={writeBusy}
+                                    onClick={() => action(entry, 'delete')}
+                                    className="admin-button small danger"
+                                    aria-label={t('Delete {title} permanently', {
+                                      title: entry.content.title || t('Untitled draft'),
+                                    })}
+                                    aria-busy={deleting && busy === entry.id}
+                                  >
+                                    <Trash2 size={14} aria-hidden="true" />
+                                    {t(
+                                      deleting && busy === entry.id
+                                        ? 'Deleting…'
+                                        : 'Delete permanently',
+                                    )}
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <a
+                                    className="admin-button small"
+                                    href={editorUrl(entry)}
+                                    aria-disabled={sortingBusy || undefined}
+                                    onClick={(event) => {
+                                      if (sortingBusy) event.preventDefault();
+                                    }}
+                                  >
+                                    {t('Edit')}{' '}
+                                  </a>
+                                  {entry.published && (
+                                    <button
+                                      className="admin-button small"
+                                      disabled={writeBusy}
+                                      onClick={() => action(entry, 'unpublish')}
+                                    >
+                                      {t('Unpublish')}{' '}
+                                    </button>
+                                  )}
+                                  <button
+                                    className="admin-icon-button danger"
+                                    aria-label={t('Move {title} to trash', {
+                                      title: entry.content.title,
+                                    })}
+                                    disabled={writeBusy}
+                                    onClick={() => action(entry, 'trash')}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </EntrySortableRow>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </EntrySortableScope>
             <div className="admin-table-footer">
               <span>
                 {t(

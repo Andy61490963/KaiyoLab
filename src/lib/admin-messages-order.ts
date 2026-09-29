@@ -2,6 +2,17 @@ export const orderMessages: Record<string, string> = {
   'Adjust order': '調整順序',
   'Loading content order…': '正在讀取內容順序…',
   'Manual order': '手動排序',
+  'Drag a row to reorder. On touch screens, hold briefly before dragging. Changes are saved immediately.':
+    '直接拖曳整列調整順序，觸控螢幕請先長按再拖曳，放開後立即儲存',
+  'For keyboard sorting, focus the handle and press Space, use the arrow keys, then press Space to save or Escape to cancel. For a distant position, use Adjust order.':
+    '鍵盤操作可聚焦把手並按空白鍵，以方向鍵移動，再按空白鍵儲存或 Esc 取消，移至較遠的位置可使用調整順序',
+  'Direct dragging is available in manual order with no filters.':
+    '直接拖曳僅適用於手動排序且未篩選的列表',
+  'Trashed content cannot be reordered. Restore it first.': '垃圾桶內容無法排序，請先還原內容',
+  'Use manual order and clear filters': '切換手動排序並清除篩選',
+  'Content list filters': '內容列表篩選',
+  'The list changed while its order was loading. Reload the order before dragging.':
+    '讀取排序時列表已變更，請重新讀取順序後再拖曳',
   Untitled: '未命名',
   'Article order': '文章順序',
   'Project order': '作品順序',
