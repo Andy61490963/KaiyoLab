@@ -301,6 +301,7 @@ export function EntrySortableScope({
   } | null>(null);
   const mounted = useRef(true);
   const requestNumber = useRef(0);
+  const orderInFlight = useRef(false);
   const loadedInfo = useRef<ListResult<Entry> | null>(null);
   const dragging = useRef(false);
   const dragSnapshot = useRef<EntryOrderSnapshot | null>(null);
@@ -349,6 +350,7 @@ export function EntrySortableScope({
 
   async function loadOrder(refreshList = false) {
     const request = ++requestNumber.current;
+    orderInFlight.current = true;
     setOrderLoading(true);
     try {
       const value = await api<EntryOrderSnapshot>(`/api/admin/entries/order?kind=${kind}`);
@@ -375,7 +377,10 @@ export function EntrySortableScope({
       setFailure({ message: errorMessage(error), conflict: false });
       failureRef.current = true;
     } finally {
-      if (mounted.current && request === requestNumber.current) setOrderLoading(false);
+      if (mounted.current && request === requestNumber.current) {
+        orderInFlight.current = false;
+        setOrderLoading(false);
+      }
     }
   }
 
@@ -414,21 +419,22 @@ export function EntrySortableScope({
   useEffect(() => {
     if (
       !focusRequest ||
-      loading ||
-      saving ||
-      orderLoading ||
+      disabled ||
+      orderInFlight.current ||
       (focusRequest.previous && info === focusRequest.previous)
     )
       return;
     const frame = requestAnimationFrame(() => {
       const node = handleNodes.current.get(focusRequest.id);
-      if (!node || node.disabled) return;
+      // 跨頁返回會先掛回列表，再讀取排序，必須等完整讀取完成，避免剛聚焦就被 disabled 清掉
+      if (!node || node.disabled || orderInFlight.current) return;
       node.focus({ preventScroll: true });
+      if (document.activeElement !== node) return;
       node.scrollIntoView({ block: 'nearest' });
       setFocusRequest(null);
     });
     return () => cancelAnimationFrame(frame);
-  }, [focusRequest, info, loading, saving, orderLoading, failure]);
+  }, [focusRequest, info, disabled, orderLoading, snapshot]);
 
   const collisionDetection: CollisionDetection = (args) => {
     pointer.current = args.pointerCoordinates;

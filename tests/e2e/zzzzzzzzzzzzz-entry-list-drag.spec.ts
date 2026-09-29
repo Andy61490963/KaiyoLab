@@ -93,13 +93,49 @@ function watchWrites(page: Page) {
 }
 
 async function centerInViewport(target: Locator) {
-  await target.evaluate((element) =>
-    element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }),
+  await target.evaluate(async (element) => {
+    element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+    // 先讓瀏覽器完成捲動事件及版面更新，再量測操作座標
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+}
+
+async function waitForScrollSettled(page: Page, initialScroll: number) {
+  await page.evaluate(
+    (initial) =>
+      new Promise<void>((resolve, reject) => {
+        const started = performance.now();
+        let previous = window.scrollY;
+        let stableSince = started;
+        let stableFrames = 0;
+        const inspect = (now: number) => {
+          const current = window.scrollY;
+          if (current !== previous) {
+            previous = current;
+            stableSince = now;
+            stableFrames = 0;
+          } else {
+            stableFrames++;
+          }
+          // 各平台不一定送出 scrollend，依實際畫格確認已捲動且慣性自然停止
+          if (current > initial + 20 && stableFrames >= 8 && now - stableSince >= 200) {
+            resolve();
+          } else if (now - started >= 10000) {
+            reject(new Error('觸控捲動未在驗收期限內自然停止'));
+          } else {
+            requestAnimationFrame(inspect);
+          }
+        };
+        requestAnimationFrame(inspect);
+      }),
+    initialScroll,
   );
 }
 
-async function beginMouseDrag(page: Page, source: Locator) {
-  await centerInViewport(source);
+async function beginMouseDrag(page: Page, source: Locator, center = true) {
+  if (center) await centerInViewport(source);
   const box = await source.boundingBox();
   expect(box).not.toBeNull();
   const point = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
@@ -112,9 +148,20 @@ async function beginMouseDrag(page: Page, source: Locator) {
 async function pointAt(page: Page, target: Locator, fraction = 0.75) {
   // 落點位於視窗中央，避免停留在邊緣時正常自動捲動讓列離開指標
   await centerInViewport(target);
-  const box = await target.boundingBox();
-  expect(box).not.toBeNull();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height * fraction, {
+  const box = await target.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    // sortable 讓位僅移動外觀，落點使用原排列位置，不能把動畫位移再算進去
+    const transform = element.hasAttribute('data-sortable-entry-id')
+      ? new DOMMatrixReadOnly(getComputedStyle(element).transform)
+      : new DOMMatrixReadOnly();
+    return {
+      x: rect.x - transform.m41,
+      y: rect.y - transform.m42,
+      width: rect.width,
+      height: rect.height,
+    };
+  });
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height * fraction, {
     steps: 12,
   });
 }
@@ -135,8 +182,30 @@ async function dragToRow(
 ) {
   const target = row(page, targetId);
   await centerInViewport(target);
-  await beginMouseDrag(page, source);
-  await pointAt(page, target, edge === 'after' ? 0.75 : 0.25);
+  const from = (await source.boundingBox())!;
+  const to = (await target.boundingBox())!;
+  const middle = (Math.min(from.y, to.y) + Math.max(from.y + from.height, to.y + to.height)) / 2;
+  await page.evaluate(
+    (center) => window.scrollBy({ top: center - innerHeight / 2, behavior: 'instant' }),
+    middle,
+  );
+  // 在按下滑鼠之前保留目標相對於表格的位置，拖曳中不重讀正在讓位的列
+  const slot = await target.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const table = element.closest('table')!.getBoundingClientRect();
+    return { x: rect.x - table.x + rect.width / 2, y: rect.y - table.y, height: rect.height };
+  });
+  await beginMouseDrag(page, source, false);
+  const anchor = await target.evaluate((element) => {
+    const rect = element.closest('table')!.getBoundingClientRect();
+    return { x: rect.x, y: rect.y };
+  });
+  // 拖曳提示可能增加表格上方高度，只跟隨不含動畫的表格定位點
+  await page.mouse.move(
+    anchor.x + slot.x,
+    anchor.y + slot.y + slot.height * (edge === 'after' ? 0.75 : 0.25),
+    { steps: 12 },
+  );
   await expect(target).toHaveAttribute('data-entry-drop-edge', edge);
   if (capture) {
     await mkdir('docs/screenshots', { recursive: true });
@@ -356,15 +425,37 @@ test('主列表跨頁落區與頁碼懸停使用全域位置，跨頁取消不�
   const firstPage = page.locator('[data-entry-sort-page="1"]').first();
   await pointAt(page, firstPage, 0.5);
   await expect(firstPage).toHaveAttribute('aria-current', 'page');
-  await page.keyboard.press('Escape');
-  await releaseMouse(page);
-  await expect(page.locator('[data-entry-sort-page="3"]').first()).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(handle(page, first.id)).toBeFocused();
-  expect(writes).toHaveLength(0);
-  expect((await snapshot(page.request, 'article')).revision).toBe(unchanged.revision);
+  let orderHeld = false;
+  let releaseOrder = () => {};
+  const orderMayReply = new Promise<void>((resolve) => {
+    releaseOrder = resolve;
+  });
+  await page.route('**/api/admin/entries/order?kind=article', async (route) => {
+    if (route.request().method() === 'GET' && !orderHeld) {
+      orderHeld = true;
+      await orderMayReply;
+    }
+    await route.continue();
+  });
+  try {
+    await page.keyboard.press('Escape');
+    await releaseMouse(page);
+    await expect(page.locator('[data-entry-sort-page="3"]').first()).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    // 回到原頁但排序仍在讀取時保持停用，完成後才把焦點交還原把手
+    await expect.poll(() => orderHeld).toBe(true);
+    await expect(handle(page, first.id)).toBeDisabled();
+    releaseOrder();
+    await expect(handle(page, first.id)).toBeEnabled();
+    await expect(handle(page, first.id)).toBeFocused();
+    expect(writes).toHaveLength(0);
+    expect((await snapshot(page.request, 'article')).revision).toBe(unchanged.revision);
+  } finally {
+    releaseOrder();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
 });
 
 test('主列表鍵盤可搬移內容，Escape 取消且焦點留在把手', async ({ page }) => {
@@ -546,6 +637,8 @@ test('手機快速滑動仍可捲動、長按整列可拖曳，中英文明暗�
       await expect(page.locator('[data-entry-drag-overlay]')).toHaveCount(0);
       expect(scrollingWrites).toHaveLength(0);
       expect((await snapshot(page.request, 'project')).revision).toBe(before.revision);
+      // 讓觸控慣性自然結束，再重設位置，避免 Linux compositor 繼續覆寫 scrollTo
+      await waitForScrollSettled(page, initialScroll);
       await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), initialScroll);
       await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(initialScroll);
       await centerInViewport(title);
