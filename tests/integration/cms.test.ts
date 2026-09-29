@@ -89,7 +89,7 @@ describe.skipIf(!enabled)('真實 PostgreSQL 的 CMS 流程', () => {
     dir = await mkdtemp(path.join(os.tmpdir(), 'kaiyo-tests-'));
     process.env.UPLOAD_DIR = dir;
     database = await import('../../src/lib/db');
-    for (const name of ['001_initial.sql', '007_content_history.sql'])
+    for (const name of ['001_initial.sql', '007_content_history.sql', '008_settings_version.sql'])
       await database
         .getPool()
         .query(await readFile(new URL(`../../db/migrations/${name}`, import.meta.url), 'utf8'));

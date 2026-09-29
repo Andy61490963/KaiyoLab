@@ -1,6 +1,7 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { SiteSettings } from '../../src/lib/types';
+import { restoreSettingsFixture } from './helpers/settings';
 
 const noteSlugs = [
   'aspnet-core-di-multiple-implementations',
@@ -21,11 +22,19 @@ async function signInForVisualFixture(request: APIRequestContext, origin: string
       },
     });
     if (response.status() !== 429 || attempt === 2) {
-      expect(response.ok(), `Fixture sign-in returned ${response.status()}: ${await response.text()}`).toBeTruthy();
+      expect(
+        response.ok(),
+        `Fixture sign-in returned ${response.status()}: ${await response.text()}`,
+      ).toBeTruthy();
       return;
     }
-    const seconds = Number(response.headers()['retry-after'] || response.headers()['x-retry-after']);
-    expect(Number.isFinite(seconds) && seconds >= 0 && seconds <= 60, 'Bounded server retry delay').toBe(true);
+    const seconds = Number(
+      response.headers()['retry-after'] || response.headers()['x-retry-after'],
+    );
+    expect(
+      Number.isFinite(seconds) && seconds >= 0 && seconds <= 60,
+      'Bounded server retry delay',
+    ).toBe(true);
     await response.dispose();
     await delay((seconds + 1) * 1000);
   }
@@ -147,11 +156,7 @@ test('home layout, portrait, and controls fit both languages in both themes', as
     }
     expect(errors).toEqual([]);
   } finally {
-    expect(
-      (
-        await request.put('/api/admin/settings', { headers: { Origin: baseURL! }, data: original })
-      ).ok(),
-    ).toBeTruthy();
+    await restoreSettingsFixture(request, baseURL!, original);
   }
 });
 

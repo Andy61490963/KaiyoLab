@@ -19,7 +19,12 @@ const [settings, result, taxonomy] = await Promise.all([
   listTaxonomies(),
 ]);
 const filterLink = (key: 'category' | 'tag', value: string) =>
-  listingHref(Astro.url, { [key]: value, page: null, sort: options.sort, pageSize: options.pageSize });
+  listingHref(Astro.url, {
+    [key]: value,
+    page: null,
+    sort: options.sort,
+    pageSize: options.pageSize,
+  });
 const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, page: null });
 ---
 
@@ -62,7 +67,7 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
           ))}
         </nav>
         {taxonomy.tags.length > 0 && (
-          <div class="tag-cloud">
+          <div class="tag-cloud tag-cloud-desktop">
             <h2>
               <Ui text="Tags" />
             </h2>
@@ -84,6 +89,36 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
             </div>
           </div>
         )}
+        {taxonomy.tags.length > 0 && (
+          <div class="mobile-tag-filter">
+            {tag && (
+              <p class="selected-tag-filter">
+                <span data-original-content translate="no">
+                  #{tag}
+                </span>
+                <a href={filterLink('tag', '')}>
+                  <Ui text="Clear tag" />
+                </a>
+              </p>
+            )}
+            <details class="tag-cloud tag-cloud-mobile">
+              <summary>
+                <Ui text="Tags" /> <span class="tag-filter-count">{taxonomy.tags.length}</span>
+              </summary>
+              <div>
+                {taxonomy.tags.map((item) => (
+                  <a
+                    href={filterLink('tag', item.name)}
+                    class:list={{ active: tag === item.name }}
+                    aria-current={tag === item.name ? 'true' : undefined}
+                  >
+                    #{item.name}
+                  </a>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
       </aside>
       <div class="collection-content">
         <form class="search-form" method="get" action="/articles" role="search">
@@ -99,6 +134,7 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
             maxlength="200"
             {...uiPlaceholder('Search titles or content…')}
             autocomplete="off"
+            aria-describedby="article-search-help"
           />
           {category && <input type="hidden" name="category" value={category} />}
           {tag && <input type="hidden" name="tag" value={tag} />}
@@ -108,6 +144,12 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
             <Ui text="Search" /> <Icon name="arrow" size={16} />
           </button>
         </form>
+        <p id="article-search-help" class="search-help">
+          <span class="ui-text" translate="no">
+            <span lang="en">Separate keywords with spaces, or use quotes for an exact phrase</span>
+            <span lang="zh-TW">用空白分隔關鍵字，雙引號內的文字會作為完整片語搜尋</span>
+          </span>
+        </p>
         <CollectionControls config={articleList} sort={options.sort} pageSize={result.pageSize} />
         <div class="collection-results">
           <span>
@@ -128,7 +170,11 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
         <div class="article-list">
           {result.items.length ? (
             result.items.map((entry, index) => (
-              <EntryCard entry={entry} headingLevel="h2" index={index + (result.page - 1) * result.pageSize} />
+              <EntryCard
+                entry={entry}
+                headingLevel="h2"
+                index={index + (result.page - 1) * result.pageSize}
+              />
             ))
           ) : (
             <EmptyState
@@ -141,7 +187,12 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
             />
           )}
         </div>
-        <Pagination page={result.page} pages={result.pages} total={result.total} pageSize={result.pageSize} />
+        <Pagination
+          page={result.page}
+          pages={result.pages}
+          total={result.total}
+          pageSize={result.pageSize}
+        />
       </div>
     </div>
   </div>

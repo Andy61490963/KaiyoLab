@@ -9,8 +9,8 @@ const options = {
   publicPaths: new Set(['/articles/live', '/articles/old-slug']),
 };
 describe('發布前檢查', () => {
-  it('檢查摘要、封面與 Markdown 引用圖片的替代文字', () => {
-    const review = reviewContent(
+  it('檢查摘要、封面與 Markdown 引用圖片的替代文字', async () => {
+    const review = await reviewContent(
       {
         ...emptyContent,
         cover: '/media/test.webp',
@@ -26,8 +26,8 @@ describe('發布前檢查', () => {
     ]);
     expect(review.warnings[2].message).toContain('2 body images');
   });
-  it('接受公開舊網址，辨識同源、相對與參照連結，忽略外部網址及程式碼', () => {
-    const review = reviewContent(
+  it('接受公開舊網址，辨識同源、相對與參照連結，忽略外部網址及程式碼', async () => {
+    const review = await reviewContent(
       {
         ...emptyContent,
         excerpt: '摘要',
@@ -42,8 +42,8 @@ describe('發布前檢查', () => {
       'No published content at /articles/draft',
     ]);
   });
-  it('解碼中文路徑、忽略查詢與fragment並去除重複提醒', () => {
-    const review = reviewContent(
+  it('解碼中文路徑、辨識錨點並去除重複提醒', async () => {
+    const review = await reviewContent(
       {
         ...emptyContent,
         excerpt: '摘要',
@@ -54,7 +54,86 @@ describe('發布前檢查', () => {
     );
     expect(review.warnings).toEqual([
       { code: 'broken-link', message: 'No published content at /articles/文章' },
+      { code: 'broken-anchor', message: '找不到章節錨點：/articles/current#id' },
     ]);
+  });
+  it('中文、重複標題及自己的舊網址沿用正式渲染器的錨點', async () => {
+    const review = await reviewContent(
+      {
+        ...emptyContent,
+        excerpt: '摘要',
+        body: '## 併發控制\n\n## 併發控制\n\n[第一節](#section-%E4%BD%B5%E7%99%BC%E6%8E%A7%E5%88%B6) [第二節](#section-併發控制-1) [舊網址](/articles/previous#section-併發控制) [不存在](#section-不存在)\n\n`[範例](#code)`',
+      },
+      null,
+      { ...options, currentPaths: new Set(['/articles/previous']) },
+    );
+    expect(review.warnings).toEqual([
+      { code: 'broken-anchor', message: '找不到章節錨點：/articles/current#section-不存在' },
+    ]);
+  });
+  it('站內目標驗證公開錨點，忽略外站與原始 HTML 腳本', async () => {
+    const visited: string[] = [];
+    const review = await reviewContent(
+      {
+        ...emptyContent,
+        excerpt: '摘要',
+        body: '[存在](/articles/live?q=1#section-公開) [不存在](/articles/live#section-草稿) [外站](https://external.test/articles/live#missing)\n\n<script>throw new Error("不可執行")</script>',
+      },
+      null,
+      {
+        ...options,
+        publicAnchors: async (pathname) => {
+          visited.push(pathname);
+          return new Set(['section-公開']);
+        },
+      },
+    );
+    expect(visited).toEqual(['/articles/live']);
+    expect(review.warnings).toEqual([
+      { code: 'broken-anchor', message: '找不到章節錨點：/articles/live#section-草稿' },
+    ]);
+  });
+  it('Mermaid 隔離解析支援中文流程與時序圖，指出語法及不支援設定', async () => {
+    const review = await reviewContent(
+      {
+        ...emptyContent,
+        excerpt: '摘要',
+        body: [
+          '```mermaid\nflowchart TD\nA[建立工單] --> B[完成]\n```',
+          '```mermaid\nsequenceDiagram\n站長->>網站: 發布文章\n```',
+          '```mermaid\nflowchart TD\nA[尚未結束\n```',
+          '```mermaid\nflowchart TD\nclick A "javascript:alert(1)"\n```',
+        ].join('\n\n'),
+      },
+      null,
+      options,
+    );
+    expect(review.warnings.map((warning) => warning.code)).toEqual([
+      'diagram-policy',
+      'diagram-syntax',
+    ]);
+    expect(review.warnings[1].message).toContain('第 11 行');
+  });
+  it('超量圖表與錨點給出有限提醒', async () => {
+    const review = await reviewContent(
+      {
+        ...emptyContent,
+        excerpt: '摘要',
+        body: [
+          ...Array.from({ length: 25 }, (_, index) => `[缺少](#missing-${index})`),
+          ...Array.from({ length: 22 }, () => '```mermaid\npie\n"A" : 1\n```'),
+        ].join('\n\n'),
+      },
+      null,
+      options,
+    );
+    expect(review.warnings.filter((warning) => warning.code === 'broken-anchor')).toHaveLength(20);
+    expect(review.warnings).toContainEqual({
+      code: 'more-anchors',
+      message: '另外有 5 個找不到的章節錨點',
+    });
+    expect(review.warnings.filter((warning) => warning.code === 'diagram-policy')).toHaveLength(20);
+    expect(review.warnings.find((warning) => warning.code === 'more-diagrams')).toBeTruthy();
   });
 });
 describe('內容差異', () => {

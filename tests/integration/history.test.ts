@@ -69,7 +69,11 @@ describe.skipIf(!process.env.DATABASE_URL)('PostgreSQL 版本紀錄與公開網�
     url.pathname = `/${name}`;
     process.env.DATABASE_URL = url.href;
     database = await import('../../src/lib/db');
-    for (const migration of ['001_initial.sql', '007_content_history.sql'])
+    for (const migration of [
+      '001_initial.sql',
+      '007_content_history.sql',
+      '008_settings_version.sql',
+    ])
       await database
         .getPool()
         .query(

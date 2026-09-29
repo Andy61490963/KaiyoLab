@@ -33,7 +33,7 @@ describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () 
     directory = await mkdtemp(path.join(os.tmpdir(), 'kaiyo-transfer-'));
     process.env.UPLOAD_DIR = directory;
     database = await import('../../src/lib/db');
-    for (const file of ['001_initial.sql', '007_content_history.sql']) {
+    for (const file of ['001_initial.sql', '007_content_history.sql', '008_settings_version.sql']) {
       await database.getPool().query(await readFile(path.resolve('db/migrations', file), 'utf8'));
     }
     transfer = await import('../../src/lib/portability');
@@ -221,6 +221,7 @@ describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () 
     expect(settings.value.siteName).toBe('來源站');
     expect(settings.value.siteUrl).toBe(origin);
     expect(settings.value.avatar).not.toContain(imageId);
+    expect(settings.version).toBe(2);
     const rows = await database.db().select().from(database.entries);
     expect(rows[0].content.slug).toBe('article-one');
     expect(rows[0].published).toBeNull();
@@ -261,6 +262,159 @@ describe.skipIf(!process.env.DATABASE_URL)('真實資料庫的內容搬移', () 
     await expect(transfer.importArchive(loaded, preview.review)).rejects.toMatchObject({
       status: 409,
     });
+  });
+
+  it('先建立完整對照再改寫雙向連結、舊網址與設定，不連到目的站同名原稿', async () => {
+    const value = JSON.parse(gunzipSync(sourceArchive).toString());
+    const projectId = randomUUID();
+    await database
+      .db()
+      .insert(database.entries)
+      .values({
+        id: projectId,
+        kind: 'project',
+        content: { ...emptyContent, title: '目的站作品', slug: 'project-one' },
+      });
+    const sourceProjectId = randomUUID();
+    value.entries.push({
+      ...value.entries[0],
+      id: sourceProjectId,
+      kind: 'project',
+      content: {
+        ...emptyContent,
+        title: '搬入作品',
+        slug: 'project-one',
+        body: '[文章](../articles/article-old?q=1#section-舊章節)',
+      },
+      published: null,
+    });
+    value.aliases = [{ entryId, kind: 'article', slug: 'historical-source' }];
+    const code = `\`[範例](/projects/project-one)\`\n\n\`\`\`md\n![範例](/media/${imageId}.webp)\n\`\`\``;
+    value.entries[0].content.body = `[作品](../projects/project-one?q=1#section-作品) [舊址](${origin}/articles/article-old#section-公開) [歷史][old] [外部](https://outside.test/articles/article-one)\n\n[old]: /articles/historical-source?q=2#section-公開\n\n![圖片](/media/${imageId}.webp?q=3#封面)\n\n${code}`;
+    value.entries[0].published.body = '[作品](/projects/project-one#section-作品)';
+    value.revisions[0].content.body = '[歷史作品](/projects/project-one)';
+    value.settings.homeIntro = '[文章](/articles/article-one)';
+    value.settings.about = `[舊址](${origin}/articles/historical-source#section-公開)`;
+    const loaded = await transfer.decodeArchive(gzipSync(JSON.stringify(value)));
+    const preview = await transfer.previewImport(loaded, true);
+    expect(preview.linkChanges).toContainEqual({
+      location: '私人新版 · 草稿',
+      from: '../projects/project-one?q=1#section-作品',
+      to: '/projects/project-one-import-1?q=1#section-%E4%BD%9C%E5%93%81',
+    });
+    expect(
+      preview.linkChanges.some(
+        (change) =>
+          change.from.includes('historical-source') &&
+          change.to.startsWith('/articles/article-one-import-1'),
+      ),
+    ).toBe(true);
+    expect(preview.counts.rewrittenLinks).toBe(8);
+    const imported = await transfer.importArchive(loaded, preview.review, true);
+    const all = await database.db().select().from(database.entries);
+    const article = all.find((entry) => entry.id === imported.entryIds[0])!;
+    const project = all.find((entry) => entry.id === imported.entryIds[1])!;
+    expect(article.content.body).toContain(
+      '/projects/project-one-import-1?q=1#section-%E4%BD%9C%E5%93%81',
+    );
+    expect(article.content.body).toContain(
+      '/articles/article-one-import-1?q=2#section-%E5%85%AC%E9%96%8B',
+    );
+    expect(article.content.body).toContain('[外部](https://outside.test/articles/article-one)');
+    expect(article.content.body).toContain(code);
+    expect(article.content.body).not.toContain(`![圖片](/media/${imageId}.webp`);
+    expect(article.content.body).toContain('?q=3#%E5%B0%81%E9%9D%A2');
+    expect(project.content.body).toContain(
+      '/articles/article-one-import-1?q=1#section-%E8%88%8A%E7%AB%A0%E7%AF%80',
+    );
+    expect(all.find((entry) => entry.id === projectId)!.content.title).toBe('目的站作品');
+    expect(all.find((entry) => entry.id === entryId)!.content.body).toContain('私人草稿');
+    expect(article.published).toBeNull();
+    expect(project.published).toBeNull();
+    const histories = (await database.db().select().from(database.entryRevisions)).filter(
+      (revision) => revision.entryId === article.id,
+    );
+    expect(
+      histories.some(
+        (revision) => revision.content.body === '[歷史作品](/projects/project-one-import-1)',
+      ),
+    ).toBe(true);
+    const [settings] = await database.db().select().from(database.settings);
+    expect(settings.value.homeIntro).toBe('[文章](/articles/article-one-import-1)');
+    expect(settings.value.about).toContain('/articles/article-one-import-1#section-');
+    expect(settings.version).toBe(2);
+  });
+
+  it('匯出包含已保留舊網址，舊封存檔仍接受相對路徑但不猜測外站', async () => {
+    await database
+      .db()
+      .insert(database.entrySlugs)
+      .values({ entryId, kind: 'article', slug: 'historical-source' });
+    const exported = await transfer.decodeArchive(await transfer.exportArchive());
+    expect(exported.archive.aliases).toContainEqual({
+      entryId,
+      kind: 'article',
+      slug: 'historical-source',
+    });
+    expect(exported.archive.sourceOrigin).toBe(origin);
+    const value = JSON.parse(gunzipSync(sourceArchive).toString());
+    delete value.sourceOrigin;
+    delete value.aliases;
+    value.entries[0].content.body = `[同篇](article-one?q=1#section-a) [絕對網址](${origin}/articles/article-one) [自身章節](#section-a)`;
+    const loaded = await transfer.decodeArchive(gzipSync(JSON.stringify(value)));
+    const preview = await transfer.previewImport(loaded);
+    expect(preview.linkChanges).toHaveLength(1);
+    const imported = await transfer.importArchive(loaded, preview.review);
+    const row = (await database.db().select().from(database.entries)).find(
+      (entry) => entry.id === imported.entryIds[0],
+    )!;
+    expect(row.content.body).toBe(
+      `[同篇](/articles/article-one-import-1?q=1#section-a) [絕對網址](${origin}/articles/article-one) [自身章節](#section-a)`,
+    );
+  });
+
+  it('預覽截斷大量連結清單，設定版本改變即使內容相同仍要求重新確認', async () => {
+    const value = JSON.parse(gunzipSync(sourceArchive).toString());
+    value.entries[0].content.body = Array.from(
+      { length: 125 },
+      () => '[文章](/articles/article-one)',
+    ).join('\n');
+    const loaded = await transfer.decodeArchive(gzipSync(JSON.stringify(value)));
+    const preview = await transfer.previewImport(loaded, true);
+    expect(preview.linkChanges).toHaveLength(100);
+    expect(preview.omittedLinkChanges).toBe(25);
+    expect(preview.counts.rewrittenLinks).toBe(125);
+    await database.getPool().query('UPDATE settings SET version = version + 1');
+    await expect(transfer.importArchive(loaded, preview.review, true)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(await database.db().select().from(database.entries)).toHaveLength(1);
+  });
+
+  it('COMMIT 結果尚未確認且查詢可能過早時，保留已搬入檔案', async () => {
+    const loaded = await transfer.decodeArchive(sourceArchive);
+    const preview = await transfer.previewImport(loaded);
+    const actual = database.db();
+    const transaction = actual.transaction.bind(actual);
+    const txSpy = vi
+      .spyOn(actual, 'transaction')
+      .mockImplementationOnce(async (callback, config) => {
+        // 模擬呼叫端看到網路中斷時尚不能判斷提交，資料庫查不到資料不能作為刪檔依據
+        await transaction(async (tx) => {
+          await callback(tx);
+          throw new Error('未知提交結果');
+        }, config);
+        throw new Error('不可到達');
+      });
+    const databaseSpy = vi.spyOn(database, 'db').mockReturnValue(actual);
+    try {
+      await expect(transfer.importArchive(loaded, preview.review)).rejects.toThrow('未知提交結果');
+      expect(await actual.select().from(database.entries)).toHaveLength(1);
+      expect(await readdir(directory)).toHaveLength(2);
+    } finally {
+      txSpy.mockRestore();
+      databaseSpy.mockRestore();
+    }
   });
 
   it('資料庫提交失敗時刪除已搬入圖片且不留任何部分資料', async () => {

@@ -1,0 +1,18 @@
+# 先依 docs/backup-restore.md 設定 .env.offsite，再明確啟用
+services:
+  offsite:
+    image: restic/restic:0.19.0
+    restart: unless-stopped
+    init: true
+    entrypoint: ['sh', '/operations/offsite.sh']
+    env_file: [.env.offsite]
+    environment:
+      RESTIC_PASSWORD_FILE: /run/offsite-password
+      RESTIC_CACHE_DIR: /tmp/restic
+    volumes:
+      - ./docs/operations:/operations:ro
+      - ./backups:/backups:ro
+      - ./.local/offsite-password:/run/offsite-password:ro
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]

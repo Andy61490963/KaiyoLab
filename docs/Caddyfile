@@ -1,12 +1,21 @@
 {$DOMAIN} {
-    encode zstd gzip
-    reverse_proxy app:4321 {
-        header_up X-Forwarded-Host {host}
-        header_up X-Forwarded-Proto {scheme}
-    }
-    header {
-        Strict-Transport-Security "max-age=31536000"
-        X-Content-Type-Options "nosniff"
-        Referrer-Policy "strict-origin-when-cross-origin"
-    }
+	encode zstd gzip
+	reverse_proxy app:4321 {
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+	# 只處理代理無法連線的錯誤，保留應用程式本身的 API 回應
+	handle_errors 502 503 504 {
+		header {
+			Retry-After "15"
+			Cache-Control "no-store"
+			Content-Type "text/plain; charset=utf-8"
+		}
+		respond "網站暫時無法提供服務，可能正在更新或維護，請稍後再試" 503
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 }

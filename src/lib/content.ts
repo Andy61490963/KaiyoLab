@@ -3,7 +3,8 @@ import { db, entries, entrySlugs, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
 import { defaultHomeIntro } from './home-intro';
 import { repairLegacySiteCopy } from './site-copy';
-import { paginate } from './listing';
+import { literalLike, paginate } from './listing';
+import { searchTerms } from './public-search';
 import type { Entry, EntryKind, PublicEntry, Taxonomy, SiteSettings } from './types';
 
 export function serializeEntry(row: typeof entries.$inferSelect): Entry {
@@ -63,8 +64,8 @@ export async function listPublished(opts: {
   sort?: string;
 }) {
   const parts = [visible(), eq(entries.kind, opts.kind)];
-  if (opts.q) {
-    const term = `%${opts.q.slice(0, 200).replace(/[\\%_]/g, '\\$&')}%`;
+  for (const word of searchTerms(opts.q || '')) {
+    const term = literalLike(word);
     parts.push(
       sql`(${entries.published}->>'title' ILIKE ${term} OR ${entries.published}->>'excerpt' ILIKE ${term} OR ${entries.published}->>'body' ILIKE ${term})`,
     );

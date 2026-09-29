@@ -6,12 +6,14 @@
 
 ## 建立一致的備份
 
-先停止應用程式，讓資料庫與圖片在備份期間不再變動，資料庫維持執行：
+一般 Compose 啟動後，`backup-scheduler` 每 24 小時建立完整備份，保留約 14 天；啟動時若沒有成功紀錄會先執行一次，重新啟動不會重複已完成的週期
+
+備份會取得與內容寫入相同的 PostgreSQL 鎖，讓資料庫、圖片及設定維持同一個快照，網站仍可閱讀，寫入會暫時等待，等待鎖超過 30 秒便回報失敗，1 小時後重試
+
+也可以立即手動執行：
 
 ```bash
-docker compose stop app
 docker compose --profile maintenance run --rm backup
-docker compose up -d app
 ```
 
 腳本會建立 `backups/UTC時間/`，包含：
@@ -24,11 +26,75 @@ docker compose up -d app
 | `manifest.txt`   | 備份時間與 PostgreSQL 大版本    |
 | `SHA256SUMS`     | 完整性校驗值                    |
 
-任何一步失敗都不會顯示「備份已完成」，請保留錯誤訊息並修正後重試。應用程式需由操作者重新啟動；只有包含全部檔案且通過校驗的目錄可用於還原。備份資料夾的權限預設只允許建立備份的使用者讀取，在 Linux 上可能需要主機管理員權限才能搬移。
+任何一步失敗都不會顯示「備份已完成」，也不會替換成功紀錄；失敗的 `.partial-*` 目錄只供診斷，不能拿來還原，確認原因後才由管理員移除。只有包含全部檔案且通過校驗的目錄可用於還原。備份資料夾的權限預設只允許建立備份的使用者讀取，在 Linux 上可能需要主機管理員權限才能搬移。
 
 成功備份會原子更新 `backups/.operations/.last-backup.json`，後台 **System status** 讀取此 UTC 時間。應用程式只掛載 `.operations` 紀錄子目錄，無法透過此掛載讀取備份本體與密鑰封存檔。此紀錄只代表腳本完成，不代表異地備份或還原驗證已完成。
 
+後台會區分正常、超時與最近失敗，預設成功紀錄超過 36 小時便標示超時，可在 `.env` 調整 `BACKUP_INTERVAL_SECONDS`、`BACKUP_RETENTION_DAYS` 與 `BACKUP_MAX_AGE_HOURS`，提醒門檻應大於備份週期
+
+```bash
+docker compose logs --tail=100 backup-scheduler
+```
+
+本機備份仍與網站在同一台主機，不能處理整台主機或磁碟遺失
+
+## 選用：加密異地副本
+
+目的地由站長提供，不會自動開通付費服務，也不會預設上傳私人資料。隨附的 `compose.offsite.yaml` 使用 [restic 的加密儲存庫](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html)，可連接自己的 S3、R2 或其他支援的儲存空間
+
+1. 在專案的 `.local/offsite-password` 建立長隨機密碼，檔案只允許管理員讀取，並另外保存在密碼管理器；遺失此密碼將無法解密備份
+2. 建立被 Git 忽略的 `.env.offsite`，填入自己的端點與只限定該 bucket 的存取憑證，不要提交至 Git
+
+```dotenv
+RESTIC_REPOSITORY=s3:https://自己的端點/自己的bucket/kaiyolab
+AWS_ACCESS_KEY_ID=自己的存取金鑰
+AWS_SECRET_ACCESS_KEY=自己的密鑰
+AWS_DEFAULT_REGION=auto
+OFFSITE_INTERVAL_SECONDS=86400
+```
+
+3. 確認目的地後只初始化一次，再啟動排程
+
+```bash
+docker compose -f compose.yaml -f compose.offsite.yaml run --rm --entrypoint restic offsite init
+docker compose -f compose.yaml -f compose.offsite.yaml up -d offsite
+docker compose -f compose.yaml -f compose.offsite.yaml logs --tail=100 offsite
+```
+
+每次只上傳最新且校驗成功的完整備份，未完成目錄不會上傳，遠端驗證或網路失敗會讓程序失敗並由 Docker 重新啟動。此範例保留全部遠端快照，不會自動刪除遠端資料；需要清理時先查看 [restic 保留政策](https://restic.readthedocs.io/en/stable/060_forget.html)，確認範圍後再執行
+
+使用 `restic snapshots` 選定快照，將 `restic restore 快照ID --target /restore` 還原到另一個空白掛載目錄，驗證 `SHA256SUMS` 後依下節還原。後台的備份狀態指本機備份，異地上傳需另看 `offsite` 日誌，不會冒充異地已成功
+
 ## 還原到全新 volumes
+
+### 單節點 Kubernetes 主機
+
+Zeabur 部署不會執行 Compose 的排程容器。具有主機管理權限時，可使用隨附的 `docs/operations/backup-kubernetes.py` 與 systemd 範例，需求為 Python 3.11 以上、kubectl、tar 與 sha256sum；限於可直接讀取指定網站本機持久磁碟的單節點主機
+
+先將 `OPERATIONS_DIR` 設定為 `UPLOAD_DIR/.operations`，安裝腳本至 `/usr/local/lib/kaiyolab/backup-kubernetes.py`，在 `/etc/kaiyolab-backup.conf` 填入自己經核對的部署識別碼
+
+```ini
+NAMESPACE=自己的namespace
+APP_DEPLOYMENT=自己的app-deployment
+DATABASE_DEPLOYMENT=自己的db-deployment
+BACKUP_ROOT=/var/backups/kaiyolab
+```
+
+此設定不放憑證，腳本以既有 kubectl 權限讀取指定應用程式的資料庫設定，不列印連線字串。掛載路徑、Pod 就緒、內容鎖與資料庫匯出任一步失敗便保留上一份備份；備份格式可接續下方 Compose 還原步驟。DB 名稱和帳號由新的 Compose 還原環境設定，內容資料及站長帳號不變
+
+將隨附的 `.service`、`.timer` 複製到 `/etc/systemd/system/`，先手動執行並檢查結果，再啟用排程
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start kaiyolab-backup.service
+sudo journalctl -u kaiyolab-backup.service -n 30 --no-pager
+sudo systemctl enable --now kaiyolab-backup.timer
+sudo systemctl list-timers kaiyolab-backup.timer
+```
+
+範例於台灣時間每天 03:00 起隨機延後最多 15 分鐘執行，保留 14 天，關機錯過的排程會在下次啟動補跑；切換到多節點、遠端磁碟或更換 namespace 時需重新檢查備份方式
+
+### Compose 還原步驟
 
 以下使用新的專案名稱 `kaiyolab-restore`，不會覆寫原站。將 `20260921T080000Z` 換成你的備份資料夾名稱，且使用與備份相容的程式版本。
 

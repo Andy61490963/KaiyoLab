@@ -1,6 +1,7 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import sharp from 'sharp';
 import type { Entry, Media, SiteSettings } from '../../src/lib/types';
+import { restoreSettingsFixture } from './helpers/settings';
 const email = process.env.E2E_EMAIL || 'e2e@example.test';
 const password = process.env.E2E_PASSWORD || 'KaiyoLab-e2e-password-2026';
 async function requestJson<T>(
@@ -90,15 +91,13 @@ test('media upload, alt text, profile settings, and in-use image protection', as
   let media: Media | undefined;
   try {
     await page.goto('/admin/media');
-    await page
-      .locator('input[type=file]')
-      .setInputFiles({
-        name: '不支援的圖片.svg',
-        mimeType: 'image/svg+xml',
-        buffer: Buffer.from(
-          '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>',
-        ),
-      });
+    await page.locator('input[type=file]').setInputFiles({
+      name: '不支援的圖片.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>',
+      ),
+    });
     await expect(page.getByRole('alert')).toContainText(
       'Only PNG, JPEG, and WebP images are supported.',
     );
@@ -168,7 +167,7 @@ test('media upload, alt text, profile settings, and in-use image protection', as
       headers: { Origin: baseURL! },
     });
     expect(rejected.status()).toBe(409);
-    await requestJson(page.request, baseURL!, '/api/admin/settings', 'PUT', original);
+    await restoreSettingsFixture(page.request, baseURL!, original);
     await page.reload();
     card = page.locator('.admin-media-card').filter({ hasText: fileName });
     await expect(
@@ -179,7 +178,7 @@ test('media upload, alt text, profile settings, and in-use image protection', as
     await expect(card).toHaveCount(0);
     media = undefined;
   } finally {
-    await requestJson(page.request, baseURL!, '/api/admin/settings', 'PUT', original);
+    await restoreSettingsFixture(page.request, baseURL!, original);
     if (media)
       await page.request.delete(`/api/admin/media/${media.id}`, { headers: { Origin: baseURL! } });
   }

@@ -83,6 +83,26 @@ docker compose -f compose.yaml -f compose.image.yaml up -d --wait
 
 ## 維運檢查
 
+### 更新期間的維護回應
+
+隨附 Caddy 在應用程式停止或尚未開始監聽，導致代理產生 502、503 或 504 錯誤時，會回傳 `503 Service Unavailable`、`Retry-After: 15` 及 `Cache-Control: no-store`，並顯示簡短維護提示，不會將內部連線錯誤或維護頁誤標成成功
+
+應用程式自行回傳的狀態及本文保持原樣，包括登入驗證 401、內容不存在 404、版本衝突 409，以及健康端點的 503；這份設定沒有啟用寫入操作重試，`Retry-After` 只表示建議稍後再檢查，不保證 15 秒內恢復
+
+更新時保持 Caddy 執行，只重建應用程式：
+
+```bash
+docker compose -f compose.yaml -f compose.production.yaml up -d --build --wait app
+```
+
+首次安裝仍使用前面的完整啟動指令；Caddy 必須已啟動才能顯示維護回應，若整個 Compose 停止、代理或主機失去連線，這份設定無法代替外部入口
+
+應用程式恢復連線後，Caddy 自動恢復轉送；這改善停機期間的 HTTP 回應，沒有消除單一應用程式容器、資料庫或主機的停機時間
+
+CI 透過 `docs/operations/ci-maintenance.sh` 在隔離網路啟動真實 Caddy 與測試上游，依序驗證正常轉送、停止上游後的 503／重試標頭、重新啟動後的恢復，以及原有 API 錯誤狀態不被取代，參考 [Caddy 錯誤處理文件](https://caddyserver.com/docs/caddyfile/directives/handle_errors)
+
+### 日常檢查
+
 - `/api/health` 應回傳成功；此端點供容器存活與資料庫可用性檢查。
 - 用 `docker compose ps` 確認應用程式及資料庫健康。
 - 定期依[備份與還原](backup-restore.md)保留可還原的備份。

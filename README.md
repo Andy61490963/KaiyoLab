@@ -81,6 +81,12 @@ Markdown 也支援 Mermaid 流程圖與循序圖，編輯器的 **Insert flowcha
 
 後台的 **Content transfer** 可完整匯出內容與圖片，再預覽匯入為私人草稿；**System status** 顯示版本、資料庫、圖片儲存與已記錄的備份／還原驗證時間。GitHub Actions 提供站外監測與失敗通知設定。操作方式見[內容搬移](docs/content-transfer.md)與[內容復原及維運](docs/maintenance.md)。
 
+文章搜尋支援空白分隔的多關鍵字與引號片語，手機可展開標籤篩選；清單與內頁共用閱讀時間。文章與作品的內容語言獨立於介面語言，沒有封面時自動產生含中文標題的 PNG 分享圖
+
+發布前檢查會提示流程圖語法及失效的章節連結；匯入時同步調整改名文章、作品與舊網址的 Markdown 連結，預覽會列出變更。網站設定加入版本保護，兩個分頁衝突時保留尚未儲存內容，並可下載副本
+
+Compose 預設每天備份資料庫、圖片與密鑰，後台會顯示超時或最近失敗狀態；另提供可自行設定目的地的加密異地副本，操作方式見[備份與還原](docs/backup-restore.md)
+
 第一版適合**一個網站、一位站長**。不包含公開註冊、留言、電子報、多租戶、排程發布或拖拉版面。版本紀錄從升級時開始累積，不提供每次按鍵的完整編輯歷程。
 
 ## 技術架構
@@ -112,17 +118,20 @@ Markdown 也支援 Mermaid 流程圖與循序圖，編輯器的 **Insert flowcha
 
 本機預設無須修改環境變數。需要自訂時，將 `.env.example` 複製為 `.env`。
 
-| 設定                 | 預設值                         | 用途                                           |
-| -------------------- | ------------------------------ | ---------------------------------------------- |
-| `SITE_URL`           | `http://localhost:4321`        | 建置及執行期的完整網址；變更後須 `--build`     |
-| `APP_PORT`           | `4321`                         | 本機對應連接埠；變更時也要同步 `SITE_URL`      |
-| `DOMAIN`             | 無                             | 正式部署的唯一網域來源，建置及執行統一為 HTTPS |
-| `DATABASE_URL`       | 由容器密鑰組成                 | 本機 npm 開發時指定 PostgreSQL 連線            |
-| `BETTER_AUTH_SECRET` | 首次隨機產生                   | 本機 npm 開發須自行設定隨機值                  |
-| `SETUP_TOKEN`        | 首次隨機產生                   | 首次設定用的一次性初始化碼                     |
-| `UPLOAD_DIR`         | 容器 `/app/data/uploads`       | 圖片儲存目錄；本機開發可使用 `./data/uploads`  |
-| `SECRETS_DIR`        | `/run/kaiyo-secrets`           | 容器密鑰檔案目錄                               |
-| `OPERATIONS_DIR`     | Compose `/app/data/operations` | 唯讀維運紀錄目錄，未設定時不顯示完成時間       |
+| 設定                      | 預設值                         | 用途                                               |
+| ------------------------- | ------------------------------ | -------------------------------------------------- |
+| `SITE_URL`                | `http://localhost:4321`        | 建置及執行期的完整網址；變更後須 `--build`         |
+| `APP_PORT`                | `4321`                         | 本機對應連接埠；變更時也要同步 `SITE_URL`          |
+| `DOMAIN`                  | 無                             | 正式部署的唯一網域來源，建置及執行統一為 HTTPS     |
+| `DATABASE_URL`            | 由容器密鑰組成                 | 本機 npm 開發時指定 PostgreSQL 連線                |
+| `BETTER_AUTH_SECRET`      | 首次隨機產生                   | 本機 npm 開發須自行設定隨機值                      |
+| `SETUP_TOKEN`             | 首次隨機產生                   | 首次設定用的一次性初始化碼                         |
+| `UPLOAD_DIR`              | 容器 `/app/data/uploads`       | 圖片儲存目錄；本機開發可使用 `./data/uploads`      |
+| `SECRETS_DIR`             | `/run/kaiyo-secrets`           | 容器密鑰檔案目錄                                   |
+| `OPERATIONS_DIR`          | Compose `/app/data/operations` | 唯讀維運紀錄目錄，未設定時不顯示完成時間           |
+| `BACKUP_INTERVAL_SECONDS` | `86400`                        | Compose 自動備份週期，範圍 60 至 2678400 秒        |
+| `BACKUP_RETENTION_DAYS`   | `14`                           | 本機完整備份保留天數，清理不會刪除不完整或無關目錄 |
+| `BACKUP_MAX_AGE_HOURS`    | `36`                           | 後台標示備份超時的門檻，應大於備份週期             |
 
 Compose 不會將 `.env` 中的全部值自動傳給容器；Docker 的資料庫密碼、Auth 密鑰與初始化碼以 named volume 保存。上表的本機開發變數僅供 `npm` 工作流程使用。
 

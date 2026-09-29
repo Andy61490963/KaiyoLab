@@ -91,9 +91,40 @@ export default function SystemStatus() {
               <h2>Maintenance records</h2>
               <dl className="admin-system-list">
                 <div>
+                  <dt>Local backup status</dt>
+                  <dd
+                    role={
+                      report.backup.health === 'failed' || report.backup.health === 'overdue'
+                        ? 'status'
+                        : undefined
+                    }
+                  >
+                    {
+                      {
+                        ok: 'Up to date',
+                        overdue: 'Overdue',
+                        failed: 'Last attempt failed',
+                        unknown: 'Not verified',
+                      }[report.backup.health || 'unknown']
+                    }
+                  </dd>
+                </div>
+                <div>
                   <dt>Last completed backup</dt>
                   <dd>{operation(report.backup)}</dd>
                 </div>
+                {report.backup.dueAt && (
+                  <div>
+                    <dt>Backup overdue after</dt>
+                    <dd>{new Date(report.backup.dueAt).toLocaleString()}</dd>
+                  </div>
+                )}
+                {report.backup.lastFailureAt && (
+                  <div>
+                    <dt>Last failed attempt</dt>
+                    <dd>{new Date(report.backup.lastFailureAt).toLocaleString()}</dd>
+                  </div>
+                )}
                 <div>
                   <dt>Last verified restore</dt>
                   <dd>{operation(report.restore)}</dd>

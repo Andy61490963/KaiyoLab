@@ -219,6 +219,7 @@ export default function ContentTransfer() {
                   'New categories': preview.counts.categories,
                   'New tags': preview.counts.tags,
                   Revisions: preview.counts.revisions,
+                  改寫的站內連結: preview.counts.rewrittenLinks,
                 }).map(([label, count]) => (
                   <div key={label}>
                     <dt>{label}</dt>
@@ -266,6 +267,37 @@ export default function ContentTransfer() {
                       </tbody>
                     </table>
                   </div>
+                </>
+              )}
+              {preview.linkChanges.length > 0 && (
+                <>
+                  <h3>站內連結調整</h3>
+                  <p>
+                    下列連結會指向本次匯入的文章或作品，保留查詢參數與章節錨點，避免連到目的站原本的同名內容
+                  </p>
+                  <div className="transfer-adjustments">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>位置</th>
+                          <th>封存檔連結</th>
+                          <th>匯入後連結</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {preview.linkChanges.map((change, index) => (
+                          <tr key={index}>
+                            <td>{change.location}</td>
+                            <td>{change.from}</td>
+                            <td>{change.to}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {preview.omittedLinkChanges > 0 && (
+                    <p>另外 {preview.omittedLinkChanges} 個連結調整未逐項列出</p>
+                  )}
                 </>
               )}
               <p>
