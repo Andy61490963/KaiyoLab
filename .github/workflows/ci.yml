@@ -116,13 +116,13 @@ jobs:
           echo "SETUP_TOKEN=$token" >> "$GITHUB_ENV"
           echo "PLAYWRIGHT_BASE_URL=http://localhost:4321" >> "$GITHUB_ENV"
           echo "E2E_EXTERNAL_SERVER=true" >> "$GITHUB_ENV"
-      - run: npm run test:e2e
-      - name: 驗證平台初始化、降權與密鑰保存
-        run: sh docs/operations/ci-bootstrap.sh
       - name: 驗證排程備份、失敗回報及內容鎖
         run: sh docs/operations/ci-backup.sh
       - name: 驗證加密備份與離線還原
         run: sh docs/operations/ci-offsite.sh
+      - run: npm run test:e2e
+      - name: 驗證平台初始化、降權與密鑰保存
+        run: sh docs/operations/ci-bootstrap.sh
       - name: 重建容器與備份還原驗證
         run: sh docs/operations/ci-roundtrip.sh
       - name: 保存瀏覽器測試結果
