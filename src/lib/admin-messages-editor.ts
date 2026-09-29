@@ -141,6 +141,31 @@ export const editorMessages: Record<string, string> = {
   'Previous value': '原內容',
   'New value': '新內容',
   'Body changes': '內文變更',
+  '{removed} removed / {added} added lines': '刪除 {removed} 行／新增 {added} 行',
+  'Only changed sections and up to 3 surrounding lines are shown':
+    '僅顯示變更區段及前後最多 3 行，其餘未變更內容已省略',
+  '{lines} unchanged lines omitted': '已省略 {lines} 行未變更內容',
+  'Unified body diff': '內文逐行差異',
+  'Change section {number}': '第 {number} 個變更區段',
+  'Old and new line numbers with removed, added and unchanged text':
+    '原行號、新行號，以及刪除、新增與未變更的文字',
+  Old: '原行',
+  New: '新行',
+  Change: '變更',
+  Text: '文字',
+  'Removed line': '刪除行',
+  'Added line': '新增行',
+  'Unchanged line': '未變更行',
+  'Diff note': '差異備註',
+  'No newline at end of file': '檔案結尾沒有換行',
+  'Carriage return (CR)': '歸位字元（CR）',
+  'Diff preview is shortened to {lines} lines and {characters} characters per line. Some content is not shown.':
+    '差異預覽最多顯示 {lines} 行，每行最多 {characters} 個字元，部分內容未顯示',
+  'Showing {shown} of {total} change sections': '已顯示 {total} 個變更區段中的 {shown} 個',
+  'The body is too large to compare here. The full diff and line counts are unavailable. Review both versions before continuing.':
+    '內文超過比較上限，無法顯示完整差異與新增刪除行數，請先檢查兩個版本的內容再繼續',
+  'The changes are too complex to compare here. The full diff and line counts are unavailable. Review both versions before continuing.':
+    '變更超過比較運算上限，無法顯示完整差異與新增刪除行數，請先檢查兩個版本的內容再繼續',
   '{previous} previous / {next} new lines in changed section':
     '變更區段：原內容 {previous} 行／新內容 {next} 行',
   'Previous text': '原文字',

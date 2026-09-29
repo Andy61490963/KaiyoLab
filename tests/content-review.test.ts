@@ -140,10 +140,12 @@ describe('內容差異', () => {
   it('標示中間變更並忽略兩端未變更行', () => {
     const before = { ...emptyContent, body: '相同\n舊文字\n尾端' };
     const after = { ...before, title: '新標題', body: '相同\n新文字\n新增一行\n尾端' };
-    expect(contentDiff(before, after)).toEqual({
+    expect(contentDiff(before, after)).toMatchObject({
       fields: ['Title'],
       metadata: [{ label: 'Title', before: 'Untitled article', after: '新標題' }],
       body: {
+        changed: true,
+        status: 'complete',
         removed: ['舊文字'],
         added: ['新文字', '新增一行'],
         removedCount: 1,
@@ -162,14 +164,20 @@ describe('內容差異', () => {
       }).fields,
     ).toEqual([]);
   });
-  it('大篇幅與單行內容皆限制差異預覽大小', () => {
+  it('超過行數上限明確回報無法比較，不虛構全文新增刪除計數', () => {
     const diff = contentDiff(
       { ...emptyContent, body: 'a\n'.repeat(250000) },
       { ...emptyContent, body: 'b'.repeat(500000) },
     );
-    expect(diff.body.removed.length).toBe(100);
-    expect(diff.body.added[0].length).toBe(1001);
-    expect(diff.body.truncated).toBe(true);
+    expect(diff.body).toMatchObject({
+      changed: true,
+      status: 'too-large',
+      hunks: [],
+      removed: [],
+      added: [],
+      removedCount: null,
+      addedCount: null,
+    });
   });
   it('不把全文當成 HTML 執行', () => {
     expect(
