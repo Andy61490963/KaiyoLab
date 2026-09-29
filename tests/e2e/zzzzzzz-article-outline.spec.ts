@@ -1,33 +1,64 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import type { Entry } from '../../src/lib/types';
 import { signInForFixture } from './helpers/auth';
 
 const articlePath = '/articles/aspnet-core-di-multiple-implementations';
 
-test('點選末段中文目錄後仍固定在閱讀欄上方，不被右欄附加資訊推走', async ({ page }, testInfo) => {
+async function expectStickyWithinArticle(rail: Locator) {
+  await expect
+    .poll(() =>
+      rail.evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        const boundary = node.parentElement!.getBoundingClientRect();
+        // 側欄真正抵達文章底界時正常離開，不把 footer 當成閱讀區覆蓋
+        return Math.abs(box.top - Math.min(80, boundary.bottom - box.height));
+      }),
+    )
+    .toBeLessThan(2);
+}
+
+test('目錄與推薦共同固定，末段錨點正確且側欄遵守文章底界', async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(articlePath);
   await page.evaluate(() => document.fonts.ready);
   const links = page.locator('.article-rail .article-outline a');
+  const rail = page.locator('.article-rail-sticky');
   const card = page.locator('.article-rail-card');
+  const supplement = page.locator('.article-rail-supplement');
   for (const height of [928, 900, 720]) {
     await page.setViewportSize({ width: 1440, height });
+    let pinnedSupplementTop: number | undefined;
     for (const index of [2, 0, 3, 1, 3]) {
       const link = links.nth(index);
       const id = (await link.getAttribute('data-toc-target'))!;
       await link.click();
       await expect(link).toHaveAttribute('aria-current', 'location');
-      await expect
-        .poll(() => card.evaluate((node) => Math.round(node.getBoundingClientRect().top)))
-        .toBe(80);
+      await expectStickyWithinArticle(rail);
+      if (index < 2) {
+        await expect
+          .poll(() => rail.evaluate((node) => Math.round(node.getBoundingClientRect().top)))
+          .toBe(80);
+        const top = Math.round((await supplement.boundingBox())!.y);
+        if (pinnedSupplementTop !== undefined) expect(top).toBe(pinnedSupplementTop);
+        pinnedSupplementTop = top;
+        await expect(supplement.locator('.article-rail-related a').first()).toBeInViewport();
+      }
+      const panelGap = await supplement.evaluate(
+        (node) =>
+          node.getBoundingClientRect().top -
+          node.previousElementSibling!.getBoundingClientRect().bottom,
+      );
+      expect(panelGap).toBe(24);
+      expect(await card.evaluate((node) => getComputedStyle(node).position)).toBe('static');
+      expect(await supplement.evaluate((node) => getComputedStyle(node).position)).not.toBe(
+        'sticky',
+      );
       expect(await page.evaluate((target) => document.activeElement?.id === target, id)).toBe(true);
       expect(new URL(page.url()).hash).toBe(`#${encodeURIComponent(id)}`);
       const before = await page.evaluate(() => scrollY);
       // 顏色、語言和目前章節更新不得再次移動文章或目錄
       await page.getByRole('button', { name: '繁體中文', exact: true }).click();
-      await expect
-        .poll(() => card.evaluate((node) => Math.round(node.getBoundingClientRect().top)))
-        .toBe(80);
+      await expectStickyWithinArticle(rail);
       expect(await page.evaluate(() => scrollY)).toBe(before);
     }
   }
@@ -36,7 +67,7 @@ test('點選末段中文目錄後仍固定在閱讀欄上方，不被右欄附�
       document.documentElement.dataset.theme = value;
     }, theme);
     await page.setViewportSize({ width: 1440, height: 900 });
-    await links.nth(2).click();
+    await links.nth(1).click();
     await page.addStyleTag({ content: 'astro-dev-toolbar { display: none !important }' });
     const path = testInfo.outputPath(`article-outline-${theme}-1440.png`);
     await page.screenshot({ path, animations: 'disabled' });
@@ -142,7 +173,7 @@ test('長中文目錄在桌機內捲動，手機與平板保留可操作的折�
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       ).toBe(true);
       if (width >= 1320) {
-        const card = page.locator('.article-rail-card');
+        const card = page.locator('.article-rail-sticky');
         await expect
           .poll(() => card.evaluate((node) => Math.round(node.getBoundingClientRect().top)))
           .toBe(80);
@@ -153,6 +184,33 @@ test('長中文目錄在桌機內捲動，手機與平板保留可操作的折�
         await page.mouse.move(1270, 350);
         await page.mouse.wheel(0, -240);
         await expect.poll(() => page.evaluate(() => scrollY)).toBe(position);
+        // 矮視窗與長目錄也只有外層捲軸；Tab 必須到得了推薦與標籤
+        await page.setViewportSize({ width, height: 600 });
+        const scrollContainers = await page
+          .locator('.article-rail')
+          .evaluate((rail) =>
+            [...rail.querySelectorAll<HTMLElement>('*')]
+              .filter(
+                (node) =>
+                  ['auto', 'scroll'].includes(getComputedStyle(node).overflowY) &&
+                  node.scrollHeight > node.clientHeight + 1,
+              )
+              .map((node) => node.className),
+          );
+        expect(scrollContainers).toEqual(['article-rail-sticky']);
+        const allLinks = page.locator('.article-rail-sticky a');
+        await allLinks.first().focus();
+        const focusedPosition = await page.evaluate(() => scrollY);
+        for (let index = 0; index < (await allLinks.count()); index++) {
+          const current = allLinks.nth(index);
+          if (index > 0) await page.keyboard.press('Tab');
+          await expect(current).toBeFocused();
+          const focusBounds = (await current.boundingBox())!;
+          expect(focusBounds.y).toBeGreaterThanOrEqual(79);
+          expect(focusBounds.y + focusBounds.height).toBeLessThanOrEqual(577);
+          expect(await page.evaluate(() => scrollY)).toBe(focusedPosition);
+        }
+        await page.setViewportSize({ width, height: 900 });
       } else {
         const geometry = await page.evaluate(
           (target) => ({
