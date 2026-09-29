@@ -191,7 +191,7 @@
 .public-site .article-detail .article-outline {
   display: grid;
   gap: 0;
-  /* The card is the only scroll container, including very long outlines. */
+  /* 目錄與推薦共用外層捲動區，長目錄不建立第二層捲軸 */
   max-height: none;
   overflow: visible;
 }
@@ -252,18 +252,27 @@
   top: 16px;
   background: var(--accent);
 }
-.public-site .article-detail .article-rail-card {
+.public-site .article-detail .article-rail-sticky {
   position: sticky;
-  z-index: 1;
   top: 80px;
   max-height: calc(100dvh - 104px);
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+}
+.public-site .article-detail .article-rail-sticky:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.public-site .article-detail .article-rail-card {
+  position: static;
+  max-height: none;
+  overflow: visible;
   padding: 24px 22px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  /* Opaque while supplementary information scrolls behind the reading tools. */
   background: var(--bg);
 }
 .public-site .article-detail .article-rail-card h2,

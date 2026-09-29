@@ -217,85 +217,94 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
         </div>
       </div>
       <aside class="article-toc article-rail">
-        <div class="toc-inner article-rail-card">
-          <h2>
-            <Ui text="Table of contents" />
-          </h2>
-          {rendered.toc.length ? (
-            <nav class="article-outline" {...uiLabel('Article table of contents')}>
-              {rendered.toc.map((item) => (
-                <a
-                  class:list={{ 'toc-sub': item.depth > 2 }}
-                  href={`#${encodeURIComponent(item.id)}`}
-                  data-toc-target={item.id}
-                  data-original-content
-                  translate="no"
-                >
-                  {item.text}
-                </a>
-              ))}
-            </nav>
-          ) : (
-            <p class="sidebar-empty">
-              <Ui text="A short read without section headings." />
-            </p>
-          )}
-          <a class="toc-top" href="#main-content">
-            <Ui text="Back to top ↑" />
-          </a>
-        </div>
-        {(relatedItems.length > 0 || entry.tags.length > 0 || settings.tagline) && (
-          <div class="article-rail-supplement">
-            {relatedItems.length > 0 && (
-              <section class="article-rail-section" aria-labelledby="article-related-heading">
-                <h2 id="article-related-heading">
-                  <Icon name="file" size={18} /> <Ui text="You might also like" />
-                </h2>
-                <ul class="article-rail-related" data-original-content translate="no">
-                  {relatedItems.map((item) => (
-                    <li>
-                      <a href={`/articles/${encodeURIComponent(item.slug)}`}>{item.title}</a>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {entry.tags.length > 0 && (
-              <section class="article-rail-section" aria-labelledby="article-tags-heading">
-                <h2 id="article-tags-heading">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
+        <div
+          class="article-rail-sticky"
+          tabindex="0"
+          role="region"
+          aria-label="Article reading tools"
+          data-ui-label-en="Article reading tools"
+          data-ui-label-zh="文章閱讀工具"
+        >
+          <div class="toc-inner article-rail-card">
+            <h2>
+              <Ui text="Table of contents" />
+            </h2>
+            {rendered.toc.length ? (
+              <nav class="article-outline" {...uiLabel('Article table of contents')}>
+                {rendered.toc.map((item) => (
+                  <a
+                    class:list={{ 'toc-sub': item.depth > 2 }}
+                    href={`#${encodeURIComponent(item.id)}`}
+                    data-toc-target={item.id}
+                    data-original-content
+                    translate="no"
                   >
-                    <path d="m20 13-7 7a2 2 0 0 1-3 0L2 12V2h10l8 8a2 2 0 0 1 0 3Z" />
-                    <circle cx="7" cy="7" r="1" />
-                  </svg>
-                  <Ui text="Tags" />
-                </h2>
-                <div class="article-rail-tags" data-original-content translate="no">
-                  {entry.tags.map((tag) => (
-                    <a href={`/articles?tag=${encodeURIComponent(tag)}`}>{tag}</a>
-                  ))}
-                </div>
-              </section>
+                    {item.text}
+                  </a>
+                ))}
+              </nav>
+            ) : (
+              <p class="sidebar-empty">
+                <Ui text="A short read without section headings." />
+              </p>
             )}
-            {settings.tagline && (
-              <div class="article-rail-section">
-                <figure class="article-rail-note" data-original-content translate="no">
-                  <p>{settings.tagline}</p>
-                  <figcaption>— {settings.siteName}.</figcaption>
-                </figure>
-              </div>
-            )}
+            <a class="toc-top" href="#main-content">
+              <Ui text="Back to top ↑" />
+            </a>
           </div>
-        )}
+          {(relatedItems.length > 0 || entry.tags.length > 0 || settings.tagline) && (
+            <div class="article-rail-supplement">
+              {relatedItems.length > 0 && (
+                <section class="article-rail-section" aria-labelledby="article-related-heading">
+                  <h2 id="article-related-heading">
+                    <Icon name="file" size={18} /> <Ui text="You might also like" />
+                  </h2>
+                  <ul class="article-rail-related" data-original-content translate="no">
+                    {relatedItems.map((item) => (
+                      <li>
+                        <a href={`/articles/${encodeURIComponent(item.slug)}`}>{item.title}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {entry.tags.length > 0 && (
+                <section class="article-rail-section" aria-labelledby="article-tags-heading">
+                  <h2 id="article-tags-heading">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m20 13-7 7a2 2 0 0 1-3 0L2 12V2h10l8 8a2 2 0 0 1 0 3Z" />
+                      <circle cx="7" cy="7" r="1" />
+                    </svg>
+                    <Ui text="Tags" />
+                  </h2>
+                  <div class="article-rail-tags" data-original-content translate="no">
+                    {entry.tags.map((tag) => (
+                      <a href={`/articles?tag=${encodeURIComponent(tag)}`}>{tag}</a>
+                    ))}
+                  </div>
+                </section>
+              )}
+              {settings.tagline && (
+                <div class="article-rail-section">
+                  <figure class="article-rail-note" data-original-content translate="no">
+                    <p>{settings.tagline}</p>
+                    <figcaption>— {settings.siteName}.</figcaption>
+                  </figure>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </aside>
     </div>
   </article>
@@ -402,7 +411,7 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
         const activeLink = links.find(
           (link) => link.dataset.tocTarget === activeId && link.closest('.article-rail'),
         );
-        const card = activeLink?.closest<HTMLElement>('.article-rail-card');
+        const card = activeLink?.closest<HTMLElement>('.article-rail-sticky');
         if (activeLink && card && card.clientHeight) {
           const linkBox = activeLink.getBoundingClientRect();
           const cardBox = card.getBoundingClientRect();
