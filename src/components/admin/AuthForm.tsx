@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { api, errorMessage, json } from './api';
 import ThemeButton from './ThemeButton';
+import AdminLanguageSwitch, { useAdminLanguage } from './AdminLanguage';
 
 export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
+  const { t } = useAdminLanguage();
   const setup = mode === 'setup';
   const [setupComplete, setSetupComplete] = useState(false);
   const [email, setEmail] = useState('');
@@ -16,6 +18,9 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
   const [error, setError] = useState('');
   const submitted = useRef(false);
   const errorSummary = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    document.title = `${t(setup ? 'First-time setup' : 'Sign in')} · KaiyoLab`;
+  }, [setup, t]);
   useEffect(() => {
     setSetupComplete(new URLSearchParams(window.location.search).get('setup') === 'complete');
   }, []);
@@ -47,90 +52,95 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
   }
   return (
     <div className="admin-auth admin-app">
-      <aside className="admin-auth-visual" aria-label="About this workspace">
+      <aside className="admin-auth-visual" aria-label={t('About this workspace')}>
         <a className="admin-brand" href="/">
           <span>
             KaiyoLab<span className="admin-brand-dot">.</span>
-            <small>Your personal publishing space</small>
+            <small>{t('Your personal publishing space')}</small>
           </span>
         </a>
         <div className="admin-auth-copy">
-          <div className="admin-eyebrow">WRITE. BUILD. SHARE.</div>
-          <h2>A place for your ideas.</h2>
+          <div className="admin-eyebrow">{t('WRITE. BUILD. SHARE.')}</div>
+          <h2>{t('A place for your ideas.')}</h2>
           <p>
-            Development notes, side projects, and things worth documenting. Make this corner of the
-            web your own.
+            {t(
+              'Development notes, side projects, and things worth documenting. Make this corner of the web your own.',
+            )}
           </p>
         </div>
-        <div className="admin-auth-visual-footer">Your content. Your website.</div>
+        <div className="admin-auth-visual-footer">{t('Your content. Your website.')}</div>
       </aside>
       <main className="admin-auth-main">
         <div className="admin-auth-tools">
           <a className="admin-auth-back" href="/">
             <ArrowLeft size={16} />
-            Back to website
+            {t('Back to website')}
           </a>
+          <AdminLanguageSwitch />
           <ThemeButton />
         </div>
         <div className="admin-auth-form-wrapper">
-          <div className="admin-eyebrow">{setup ? 'FIRST-TIME SETUP' : 'KAIYOLAB ADMIN'}</div>
-          <h1>{setup ? 'Set up your workspace' : 'Welcome back'}</h1>
+          <div className="admin-eyebrow">{t(setup ? 'FIRST-TIME SETUP' : 'KAIYOLAB ADMIN')}</div>
+          <h1>{t(setup ? 'Set up your workspace' : 'Welcome back')}</h1>
           <p className="admin-auth-description">
-            {setup
-              ? 'Create your site and owner account to start publishing.'
-              : 'Sign in to manage your writing and projects.'}
+            {t(
+              setup
+                ? 'Create your site and owner account to start publishing.'
+                : 'Sign in to manage your writing and projects.',
+            )}
           </p>
           {!setup && setupComplete && (
             <div className="admin-alert success" role="status">
               <Check size={17} />
-              Setup complete. Sign in with your new owner account.
+              {t('Setup complete. Sign in with your new owner account.')}
             </div>
           )}
           {error && (
             <div ref={errorSummary} className="admin-alert" role="alert" tabIndex={-1}>
-              {error}
+              {t(error)}
             </div>
           )}
           <form onSubmit={submit} aria-busy={busy}>
             <fieldset disabled={busy}>
               <legend className="sr-only">
-                {setup ? 'Owner account details' : 'Sign-in details'}
+                {t(setup ? 'Owner account details' : 'Sign-in details')}
               </legend>
               {setup && (
                 <>
                   <label>
-                    One-time setup token
+                    {t('One-time setup token')}
                     <div className="admin-input-icon">
                       <KeyRound size={17} />
                       <input
-                        aria-label="One-time setup token"
+                        aria-label={t('One-time setup token')}
                         required
                         value={token}
                         onChange={(event) => setToken(event.target.value)}
                         autoComplete="off"
                         maxLength={200}
                         spellCheck={false}
-                        placeholder="Paste the token from your container logs"
+                        placeholder={t('Paste the token from your container logs')}
                       />
                     </div>
                     <small>
-                      In your terminal, run <code>docker compose logs app</code> to find it.
+                      {t('Find the setup token with this terminal command:')}{' '}
+                      <code>docker compose logs app</code>
                     </small>
                   </label>
                   <div className="admin-auth-row">
                     <label>
-                      Display name
+                      {t('Display name')}
                       <input
                         required
                         value={name}
                         maxLength={80}
                         onChange={(event) => setName(event.target.value)}
                         autoComplete="name"
-                        placeholder="What should we call you?"
+                        placeholder={t('What should we call you?')}
                       />
                     </label>
                     <label>
-                      Site name
+                      {t('Site name')}
                       <input
                         required
                         value={siteName}
@@ -142,7 +152,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
                 </>
               )}
               <label>
-                Email
+                {t('Email')}
                 <input
                   required
                   type="email"
@@ -155,10 +165,10 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
                 />
               </label>
               <label>
-                {setup ? 'Set password' : 'Password'}
+                {t(setup ? 'Set password' : 'Password')}
                 <div className="admin-password-input">
                   <input
-                    aria-label={setup ? 'Set password' : 'Password'}
+                    aria-label={t(setup ? 'Set password' : 'Password')}
                     required
                     type={showPassword ? 'text' : 'password'}
                     autoComplete={setup ? 'new-password' : 'current-password'}
@@ -166,26 +176,28 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
                     maxLength={128}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    placeholder={setup ? 'At least 12 characters' : 'Enter your password'}
+                    placeholder={t(setup ? 'At least 12 characters' : 'Enter your password')}
                   />
                   <button
                     type="button"
                     className="admin-icon-button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={t(showPassword ? 'Hide password' : 'Show password')}
                     aria-pressed={showPassword}
                     onClick={() => setShowPassword((value) => !value)}
                   >
                     {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
-                {setup && <small>Use a memorable passphrase with at least 12 characters.</small>}
+                {setup && (
+                  <small>{t('Use a memorable passphrase with at least 12 characters.')}</small>
+                )}
               </label>
               <button
                 className="admin-button primary admin-auth-submit"
                 disabled={busy}
                 type="submit"
               >
-                {busy ? 'Working…' : setup ? 'Create site and account' : 'Sign in'}
+                {t(busy ? 'Working…' : setup ? 'Create site and account' : 'Sign in')}
                 <ArrowRight size={17} />
               </button>
             </fieldset>
@@ -193,13 +205,15 @@ export default function AuthForm({ mode }: { mode: 'login' | 'setup' }) {
           <div className="admin-auth-security">
             <ShieldCheck size={17} />
             <p>
-              {setup
-                ? 'The setup page is disabled once your owner account is created.'
-                : 'Owner access only. For a lost password, follow the account recovery steps in the README.'}
+              {t(
+                setup
+                  ? 'The setup page is disabled once your owner account is created.'
+                  : 'Owner access only. For a lost password, follow the account recovery steps in the README.',
+              )}
             </p>
           </div>
         </div>
-        <footer className="admin-auth-footer">KaiyoLab · A private space to publish.</footer>
+        <footer className="admin-auth-footer">{t('KaiyoLab · A private space to publish.')}</footer>
       </main>
     </div>
   );

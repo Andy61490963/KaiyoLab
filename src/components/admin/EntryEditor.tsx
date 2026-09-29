@@ -1,12 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAdminLanguage } from './AdminLanguage';
+import { editorCodeMirrorPhrases } from '../../lib/admin-messages-editor';
 import { readRecovery, type DraftRecovery } from './draft-recovery';
 import EntryHistory from './EntryHistory';
 import PublishReview from './PublishReview';
 import type { ContentReview } from '../../lib/content-review';
 import './editor-extensions.css';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { EditorState } from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { EditorView } from '@codemirror/view';
+import {
+  closeSearchPanel,
+  getSearchQuery,
+  openSearchPanel,
+  search,
+  searchPanelOpen,
+  setSearchQuery,
+} from '@codemirror/search';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -43,7 +53,6 @@ import {
   type Taxonomies,
 } from './api';
 
-const bodyExtensions = [markdown(), EditorView.lineWrapping];
 const serialize = (value: EntryContent) => JSON.stringify(value);
 export default function EntryEditor({
   id,
@@ -54,6 +63,17 @@ export default function EntryEditor({
   kind: 'article' | 'project';
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t, language } = useAdminLanguage();
+  const bodyExtensions = useMemo(
+    () => [
+      markdown(),
+      EditorView.lineWrapping,
+      // 搜尋狀態必須屬於固定設定，避免 React 重新設定 extensions 時移除臨時附加的狀態
+      search(),
+      EditorState.phrases.of(language === 'zh-TW' ? editorCodeMirrorPhrases : {}),
+    ],
+    [language],
+  );
   const [entry, setEntry] = useState<Entry | null>(null);
   const [content, setContent] = useState<EntryContent | null>(null);
   const [error, setError] = useState('');
@@ -86,7 +106,46 @@ export default function EntryEditor({
   const saving = useRef<Promise<Entry | null> | null>(null);
   const blocked = useRef(false);
   const editor = useRef<EditorView | null>(null);
+  const previousEditorLanguage = useRef(language);
   const draftKey = (entryId: string) => `kaiyo-draft-${entryId}`;
+  useEffect(() => {
+    if (previousEditorLanguage.current === language) return;
+    previousEditorLanguage.current = language;
+    const view = editor.current;
+    if (!view || !searchPanelOpen(view.state)) return;
+    const query = getSearchQuery(view.state);
+    const active = view.root.activeElement;
+    const panel = view.dom.querySelector('.cm-search');
+    const panelControl = panel?.contains(active) ? active?.getAttribute('name') : null;
+    const inputSelection =
+      active instanceof HTMLInputElement && active.selectionStart !== null
+        ? {
+            start: active.selectionStart,
+            end: active.selectionEnd ?? active.selectionStart,
+            direction: active.selectionDirection ?? 'none',
+          }
+        : null;
+    const scroll = { top: view.scrollDOM.scrollTop, left: view.scrollDOM.scrollLeft };
+    // 套件只在建立搜尋面板時讀取 phrases；重開面板，不重建編輯器與復原紀錄
+    closeSearchPanel(view);
+    openSearchPanel(view);
+    // openSearchPanel 可能以目前選取文字建立查詢，這裡保留切換前的完整搜尋條件
+    view.dispatch({ effects: setSearchQuery.of(query) });
+    const nextFocus = panelControl
+      ? view.dom.querySelector<HTMLElement>(`.cm-search [name="${CSS.escape(panelControl)}"]`)
+      : active instanceof HTMLElement && active.isConnected
+        ? active
+        : null;
+    nextFocus?.focus({ preventScroll: true });
+    if (nextFocus instanceof HTMLInputElement && inputSelection)
+      nextFocus.setSelectionRange(
+        inputSelection.start,
+        inputSelection.end,
+        inputSelection.direction,
+      );
+    view.scrollDOM.scrollTop = scroll.top;
+    view.scrollDOM.scrollLeft = scroll.left;
+  }, [language]);
   useEffect(() => {
     let active = true;
     const observer = new MutationObserver(() =>
@@ -320,14 +379,18 @@ export default function EntryEditor({
     if (
       action === 'trash' &&
       !window.confirm(
-        'Move this content to trash? Its public version will be removed. You can restore it later.',
+        t(
+          'Move this content to trash? Its public version will be removed. You can restore it later.',
+        ),
       )
     )
       return;
     if (
       action === 'unpublish' &&
       !window.confirm(
-        'Unpublish this content? Readers will no longer be able to access it. Your draft will be kept.',
+        t(
+          'Unpublish this content? Readers will no longer be able to access it. Your draft will be kept.',
+        ),
       )
     )
       return;
@@ -374,11 +437,14 @@ export default function EntryEditor({
     try {
       const fresh = await api<Entry>(
         '/api/admin/entries',
-        json('POST', { kind, title: `${current.current.title.slice(0, 183)} (recovered copy)` }),
+        json('POST', {
+          kind,
+          title: `${current.current.title.slice(0, 183)} ${t('(recovered copy)')}`,
+        }),
       );
       const copy = {
         ...current.current,
-        title: `${current.current.title.slice(0, 183)} (recovered copy)`,
+        title: `${current.current.title.slice(0, 183)} ${t('(recovered copy)')}`,
         slug: fresh.content.slug,
       };
       const result = await api<Entry>(
@@ -404,7 +470,7 @@ export default function EntryEditor({
     link.click();
     URL.revokeObjectURL(url);
   }
-  function insert(before: string, after = '', placeholder = 'text') {
+  function insert(before: string, after = '', placeholder = t('text')) {
     const view = editor.current;
     if (view) {
       const range = view.state.selection.main;
@@ -432,7 +498,7 @@ export default function EntryEditor({
       setContent(next);
       remember(next);
       setSaveState('pending');
-    } else insert('![', `](${media.url})`, media.alt || 'Image description');
+    } else insert('![', `](${media.url})`, media.alt || t('Image description'));
   }
   const labels = {
     saved: 'All changes saved',
@@ -445,13 +511,13 @@ export default function EntryEditor({
       <>
         <Alert message={error} />
         {!error ? (
-          <div className="admin-loading">Loading editor…</div>
+          <div className="admin-loading">{t('Loading editor…')}</div>
         ) : (
           <a
             className="admin-button"
             href={`/admin/${kind === 'article' ? 'articles' : 'projects'}`}
           >
-            <ArrowLeft size={16} /> Back to list
+            <ArrowLeft size={16} /> {t('Back to list')}
           </a>
         )}
       </>
@@ -473,10 +539,10 @@ export default function EntryEditor({
     options: { multiline?: boolean; help?: string; type?: string } = {},
   ) => (
     <label className="admin-field">
-      {label}
+      {t(label)}
       {options.multiline ? (
         <textarea
-          aria-label={label}
+          aria-label={t(label)}
           maxLength={fieldLimits[key]}
           disabled={editorLocked || !!entry.deletedAt || !!recovery}
           rows={3}
@@ -485,7 +551,7 @@ export default function EntryEditor({
         />
       ) : (
         <input
-          aria-label={label}
+          aria-label={t(label)}
           maxLength={fieldLimits[key]}
           disabled={editorLocked || !!entry.deletedAt || !!recovery}
           type={options.type || 'text'}
@@ -493,7 +559,7 @@ export default function EntryEditor({
           onChange={(e) => update(key, e.target.value as never)}
         />
       )}
-      {options.help && <small>{options.help}</small>}
+      {options.help && <small>{t(options.help)}</small>}
     </label>
   );
   return (
@@ -501,12 +567,13 @@ export default function EntryEditor({
       <div className="admin-editor-heading">
         <div>
           <a className="admin-back" href={`/admin/${kind === 'article' ? 'articles' : 'projects'}`}>
-            <ArrowLeft size={15} /> Back to {kind === 'article' ? 'articles' : 'projects'}
+            <ArrowLeft size={15} />{' '}
+            {t(kind === 'article' ? 'Back to articles' : 'Back to projects')}
           </a>
           <h1>
-            {kind === 'article' ? 'Article' : 'Project'} editor{' '}
+            {t(kind === 'article' ? 'Article editor' : 'Project editor')}{' '}
             <span className={`admin-badge ${entry.published ? 'published' : ''}`}>
-              {entry.deletedAt ? 'Trash' : entry.published ? 'Published' : 'Draft'}
+              {t(entry.deletedAt ? 'Trash' : entry.published ? 'Published' : 'Draft')}
             </span>
           </h1>
         </div>
@@ -519,7 +586,7 @@ export default function EntryEditor({
             ) : (
               <span className="admin-status-dot" />
             )}
-            {recovery ? 'Recovery decision required' : labels[saveState]}
+            {t(recovery ? 'Recovery decision required' : labels[saveState])}
           </span>
           {entry.deletedAt ? (
             <button
@@ -527,7 +594,7 @@ export default function EntryEditor({
               disabled={editorLocked || !!recovery}
               onClick={() => act('restore')}
             >
-              <RefreshCw size={16} /> Restore content
+              <RefreshCw size={16} /> {t('Restore content')}
             </button>
           ) : (
             <>
@@ -535,10 +602,10 @@ export default function EntryEditor({
                 className="admin-button"
                 disabled={editorLocked || conflict || !!recovery}
                 onClick={() => void persist()}
-                title="Save draft (Ctrl/Cmd+S)"
+                title={t('Save draft (Ctrl/Cmd+S)')}
                 aria-keyshortcuts="Control+s Meta+s"
               >
-                <Save size={16} /> Save draft
+                <Save size={16} /> {t('Save draft')}
               </button>
               <button
                 ref={publishButton}
@@ -547,7 +614,7 @@ export default function EntryEditor({
                 onClick={() => void prepareReview()}
               >
                 <Send size={16} />
-                {acting ? 'Working…' : entry.published ? 'Publish changes' : 'Publish content'}
+                {t(acting ? 'Working…' : entry.published ? 'Publish changes' : 'Publish content')}
               </button>
             </>
           )}
@@ -557,15 +624,20 @@ export default function EntryEditor({
       <Alert message={notice} success />
       {backupUnavailable && (
         <div className="admin-alert admin-storage-warning" role="status">
-          Local draft backup is unavailable. Keep this tab open until your changes are saved to the
-          server.
+          {t(
+            'Local draft backup is unavailable. Keep this tab open until your changes are saved to the server.',
+          )}
         </div>
       )}
       {recovery && (
         <div className="admin-recovery">
           <div>
-            <strong>An unsaved local draft was found</strong>
-            <p>Last edited {dateLabel(recovery.at)}. Restore it to continue where you left off.</p>
+            <strong>{t('An unsaved local draft was found')}</strong>
+            <p>
+              {t('Last edited {date}. Restore it to continue where you left off.', {
+                date: dateLabel(recovery.at, language),
+              })}
+            </p>
           </div>
           <button
             className="admin-button primary small"
@@ -576,7 +648,7 @@ export default function EntryEditor({
               setSaveState('pending');
             }}
           >
-            Restore local draft
+            {t('Restore local draft')}
           </button>
           <button
             className="admin-button small"
@@ -587,27 +659,28 @@ export default function EntryEditor({
               setRecovery(null);
             }}
           >
-            Use server version
+            {t('Use server version')}
           </button>
         </div>
       )}
       {conflict && (
         <div className="admin-recovery">
           <div>
-            <strong>This content was changed in another tab</strong>
+            <strong>{t('This content was changed in another tab')}</strong>
             <p>
-              Your edits are still in this tab. Save a new draft, or download the Markdown before
-              reloading.
+              {t(
+                'Your edits are still in this tab. Save a new draft, or download the Markdown before reloading.',
+              )}
             </p>
           </div>
           <button className="admin-button primary small" disabled={acting} onClick={saveCopy}>
-            Save as new draft
+            {t('Save as new draft')}
           </button>
           <button className="admin-button small" onClick={downloadDraft}>
-            <Download size={15} /> Download Markdown
+            <Download size={15} /> {t('Download Markdown')}
           </button>
           <button className="admin-button small" onClick={() => window.location.reload()}>
-            Reload
+            {t('Reload')}
           </button>
         </div>
       )}
@@ -615,20 +688,22 @@ export default function EntryEditor({
         <div className="admin-editor-info">
           <span className="admin-status-dot" />
           <span>
-            Edits are saved privately. Choose Publish changes to update the public version.
+            {t('Edits are saved privately. Choose Publish changes to update the public version.')}
           </span>
           <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-            View published version <ArrowUpRight size={14} />
+            {t('View published version')} <ArrowUpRight size={14} />
           </a>
         </div>
       )}
       <div className="admin-editor-grid">
         <section className="admin-panel admin-writing-panel">
           <div className="admin-title-input">
-            <label htmlFor="entry-title">{kind === 'article' ? 'Article' : 'Project'} title</label>
+            <label htmlFor="entry-title">
+              {t(kind === 'article' ? 'Article title' : 'Project title')}
+            </label>
             <input
               id="entry-title"
-              placeholder="Give this a clear, descriptive title…"
+              placeholder={t('Give this a clear, descriptive title…')}
               value={content.title}
               disabled={editorLocked || !!entry.deletedAt || !!recovery}
               onChange={(e) => update('title', e.target.value)}
@@ -649,8 +724,8 @@ export default function EntryEditor({
                   key={tool.label}
                   type="button"
                   className="admin-icon-button"
-                  title={tool.label}
-                  aria-label={tool.label}
+                  title={t(tool.label)}
+                  aria-label={t(tool.label)}
                   disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onClick={() => insert(tool.before, tool.after)}
                 >
@@ -660,12 +735,14 @@ export default function EntryEditor({
               <button
                 type="button"
                 className="admin-icon-button"
-                title="Insert flowchart"
-                aria-label="Insert flowchart"
+                title={t('Insert flowchart')}
+                aria-label={t('Insert flowchart')}
                 disabled={editorLocked || !!entry.deletedAt || !!recovery}
                 onClick={() =>
                   insert(
-                    '\n```mermaid\nflowchart TD\n  A[工單下達] --> B{前置條件通過}\n  B -->|是| C[開始作業]\n  B -->|否| D[保留原因並等待處理]\n',
+                    language === 'zh-TW'
+                      ? '\n```mermaid\nflowchart TD\n  A[工單下達] --> B{前置條件通過}\n  B -->|是| C[開始作業]\n  B -->|否| D[保留原因並等待處理]\n'
+                      : '\n```mermaid\nflowchart TD\n  A[Work order released] --> B{Prerequisites met}\n  B -->|Yes| C[Start operation]\n  B -->|No| D[Record reason and wait for resolution]\n',
                     '\n```\n',
                   )
                 }
@@ -674,22 +751,22 @@ export default function EntryEditor({
               </button>
               <button
                 className="admin-icon-button"
-                title="Insert image"
-                aria-label="Insert image"
+                title={t('Insert image')}
+                aria-label={t('Insert image')}
                 disabled={editorLocked || !!entry.deletedAt || !!recovery}
                 onClick={() => setPicker('body')}
               >
                 <Image size={17} />
               </button>
             </div>
-            <div className="admin-editor-pane-tabs" role="group" aria-label="Editor view">
+            <div className="admin-editor-pane-tabs" role="group" aria-label={t('Editor view')}>
               <button
                 type="button"
                 aria-pressed={pane === 'edit'}
                 className={pane === 'edit' ? 'active' : ''}
                 onClick={() => setPane('edit')}
               >
-                <Code2 size={14} /> Write
+                <Code2 size={14} /> {t('Write')}
               </button>
               <button
                 type="button"
@@ -697,7 +774,7 @@ export default function EntryEditor({
                 className={pane === 'preview' ? 'active' : ''}
                 onClick={() => setPane('preview')}
               >
-                <Eye size={14} /> Preview
+                <Eye size={14} /> {t('Preview')}
               </button>
               <button
                 type="button"
@@ -705,14 +782,14 @@ export default function EntryEditor({
                 className={pane === 'split' ? 'active' : ''}
                 onClick={() => setPane('split')}
               >
-                Split view
+                {t('Split view')}
               </button>
             </div>
           </div>
           <div className={`admin-editor-panes show-${pane}`}>
             <div className="admin-markdown-input">
               <div className="admin-pane-label">
-                MARKDOWN <span>Autosaves after changes</span>
+                MARKDOWN <span>{t('Autosaves after changes')}</span>
               </div>
               <CodeMirror
                 value={content.body}
@@ -725,19 +802,19 @@ export default function EntryEditor({
                   editor.current = view;
                 }}
                 onChange={(value) => update('body', value)}
-                aria-label="Markdown content"
+                aria-label={t('Markdown content')}
               />
             </div>
             <div
               className="admin-markdown-preview"
               role="region"
-              aria-label="Content preview"
+              aria-label={t('Content preview')}
               aria-busy={previewPending}
             >
               <div className="admin-pane-label">
-                {previewPending ? 'Updating preview…' : 'Live preview'}{' '}
+                {t(previewPending ? 'Updating preview…' : 'Live preview')}{' '}
                 <span>
-                  <Eye size={13} /> Only you can see this
+                  <Eye size={13} /> {t('Only you can see this')}
                 </span>
               </div>
               <Alert message={previewError} />
@@ -745,9 +822,9 @@ export default function EntryEditor({
                 <div className="admin-preview-placeholder">
                   <Code2 size={31} strokeWidth={1.2} />
                   <p>
-                    Start writing in Markdown.
+                    {t('Start writing in Markdown.')}
                     <br />
-                    Your preview will appear here.
+                    {t('Your preview will appear here.')}
                   </p>
                 </div>
               ) : (
@@ -759,11 +836,15 @@ export default function EntryEditor({
             </div>
           </div>
           <div className="admin-editor-bottom">
-            <span>{Array.from(content.body).length.toLocaleString('en-US')} characters</span>
+            <span>
+              {t('{count} characters', {
+                count: Array.from(content.body).length.toLocaleString(language),
+              })}
+            </span>
             <span>
               {content.body.trim()
-                ? `About ${preview.readingMinutes || 1} min read`
-                : 'Start writing to estimate reading time'}
+                ? t('About {count} min read', { count: preview.readingMinutes || 1 })
+                : t('Start writing to estimate reading time')}
             </span>
             <span>Markdown</span>
           </div>
@@ -771,19 +852,19 @@ export default function EntryEditor({
         <aside className="admin-editor-meta">
           <section className="admin-panel">
             <div className="admin-panel-heading">
-              <h2>Publication</h2>
+              <h2>{t('Publication')}</h2>
               <span className="admin-badge">v{entry.version}</span>
             </div>
             <div className="admin-form-body">
               {formField('slug', 'Slug', { help: 'Used in the public URL. Must be unique.' })}
               <label className="admin-field">
-                Category
+                {t('Category')}
                 <select
                   value={content.category}
                   disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onChange={(e) => update('category', e.target.value)}
                 >
-                  <option value="">Uncategorized</option>
+                  <option value="">{t('Uncategorized')}</option>
                   {taxonomy.categories.map((category) => (
                     <option value={category.name} key={category.id}>
                       {category.name}
@@ -795,7 +876,7 @@ export default function EntryEditor({
                 className="admin-tag-options"
                 disabled={editorLocked || !!entry.deletedAt || !!recovery}
               >
-                <legend>Tag</legend>
+                <legend>{t('Tag')}</legend>
                 {taxonomy.tags.length ? (
                   taxonomy.tags.map((tag) => (
                     <label key={tag.id}>
@@ -816,14 +897,14 @@ export default function EntryEditor({
                   ))
                 ) : (
                   <a href="/admin/taxonomies" target="_blank" rel="noopener noreferrer">
-                    Add tag <ArrowUpRight size={12} />
+                    {t('Add tag')} <ArrowUpRight size={12} />
                   </a>
                 )}
               </fieldset>
               <label className="admin-toggle-row">
                 <span>
-                  <strong>Featured content</strong>
-                  <small>Eligible for featured sections on the homepage.</small>
+                  <strong>{t('Featured content')}</strong>
+                  <small>{t('Eligible for featured sections on the homepage.')}</small>
                 </span>
                 <input
                   type="checkbox"
@@ -834,13 +915,13 @@ export default function EntryEditor({
               </label>
               {kind === 'article' && (
                 <details className="admin-series-fields">
-                  <summary>Article series</summary>
+                  <summary>{t('Article series')}</summary>
                   <div className="admin-form-body">
                     {formField('series', 'Series name', {
                       help: 'Use the same name for related articles',
                     })}
                     <label className="admin-field">
-                      Position in series
+                      {t('Position in series')}
                       <input
                         type="number"
                         min={0}
@@ -872,19 +953,19 @@ export default function EntryEditor({
           </section>
           <section className="admin-panel">
             <div className="admin-panel-heading">
-              <h2>Cover & summary</h2>
+              <h2>{t('Cover & summary')}</h2>
             </div>
             <div className="admin-form-body">
               <button
                 className="admin-cover-picker"
-                aria-label={content.cover ? 'Change cover image' : 'Choose cover image'}
+                aria-label={t(content.cover ? 'Change cover image' : 'Choose cover image')}
                 disabled={editorLocked || !!entry.deletedAt || !!recovery}
                 onClick={() => setPicker('cover')}
               >
                 {content.cover ? (
                   <img
                     src={content.cover}
-                    alt={content.coverAlt || 'Content cover'}
+                    alt={content.coverAlt || t('Content cover')}
                     style={{
                       objectPosition: `${content.coverPosition?.x ?? 50}% ${content.coverPosition?.y ?? 50}%`,
                     }}
@@ -892,8 +973,8 @@ export default function EntryEditor({
                 ) : (
                   <>
                     <Image size={28} />
-                    <span>Choose cover image</span>
-                    <small>Recommended: landscape, 16:9</small>
+                    <span>{t('Choose cover image')}</span>
+                    <small>{t('Recommended: landscape, 16:9')}</small>
                   </>
                 )}
               </button>
@@ -903,16 +984,16 @@ export default function EntryEditor({
                   disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onClick={() => update('cover', '')}
                 >
-                  Remove cover
+                  {t('Remove cover')}
                 </button>
               )}
               {formField('coverAlt', 'Cover alt text')}
               {content.cover && (
                 <details className="admin-cover-focus">
-                  <summary>Cover crop focus</summary>
+                  <summary>{t('Cover crop focus')}</summary>
                   {(['x', 'y'] as const).map((axis) => (
                     <label className="admin-field" key={axis}>
-                      {axis === 'x' ? 'Horizontal focus' : 'Vertical focus'} (
+                      {t(axis === 'x' ? 'Horizontal focus' : 'Vertical focus')} (
                       {content.coverPosition?.[axis] ?? 50}%)
                       <input
                         type="range"
@@ -936,7 +1017,7 @@ export default function EntryEditor({
                     disabled={editorLocked || !!entry.deletedAt || !!recovery}
                     onClick={() => update('coverPosition', { x: 50, y: 50 })}
                   >
-                    Center focus
+                    {t('Center focus')}
                   </button>
                 </details>
               )}
@@ -949,7 +1030,7 @@ export default function EntryEditor({
           {kind === 'project' && (
             <section className="admin-panel">
               <div className="admin-panel-heading">
-                <h2>Project links</h2>
+                <h2>{t('Project links')}</h2>
               </div>
               <div className="admin-form-body">
                 {formField('demoUrl', 'Demo URL', { type: 'url' })}
@@ -959,7 +1040,7 @@ export default function EntryEditor({
           )}
           <details className="admin-panel admin-seo">
             <summary>
-              Search engine settings <Plus size={15} />
+              {t('Search engine settings')} <Plus size={15} />
             </summary>
             <div className="admin-form-body">
               {formField('seoTitle', 'SEO title', {
@@ -978,7 +1059,7 @@ export default function EntryEditor({
                 disabled={editorLocked || conflict || !!recovery}
                 onClick={() => act('unpublish')}
               >
-                <PanelLeftClose size={15} /> Unpublish content
+                <PanelLeftClose size={15} /> {t('Unpublish content')}
               </button>
             )}
             {!entry.deletedAt && (
@@ -987,7 +1068,7 @@ export default function EntryEditor({
                 disabled={editorLocked || conflict || !!recovery}
                 onClick={() => act('trash')}
               >
-                <Trash2 size={15} /> Move to trash
+                <Trash2 size={15} /> {t('Move to trash')}
               </button>
             )}
           </div>

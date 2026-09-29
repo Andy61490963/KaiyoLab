@@ -10,8 +10,8 @@ if (state?.setupComplete) return Astro.redirect('/login');
 <AdminLayout title="First-time setup">
   <AuthForm mode="setup" client:only="react">
     <div slot="fallback" class="admin-initial-loading" role="status" aria-busy="true">
-      Opening first-time setup…
+      正在開啟首次設定…
     </div>
   </AuthForm>
-  <noscript>Enable JavaScript to set up your site.</noscript>
+  <noscript>請啟用 JavaScript 以設定網站</noscript>
 </AdminLayout>

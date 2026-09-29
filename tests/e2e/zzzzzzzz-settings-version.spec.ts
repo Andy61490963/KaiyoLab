@@ -31,7 +31,7 @@ test('設定與關於頁衝突保留未儲存內容，可下載、取消重載�
     );
     await other.getByRole('button', { name: 'Save settings', exact: true }).click();
     expect((await rejected).status()).toBe(409);
-    const conflict = other.getByRole('region', { name: '設定版本衝突' });
+    const conflict = other.getByRole('region', { name: 'Settings version conflict' });
     await expect(conflict).toBeVisible();
     await expect(other.getByLabel('About me', { exact: true })).toHaveValue(about);
     await expect(other.getByRole('button', { name: 'Save settings', exact: true })).toBeDisabled();
@@ -45,7 +45,7 @@ test('設定與關於頁衝突保留未儲存內容，可下載、取消重載�
         await other.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       ).toBe(true);
     }
-    const downloadButton = other.getByRole('button', { name: '下載未儲存副本' });
+    const downloadButton = other.getByRole('button', { name: 'Download unsaved copy' });
     await downloadButton.focus();
     await expect(downloadButton).toBeFocused();
     const downloadEvent = other.waitForEvent('download');
@@ -54,13 +54,13 @@ test('設定與關於頁衝突保留未儲存內容，可下載、取消重載�
     expect(JSON.parse(await readFile((await download.path())!, 'utf8')).about).toBe(about);
 
     const cancelledReload = other.waitForEvent('dialog').then((dialog) => dialog.dismiss());
-    await other.getByRole('button', { name: '重新載入最新設定' }).click();
+    await other.getByRole('button', { name: 'Reload latest settings' }).click();
     await cancelledReload;
-    await expect(other.getByRole('button', { name: '重新載入最新設定' })).toBeEnabled();
+    await expect(other.getByRole('button', { name: 'Reload latest settings' })).toBeEnabled();
     await expect(other.getByLabel('About me', { exact: true })).toHaveValue(about);
     await expect(conflict).toBeVisible();
     const confirmedReload = other.waitForEvent('dialog').then((dialog) => dialog.accept());
-    await other.getByRole('button', { name: '重新載入最新設定' }).click();
+    await other.getByRole('button', { name: 'Reload latest settings' }).click();
     await confirmedReload;
     await expect(conflict).toHaveCount(0);
     await expect(other.getByLabel('About me', { exact: true })).toHaveValue(original.about);

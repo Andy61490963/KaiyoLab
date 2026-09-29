@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { useAdminLanguage } from './AdminLanguage';
 
 type Theme = 'light' | 'dark';
 const storageKey = 'kaiyo-theme';
 
 export default function ThemeButton() {
+  const { t } = useAdminLanguage();
   const [theme, setTheme] = useState<Theme>('light');
   const manualChoice = useRef(false);
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function ThemeButton() {
       window.removeEventListener('storage', followStorage);
     };
   }, []);
-  const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+  const label = t(theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
   return (
     <button
       className="admin-icon-button"
@@ -60,7 +62,7 @@ export default function ThemeButton() {
         try {
           localStorage.setItem(storageKey, next);
         } catch {
-          /* A blocked store must not disable themes. */
+          /* 儲存空間受限時仍可切換主題 */
         }
       }}
     >

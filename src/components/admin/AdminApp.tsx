@@ -41,6 +41,8 @@ import {
 } from './api';
 import type { SettingsSnapshot } from '../../lib/settings';
 import ThemeButton from './ThemeButton';
+import AdminLanguageSwitch, { useAdminLanguage } from './AdminLanguage';
+import { mediaUsageLabel } from '../../lib/admin-language';
 import { ListOrder, ListPager, useListing } from './ListControls';
 import {
   adminEntryList,
@@ -54,19 +56,25 @@ const ContentTransfer = lazy(() => import('./ContentTransfer'));
 const SystemStatus = lazy(() => import('./SystemStatus'));
 
 export function Alert({ message, success = false }: { message: string; success?: boolean }) {
+  const { t } = useAdminLanguage();
   return message ? (
     <div className={`admin-alert ${success ? 'success' : ''}`} role={success ? 'status' : 'alert'}>
       {success ? <Check size={17} /> : <CircleHelp size={17} />}
-      <span>{message}</span>
+      <span>{t(message)}</span>
     </div>
   ) : null;
 }
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
+  const { t } = useAdminLanguage();
   return (
     <div className="admin-empty">
       <Orbit size={36} strokeWidth={1.2} />
-      <h3>{title}</h3>
-      <p>{children || 'Content you create will appear here.'}</p>
+      <h3>{t(title)}</h3>
+      <p>
+        {typeof children === 'string'
+          ? t(children)
+          : children || t('Content you create will appear here.')}
+      </p>
     </div>
   );
 }
@@ -81,12 +89,13 @@ export function PageTitle({
   description: string;
   children?: ReactNode;
 }) {
+  const { t } = useAdminLanguage();
   return (
     <header className="admin-page-title">
       <div>
-        <div className="admin-eyebrow">{label}</div>
-        <h1>{title}</h1>
-        <p>{description}</p>
+        <div className="admin-eyebrow">{t(label)}</div>
+        <h1>{t(title)}</h1>
+        <p>{t(description)}</p>
       </div>
       {children}
     </header>
@@ -139,16 +148,17 @@ const navigation = [
   { href: '/admin/system', label: 'System status', icon: Activity },
 ];
 function Navigation({ path, close }: { path: string; close?: () => void }) {
+  const { t } = useAdminLanguage();
   return (
     <>
       <a className="admin-brand" href="/admin">
         <span>
           KaiyoLab<span className="admin-brand-dot">.</span>
-          <small>Publishing workspace</small>
+          <small>{t('Publishing workspace')}</small>
         </span>
       </a>
-      <div className="admin-nav-caption">Workspace</div>
-      <nav aria-label="Admin navigation">
+      <div className="admin-nav-caption">{t('Workspace')}</div>
+      <nav aria-label={t('Admin navigation')}>
         {navigation.map((item) => {
           const active =
             item.href === '/admin'
@@ -163,7 +173,7 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
               onClick={close}
             >
               <item.icon size={18} />
-              <span>{item.label}</span>
+              <span>{t(item.label)}</span>
             </a>
           );
         })}
@@ -171,7 +181,7 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
       <div className="admin-sidebar-bottom">
         <a className="admin-site-link" href="/" target="_blank" rel="noopener noreferrer">
           <span>
-            <Orbit size={18} /> View website
+            <Orbit size={18} /> {t('View website')}{' '}
           </span>
           <ArrowUpRight size={17} />
         </a>
@@ -180,7 +190,8 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
             <UserRound size={19} />
           </span>
           <div>
-            Site owner<small>Private workspace</small>
+            {t('Site owner')}
+            <small>{t('Private workspace')}</small>
           </div>
           <ShieldCheck size={17} />
         </div>
@@ -189,6 +200,7 @@ function Navigation({ path, close }: { path: string; close?: () => void }) {
   );
 }
 export default function AdminApp({ path: rawPath }: { path: string }) {
+  const { t } = useAdminLanguage();
   const path = rawPath.replace(/\/$/, '') || '/admin';
   const [open, setOpen] = useState(false);
   const [logoutError, setLogoutError] = useState('');
@@ -212,7 +224,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   const match = path.match(/^\/admin\/(articles|projects)\/([^/]+)$/);
   if (match)
     page = (
-      <Suspense fallback={<p className="admin-loading">Loading editor…</p>}>
+      <Suspense fallback={<p className="admin-loading">{t('Loading editor…')}</p>}>
         <EntryEditor
           id={match[2]}
           kind={match[1] === 'articles' ? 'article' : 'project'}
@@ -229,31 +241,31 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
     page = <SettingsForm about={path.endsWith('about')} onDirtyChange={setDirty} />;
   else if (path === '/admin/transfer')
     page = (
-      <Suspense fallback={<p className="admin-loading">Loading content transfer…</p>}>
+      <Suspense fallback={<p className="admin-loading">{t('Loading content transfer…')}</p>}>
         <ContentTransfer />
       </Suspense>
     );
   else if (path === '/admin/system')
     page = (
-      <Suspense fallback={<p className="admin-loading">Loading system status…</p>}>
+      <Suspense fallback={<p className="admin-loading">{t('Loading system status…')}</p>}>
         <SystemStatus />
       </Suspense>
     );
   else
     page = (
-      <Empty title="Admin page not found">
-        <a href="/admin">Back to overview</a>
+      <Empty title={t('Admin page not found')}>
+        <a href="/admin">{t('Back to overview')}</a>
       </Empty>
     );
   useEffect(() => {
-    document.title = `${current.label} · KaiyoLab Admin`;
-  }, [current.label]);
+    document.title = `${t(current.label)} · ${t('KaiyoLab Admin')}`;
+  }, [current.label, t]);
   async function logout() {
     if (logoutInFlight.current) return;
     if (
       dirty &&
       !window.confirm(
-        'You have unsaved changes. Sign out anyway? Keep this tab open or save your work first.',
+        t('You have unsaved changes. Sign out anyway? Keep this tab open or save your work first.'),
       )
     )
       return;
@@ -272,7 +284,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   return (
     <div className="admin-app">
       <a className="admin-skip" href="#admin-main">
-        Skip to main content
+        {t('Skip to main content')}{' '}
       </a>
       <aside className="admin-sidebar">
         <Navigation path={path} />
@@ -284,7 +296,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
               <Dialog.Trigger asChild>
                 <button
                   className="admin-icon-button admin-mobile-menu"
-                  aria-label="Open admin menu"
+                  aria-label={t('Open admin menu')}
                 >
                   <Menu size={21} />
                 </button>
@@ -292,13 +304,13 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
               <Dialog.Portal>
                 <Dialog.Overlay className="admin-dialog-overlay" />
                 <Dialog.Content className="admin-mobile-drawer admin-app">
-                  <Dialog.Title className="sr-only">Admin menu</Dialog.Title>
+                  <Dialog.Title className="sr-only">{t('Admin menu')}</Dialog.Title>
                   <Dialog.Description className="sr-only">
-                    Choose a section of your workspace.
+                    {t('Choose a section of your workspace.')}{' '}
                   </Dialog.Description>
                   <Dialog.Close
                     className="admin-drawer-close admin-icon-button"
-                    aria-label="Close menu"
+                    aria-label={t('Close menu')}
                   >
                     <X size={20} />
                   </Dialog.Close>
@@ -306,22 +318,23 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
                 </Dialog.Content>
               </Dialog.Portal>
             </Dialog.Root>
-            <span>Workspace</span>
+            <span>{t('Workspace')}</span>
             <ChevronRight size={14} />
-            <strong>{current.label}</strong>
+            <strong>{t(current.label)}</strong>
           </div>
           <div className="admin-topbar-actions">
             <span className="admin-private-badge">
-              <ShieldCheck size={14} /> Private
+              <ShieldCheck size={14} /> {t('Private')}{' '}
             </span>
+            <AdminLanguageSwitch />
             <ThemeButton />
             <button
               className="admin-icon-button"
               type="button"
               onClick={logout}
               disabled={signingOut}
-              aria-label={signingOut ? 'Signing out…' : 'Sign out'}
-              title="Sign out"
+              aria-label={signingOut ? t('Signing out…') : t('Sign out')}
+              title={t('Sign out')}
             >
               <LogOut size={18} />
             </button>
@@ -336,9 +349,9 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
           {page}
         </main>
         <footer className="admin-footer">
-          <span>KaiyoLab · Content workspace</span>
+          <span>{t('KaiyoLab · Content workspace')}</span>
           <a href="/" target="_blank" rel="noopener noreferrer">
-            View website <ArrowUpRight size={13} />
+            {t('View website')} <ArrowUpRight size={13} />
           </a>
         </footer>
       </div>
@@ -346,6 +359,7 @@ export default function AdminApp({ path: rawPath }: { path: string }) {
   );
 }
 function Dashboard() {
+  const { t, language } = useAdminLanguage();
   const { data, error, loading, refresh } = useRemote<{
     counts: { articles: number; drafts: number; projects: number; trash: number };
     recent: Entry[];
@@ -354,80 +368,79 @@ function Dashboard() {
     <>
       <PageTitle
         label="YOUR WORKSPACE"
-        title="Overview"
+        title={t('Overview')}
         description="Manage your writing, projects, and the details that make this site yours."
       >
         <a className="admin-button primary" href="/admin/articles/new">
-          <Plus size={17} /> New article
+          <Plus size={17} /> {t('New article')}{' '}
         </a>
       </PageTitle>
       <Alert message={error} />
       {error && (
         <button className="admin-button" onClick={refresh}>
-          <RefreshCw size={16} /> Reload
+          <RefreshCw size={16} /> {t('Reload')}{' '}
         </button>
       )}
       <section className="admin-welcome">
         <div className="admin-welcome-content">
-          <span className="admin-eyebrow">CONTENT</span>
-          <h2>New article</h2>
-          <p>Start with a draft. Preview your work, then publish when it is ready.</p>
+          <span className="admin-eyebrow">{t('CONTENT')}</span>
+          <h2>{t('New article')}</h2>
+          <p>{t('Start with a draft. Preview your work, then publish when it is ready.')}</p>
           <div className="admin-welcome-actions">
             <a href="/admin/articles/new">
-              Write an article <ArrowRight size={17} />
+              {t('Write an article')} <ArrowRight size={17} />
             </a>
-            <a href="/admin/articles?status=draft">View drafts</a>
+            <a href="/admin/articles?status=draft">{t('View drafts')}</a>
           </div>
         </div>
       </section>
       <div className="admin-stat-grid">
         {[
           {
-            name: 'Articles',
+            name: t('Articles'),
             count: data?.counts.articles,
             icon: FileText,
             href: '/admin/articles',
-            detail: 'Browse articles',
+            detail: t('Browse articles'),
           },
           {
-            name: 'Drafts',
+            name: t('Drafts'),
             count: data?.counts.drafts,
             icon: FileText,
             href: '/admin/articles?status=draft',
             otherHref: '/admin/projects?status=draft',
-            detail: 'Articles',
+            detail: t('Articles'),
           },
           {
-            name: 'Projects',
+            name: t('Projects'),
             count: data?.counts.projects,
             icon: FolderKanban,
             href: '/admin/projects',
-            detail: 'Browse projects',
+            detail: t('Browse projects'),
           },
           {
-            name: 'Trash',
+            name: t('Trash'),
             count: data?.counts.trash,
             icon: Trash2,
             href: '/admin/articles?status=trash',
-            detail: 'Articles',
+            detail: t('Articles'),
             otherHref: '/admin/projects?status=trash',
           },
         ].map((stat, i) => (
           <div className={`admin-stat stat-${i}`} key={stat.name}>
             <div>
-              <span>{stat.name}</span>
+              <span>{t(stat.name)}</span>
               <stat.icon size={19} />
             </div>
             <strong>{loading ? '—' : (stat.count ?? '—')}</strong>
             <div className="admin-stat-links">
               <a href={stat.href}>
-                {stat.detail}
+                {t(stat.detail)}
                 <ArrowUpRight size={14} />
               </a>
               {stat.otherHref && (
                 <a href={stat.otherHref}>
-                  Projects
-                  <ArrowUpRight size={14} />
+                  {t('Projects')} <ArrowUpRight size={14} />
                 </a>
               )}
             </div>
@@ -438,20 +451,22 @@ function Dashboard() {
         <section className="admin-panel">
           <div className="admin-panel-heading">
             <div>
-              <h2>Recently edited</h2>
-              <p>Pick up where you left off.</p>
+              <h2>{t('Recently edited')}</h2>
+              <p>{t('Pick up where you left off.')}</p>
             </div>
             <a href="/admin/articles">
-              All articles <ArrowRight size={15} />
+              {t('All articles')} <ArrowRight size={15} />
             </a>
           </div>
           {loading ? (
-            <p className="admin-loading">Loading your workspace…</p>
+            <p className="admin-loading">{t('Loading your workspace…')}</p>
           ) : error && !data ? (
-            <p className="admin-loading">Unable to load recent content. Use Reload to try again.</p>
+            <p className="admin-loading">
+              {t('Unable to load recent content. Use Reload to try again.')}
+            </p>
           ) : !data?.recent.length ? (
-            <Empty title="No recent edits">
-              Your recently edited articles and projects will appear here.
+            <Empty title={t('No recent edits')}>
+              {t('Your recently edited articles and projects will appear here.')}{' '}
             </Empty>
           ) : (
             <div className="admin-recent-list">
@@ -461,14 +476,14 @@ function Dashboard() {
                     {entry.kind === 'article' ? <FileText size={19} /> : <FolderKanban size={19} />}
                   </span>
                   <div>
-                    <strong>{entry.content.title || 'Untitled draft'}</strong>
+                    <strong>{entry.content.title || t('Untitled draft')}</strong>
                     <small>
-                      {entry.kind === 'article' ? 'Article' : 'Project'} ·{' '}
-                      {dateLabel(entry.updatedAt)}
+                      {entry.kind === 'article' ? t('Article') : t('Project')} ·{' '}
+                      {dateLabel(entry.updatedAt, language)}
                     </small>
                   </div>
                   <span className={`admin-badge ${entry.published ? 'published' : ''}`}>
-                    {entry.deletedAt ? 'Trash' : entry.published ? 'Published' : 'Draft'}
+                    {entry.deletedAt ? t('Trash') : entry.published ? t('Published') : t('Draft')}
                   </span>
                   <ChevronRight size={16} />
                 </a>
@@ -479,8 +494,8 @@ function Dashboard() {
         <section className="admin-panel admin-shortcuts">
           <div className="admin-panel-heading">
             <div>
-              <h2>Make it yours</h2>
-              <p>A few useful places to start.</p>
+              <h2>{t('Make it yours')}</h2>
+              <p>{t('A few useful places to start.')}</p>
             </div>
           </div>
           <a href="/admin/about">
@@ -488,8 +503,8 @@ function Dashboard() {
               <UserRound size={21} />
             </span>
             <div>
-              <strong>Introduce yourself</strong>
-              <small>Update your bio, avatar, and social links.</small>
+              <strong>{t('Introduce yourself')}</strong>
+              <small>{t('Update your bio, avatar, and social links.')}</small>
             </div>
             <ArrowUpRight size={17} />
           </a>
@@ -498,8 +513,8 @@ function Dashboard() {
               <FolderKanban size={21} />
             </span>
             <div>
-              <strong>Share a project</strong>
-              <small>Document something you have built.</small>
+              <strong>{t('Share a project')}</strong>
+              <small>{t('Document something you have built.')}</small>
             </div>
             <ArrowUpRight size={17} />
           </a>
@@ -508,15 +523,17 @@ function Dashboard() {
               <Settings size={21} />
             </span>
             <div>
-              <strong>Site identity</strong>
-              <small>Your site name, images, and search details.</small>
+              <strong>{t('Site identity')}</strong>
+              <small>{t('Your site name, images, and search details.')}</small>
             </div>
             <ArrowUpRight size={17} />
           </a>
           <div className="admin-note">
             <ShieldCheck size={17} />
             <p>
-              Drafts stay private. Publishing is a separate action, so you control what readers see.
+              {t(
+                'Drafts stay private. Publishing is a separate action, so you control what readers see.',
+              )}{' '}
             </p>
           </div>
         </section>
@@ -525,7 +542,7 @@ function Dashboard() {
   );
 }
 function EntryList({ kind }: { kind: 'article' | 'project' }) {
-  const name = kind === 'article' ? 'Article' : 'Project';
+  const { t, language } = useAdminLanguage();
   const { state, query, setQuery, update, setPage, clear, searchParams } =
     useListing(adminEntryList);
   const { status, category } = state;
@@ -544,14 +561,20 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
     if (
       actionName === 'trash' &&
       !window.confirm(
-        `Move “${entry.content.title || 'Untitled draft'}” to trash? Its public version will be removed. You can restore it later.`,
+        t(
+          'Move “{title}” to trash? Its public version will be removed. You can restore it later.',
+          { title: entry.content.title || t('Untitled draft') },
+        ),
       )
     )
       return;
     if (
       actionName === 'unpublish' &&
       !window.confirm(
-        `Unpublish “${entry.content.title}”? Readers will no longer be able to access it. Your draft will be kept.`,
+        t(
+          'Unpublish “{title}”? Readers will no longer be able to access it. Your draft will be kept.',
+          { title: entry.content.title },
+        ),
       )
     )
       return;
@@ -583,30 +606,30 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
     <>
       <PageTitle
         label="CONTENT"
-        title={kind === 'article' ? 'Articles' : 'Projects'}
+        title={kind === 'article' ? t('Articles') : t('Projects')}
         description={
           kind === 'article'
-            ? 'Write, review, and publish your articles.'
-            : 'Document your projects and the work behind them.'
+            ? t('Write, review, and publish your articles.')
+            : t('Document your projects and the work behind them.')
         }
       >
         <a
           className="admin-button primary"
           href={`/admin/${kind === 'article' ? 'articles' : 'projects'}/new`}
         >
-          <Plus size={17} /> New {name.toLowerCase()}
+          <Plus size={17} /> {t(kind === 'article' ? 'New article' : 'New project')}
         </a>
       </PageTitle>
       <Alert message={error} />
       <Alert message={notice} success />
       <section className="admin-panel">
         <div className="admin-list-toolbar">
-          <div className="admin-tabs" role="group" aria-label="Publication status">
+          <div className="admin-tabs" role="group" aria-label={t('Publication status')}>
             {[
-              ['', 'All content'],
-              ['draft', 'Draft'],
-              ['published', 'Published'],
-              ['trash', 'Trash'],
+              ['', t('All content')],
+              ['draft', t('Draft')],
+              ['published', t('Published')],
+              ['trash', t('Trash')],
             ].map(([value, label]) => (
               <button
                 className={status === value ? 'active' : ''}
@@ -615,7 +638,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                 aria-pressed={status === value}
               >
                 {value === 'trash' && <Trash2 size={14} />}
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
@@ -623,8 +646,8 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             <label className="admin-search">
               <Search size={17} />
               <input
-                aria-label={`Search ${name.toLowerCase()}s`}
-                placeholder="Search titles or summaries…"
+                aria-label={t(kind === 'article' ? 'Search articles' : 'Search projects')}
+                placeholder={t('Search titles or summaries…')}
                 type="search"
                 maxLength={200}
                 value={query}
@@ -632,11 +655,11 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               />
             </label>
             <select
-              aria-label="Filter by category"
+              aria-label={t('Filter by category')}
               value={category}
               onChange={(e) => update({ category: e.target.value })}
             >
-              <option value="">All categories</option>
+              <option value="">{t('All categories')}</option>
               {taxonomy?.categories.map((c) => (
                 <option value={c.name} key={c.id}>
                   {c.name}
@@ -645,15 +668,15 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
             </select>
             {(query || category || status) && (
               <button className="admin-button small" type="button" onClick={clear}>
-                Clear filters
+                {t('Clear filters')}{' '}
               </button>
             )}
             <button
               className="admin-icon-button"
               type="button"
               onClick={refresh}
-              aria-label="Refresh list"
-              title="Refresh list"
+              aria-label={t('Refresh list')}
+              title={t('Refresh list')}
               disabled={loading}
             >
               <RefreshCw size={17} />
@@ -667,44 +690,56 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
           />
         </div>
         {loading ? (
-          <p className="admin-loading">Loading {name.toLowerCase()}s…</p>
+          <p className="admin-loading">
+            {t(kind === 'article' ? 'Loading articles…' : 'Loading projects…')}
+          </p>
         ) : error && !data ? (
           <div className="admin-loading">
-            Unable to load content. Use Refresh list to try again.
+            {t('Unable to load content. Use Refresh list to try again.')}{' '}
           </div>
         ) : !data?.items.length ? (
           <Empty
             title={
               query || category
-                ? 'No matching content'
+                ? t('No matching content')
                 : status === 'trash'
-                  ? 'Trash is empty'
-                  : `No ${name.toLowerCase()}s yet`
+                  ? t('Trash is empty')
+                  : kind === 'article'
+                    ? t('No articles yet')
+                    : t('No projects yet')
             }
           >
             {query || category
-              ? 'Try another keyword or clear the filters.'
+              ? t('Try another keyword or clear the filters.')
               : status === 'trash'
-                ? 'Trashed content stays here until you restore it.'
-                : `Create a new ${name.toLowerCase()} to get started.`}
+                ? t('Trashed content stays here until you restore it.')
+                : kind === 'article'
+                  ? t('Create a new article to get started.')
+                  : t('Create a new project to get started.')}
           </Empty>
         ) : (
           <div
             className="admin-table-scroll"
             tabIndex={0}
             role="region"
-            aria-label="Content table. Scroll horizontally to see all columns."
+            aria-label={t('Content table. Scroll horizontally to see all columns.')}
           >
             <table className="admin-table">
-              <caption className="sr-only">{name}s matching the current filters</caption>
+              <caption className="sr-only">
+                {t(
+                  kind === 'article'
+                    ? 'Articles matching the current filters'
+                    : 'Projects matching the current filters',
+                )}
+              </caption>
               <thead>
                 <tr>
-                  <th scope="col">Title</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Category</th>
-                  <th scope="col">Last edited</th>
+                  <th scope="col">{t('Title')}</th>
+                  <th scope="col">{t('Status')}</th>
+                  <th scope="col">{t('Category')}</th>
+                  <th scope="col">{t('Last edited')}</th>
                   <th scope="col" className="admin-align-right">
-                    Actions
+                    {t('Actions')}{' '}
                   </th>
                 </tr>
               </thead>
@@ -722,12 +757,14 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                         </span>
                         <span>
                           <strong>
-                            {entry.content.title || 'Untitled draft'}
+                            {entry.content.title || t('Untitled draft')}
                             {entry.content.featured && (
-                              <span className="admin-featured-label">Featured</span>
+                              <span className="admin-featured-label">{t('Featured')}</span>
                             )}
                           </strong>
-                          <small>/{entry.content.slug || 'no-slug-yet'}</small>
+                          <small>
+                            {entry.content.slug ? `/${entry.content.slug}` : t('No slug yet')}
+                          </small>
                         </span>
                       </a>
                     </td>
@@ -735,7 +772,11 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                       <span
                         className={`admin-badge ${entry.published && !entry.deletedAt ? 'published' : ''}`}
                       >
-                        {entry.deletedAt ? 'Trashed' : entry.published ? 'Published' : 'Draft'}
+                        {entry.deletedAt
+                          ? t('Trashed')
+                          : entry.published
+                            ? t('Published')
+                            : t('Draft')}
                       </span>
                     </td>
                     <td>
@@ -743,7 +784,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                         entry.content.category ||
                         '—'}
                     </td>
-                    <td className="admin-nowrap">{dateLabel(entry.updatedAt)}</td>
+                    <td className="admin-nowrap">{dateLabel(entry.updatedAt, language)}</td>
                     <td>
                       <div className="admin-row-actions">
                         {entry.deletedAt ? (
@@ -752,12 +793,12 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                             onClick={() => action(entry, 'restore')}
                             className="admin-button small"
                           >
-                            <RefreshCw size={14} /> Restore
+                            <RefreshCw size={14} /> {t('Restore')}{' '}
                           </button>
                         ) : (
                           <>
                             <a className="admin-button small" href={editorUrl(entry)}>
-                              Edit
+                              {t('Edit')}{' '}
                             </a>
                             {entry.published && (
                               <button
@@ -765,12 +806,14 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                                 disabled={!!busy}
                                 onClick={() => action(entry, 'unpublish')}
                               >
-                                Unpublish
+                                {t('Unpublish')}{' '}
                               </button>
                             )}
                             <button
                               className="admin-icon-button danger"
-                              aria-label={`Move ${entry.content.title} to trash`}
+                              aria-label={t('Move {title} to trash', {
+                                title: entry.content.title,
+                              })}
                               disabled={!!busy}
                               onClick={() => action(entry, 'trash')}
                             >
@@ -788,7 +831,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
         )}
         <ListPager info={data} loading={loading} onPage={setPage} />
         <div className="admin-table-footer">
-          <span>Draft content is only visible to you.</span>
+          <span>{t('Draft content is only visible to you.')}</span>
         </div>
       </section>
     </>
@@ -803,6 +846,7 @@ export function MediaPicker({
   onOpenChange: (value: boolean) => void;
   onSelect: (media: Media) => void;
 }) {
+  const { t } = useAdminLanguage();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -810,12 +854,12 @@ export function MediaPicker({
         <Dialog.Content className="admin-dialog admin-app">
           <div className="admin-dialog-heading">
             <div>
-              <Dialog.Title>Choose image</Dialog.Title>
+              <Dialog.Title>{t('Choose image')}</Dialog.Title>
               <Dialog.Description>
-                Select an image from your library or upload a new one.
+                {t('Select an image from your library or upload a new one.')}{' '}
               </Dialog.Description>
             </div>
-            <Dialog.Close className="admin-icon-button" aria-label="Close image picker">
+            <Dialog.Close className="admin-icon-button" aria-label={t('Close image picker')}>
               <X size={20} />
             </Dialog.Close>
           </div>
@@ -840,6 +884,7 @@ function MediaLibrary({
   picker?: boolean;
   onSelect?: (media: Media) => void;
 }) {
+  const { t } = useAdminLanguage();
   const { state, query, setQuery, update, setPage, clear, searchParams, searchPending } =
     useListing(adminMediaList, !picker);
   const listUrl = `/api/admin/media?${searchParams}`;
@@ -857,7 +902,7 @@ function MediaLibrary({
     if (!loading && data && resolvedUrl === listUrl) setPage(data.page);
   }, [data, resolvedUrl, listUrl, loading, setPage]);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const [uploadResult, setUploadResult] = useState<{ count: number; failed: boolean } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadInFlight = useRef(false);
   const [uploads, setUploads] = useState<
@@ -872,7 +917,7 @@ function MediaLibrary({
     uploadInFlight.current = true;
     setBusy(true);
     setError('');
-    setMessage('');
+    setUploadResult(null);
     const queue: typeof uploads = files.map((file) => ({ file, status: 'waiting' }));
     setUploads([...queue]);
     let succeeded = 0;
@@ -901,10 +946,8 @@ function MediaLibrary({
         update({ q: '', sort: 'newest' });
         refresh();
       }
-      setMessage(
-        succeeded
-          ? `${succeeded} ${succeeded === 1 ? 'image' : 'images'} uploaded${queue.some((i) => i.status === 'error') ? ' · Some files need attention' : ''}`
-          : '',
+      setUploadResult(
+        succeeded ? { count: succeeded, failed: queue.some((i) => i.status === 'error') } : null,
       );
     } finally {
       uploadInFlight.current = false;
@@ -919,14 +962,14 @@ function MediaLibrary({
         disabled={busy}
         onClick={() => fileInput.current?.click()}
       >
-        <Upload size={17} /> {busy ? 'Uploading…' : 'Upload image'}
+        <Upload size={17} /> {busy ? t('Uploading…') : t('Upload image')}
       </button>
       <input
         ref={fileInput}
         hidden
         type="file"
         multiple
-        aria-label="Upload image file"
+        aria-label={t('Upload image file')}
         accept="image/jpeg,image/png,image/webp"
         disabled={busy}
         onChange={(event) => {
@@ -941,7 +984,7 @@ function MediaLibrary({
       {!picker && (
         <PageTitle
           label="MEDIA"
-          title="Media library"
+          title={t('Media library')}
           description="Manage covers, avatars, and images in one place."
         >
           {uploadButton}
@@ -950,17 +993,32 @@ function MediaLibrary({
       {picker && (
         <div className="admin-picker-toolbar">
           {uploadButton}
-          <small>JPG, PNG, WebP · Up to 10 MB</small>
+          <small>{t('JPG, PNG, WebP · Up to 10 MB')}</small>
         </div>
       )}
       <Alert message={error} />
-      <Alert message={message} success />
+      <Alert
+        message={
+          uploadResult
+            ? t(
+                uploadResult.failed
+                  ? '{count} images uploaded · Some files need attention'
+                  : '{count} images uploaded',
+                { count: uploadResult.count },
+              )
+            : ''
+        }
+        success
+      />
       {uploads.length > 0 && (
-        <section className="admin-panel admin-upload-queue" aria-label="Upload progress">
+        <section className="admin-panel admin-upload-queue" aria-label={t('Upload progress')}>
           <div className="admin-panel-heading">
-            <h2>Upload progress</h2>
+            <h2>{t('Upload progress')}</h2>
             <span role="status">
-              {uploads.filter((i) => i.status === 'done').length} / {uploads.length} complete
+              {t('{done} / {total} complete', {
+                done: uploads.filter((i) => i.status === 'done').length,
+                total: uploads.length,
+              })}{' '}
             </span>
           </div>
           <ul>
@@ -969,12 +1027,12 @@ function MediaLibrary({
                 <span>{item.file.name}</span>
                 <span role={item.status === 'error' ? 'alert' : undefined}>
                   {item.status === 'done'
-                    ? 'Uploaded'
+                    ? t('Uploaded')
                     : item.status === 'error'
-                      ? item.error
+                      ? t(item.error || 'Upload failed')
                       : item.status === 'uploading'
-                        ? 'Uploading…'
-                        : 'Waiting'}
+                        ? t('Uploading…')
+                        : t('Waiting')}
                 </span>
               </li>
             ))}
@@ -987,7 +1045,7 @@ function MediaLibrary({
                 void upload(uploads.filter((i) => i.status === 'error').map((i) => i.file))
               }
             >
-              Retry failed uploads
+              {t('Retry failed uploads')}{' '}
             </button>
           )}
         </section>
@@ -997,8 +1055,8 @@ function MediaLibrary({
           <Search size={17} />
           <input
             type="search"
-            aria-label="Search media"
-            placeholder="Search filenames or alt text…"
+            aria-label={t('Search media')}
+            placeholder={t('Search filenames or alt text…')}
             maxLength={200}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -1006,7 +1064,7 @@ function MediaLibrary({
         </label>
         {query && (
           <button className="admin-button small" type="button" onClick={clear}>
-            Clear search
+            {t('Clear search')}{' '}
           </button>
         )}
         <button
@@ -1014,8 +1072,8 @@ function MediaLibrary({
           type="button"
           onClick={refresh}
           disabled={loading}
-          aria-label="Refresh media"
-          title="Refresh media"
+          aria-label={t('Refresh media')}
+          title={t('Refresh media')}
         >
           <RefreshCw size={17} />
         </button>
@@ -1029,23 +1087,25 @@ function MediaLibrary({
       {!picker && (
         <div className="admin-media-info">
           <span>
-            <Image size={16} /> {data?.total ?? 0} images
+            <Image size={16} /> {t('{count} images', { count: data?.total ?? 0 })}{' '}
           </span>
-          <span>JPG, PNG, WebP · Up to 10 MB</span>
+          <span>{t('JPG, PNG, WebP · Up to 10 MB')}</span>
         </div>
       )}
       {loading ? (
-        <p className="admin-loading">Loading media library…</p>
+        <p className="admin-loading">{t('Loading media library…')}</p>
       ) : error && (!data || resolvedUrl !== listUrl) ? (
-        <p className="admin-loading">Unable to load images. Use Refresh media to try again.</p>
+        <p className="admin-loading">
+          {t('Unable to load images. Use Refresh media to try again.')}
+        </p>
       ) : !data?.items.length ? (
         state.q ? (
-          <Empty title="No matching images">
-            Try another filename or description, or clear the search.
+          <Empty title={t('No matching images')}>
+            {t('Try another filename or description, or clear the search.')}{' '}
           </Empty>
         ) : (
-          <Empty title="Your image library starts here">
-            Upload a cover, avatar, or article image. Files are stored on your server.
+          <Empty title={t('Your image library starts here')}>
+            {t('Upload a cover, avatar, or article image. Files are stored on your server.')}{' '}
           </Empty>
         )
       ) : (
@@ -1084,6 +1144,7 @@ function MediaCard({
   refresh: () => void;
   onError: (message: string) => void;
 }) {
+  const { t, language } = useAdminLanguage();
   const [alt, setAlt] = useState(media.alt);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -1100,7 +1161,12 @@ function MediaCard({
     }
   }
   async function remove() {
-    if (!window.confirm(`Permanently delete “${media.name}”? This cannot be undone.`)) return;
+    if (
+      !window.confirm(
+        t('Permanently delete “{name}”? This cannot be undone.', { name: media.name }),
+      )
+    )
+      return;
     setBusy(true);
     onError('');
     try {
@@ -1118,12 +1184,12 @@ function MediaCard({
         <button
           className="admin-media-select"
           type="button"
-          aria-label={`Choose image ${media.name}`}
+          aria-label={t('Choose image {name}', { name: media.name })}
           onClick={() => onSelect?.(media)}
         >
           <img src={`${media.url}?w=480`} alt={media.alt || media.name} loading="lazy" />
           <span>
-            Choose image <Plus size={16} />
+            {t('Choose image')} <Plus size={16} />
           </span>
         </button>
       ) : (
@@ -1139,7 +1205,7 @@ function MediaCard({
         {!picker && (
           <>
             <label>
-              Alt text
+              {t('Alt text')}{' '}
               <input
                 disabled={busy}
                 maxLength={300}
@@ -1148,7 +1214,7 @@ function MediaCard({
                   setAlt(e.target.value);
                   setSaved(false);
                 }}
-                placeholder="Describe the image for readers using assistive technology"
+                placeholder={t('Describe the image for readers using assistive technology')}
               />
             </label>
             <div className="admin-media-controls">
@@ -1157,17 +1223,17 @@ function MediaCard({
                 className="admin-button small"
                 onClick={save}
               >
-                {saved ? 'Saved' : 'Save description'}
+                {saved ? t('Saved') : t('Save description')}
               </button>
               <button
                 className="admin-icon-button danger"
                 disabled={busy || media.usedBy.length > 0}
                 onClick={remove}
-                aria-label={`Delete image ${media.name}`}
+                aria-label={t('Delete image {name}', { name: media.name })}
                 title={
                   media.usedBy.length
-                    ? 'This image is in use and cannot be deleted.'
-                    : 'Delete permanently'
+                    ? t('This image is in use and cannot be deleted.')
+                    : t('Delete permanently')
                 }
               >
                 <Trash2 size={16} />
@@ -1175,12 +1241,14 @@ function MediaCard({
             </div>
             <details className="admin-media-usage">
               <summary>
-                {media.usedBy.length ? `Used in ${media.usedBy.length} places` : 'Not used yet'}
+                {media.usedBy.length
+                  ? t('Used in {count} places', { count: media.usedBy.length })
+                  : t('Not used yet')}
               </summary>
               {media.usedBy.length > 0 && (
                 <ul>
                   {media.usedBy.map((usage, i) => (
-                    <li key={i}>{usage}</li>
+                    <li key={i}>{mediaUsageLabel(usage, language)}</li>
                   ))}
                 </ul>
               )}
@@ -1192,13 +1260,14 @@ function MediaCard({
   );
 }
 function TaxonomyManager() {
+  const { t } = useAdminLanguage();
   const { data, setData, error, setError, refresh } =
     useRemote<Taxonomies>('/api/admin/taxonomies');
   return (
     <>
       <PageTitle
         label="ORGANIZATION"
-        title="Categories & tags"
+        title={t('Categories & tags')}
         description="Organize your content so readers can find related topics."
       />
       <Alert message={error} />
@@ -1248,6 +1317,7 @@ function TaxonomySection({
   refresh: () => void;
   onError: (value: string) => void;
 }) {
+  const { t } = useAdminLanguage();
   const { state, query, setQuery, update, setPage } = useListing(taxonomyList, false);
   const [revealed, setRevealed] = useState<Taxonomy | null>(null);
   const [pendingReveal, setPendingReveal] = useState<string | null>(null);
@@ -1316,7 +1386,12 @@ function TaxonomySection({
   async function remove(item: Taxonomy) {
     if (
       !window.confirm(
-        `Delete ${label.toLowerCase()} “${item.name}”? Items still in use cannot be deleted.`,
+        t(
+          kind === 'category'
+            ? 'Delete category “{name}”? Items still in use cannot be deleted.'
+            : 'Delete tag “{name}”? Items still in use cannot be deleted.',
+          { name: item.name },
+        ),
       )
     )
       return;
@@ -1342,38 +1417,40 @@ function TaxonomySection({
     <section className="admin-panel">
       <div className="admin-panel-heading">
         <div>
-          <h2>{label}</h2>
+          <h2>{t(label)}</h2>
           <p>
             {kind === 'category'
-              ? 'Broad sections for organizing content.'
-              : 'Specific topics, technologies, and keywords.'}
+              ? t('Broad sections for organizing content.')
+              : t('Specific topics, technologies, and keywords.')}
           </p>
         </div>
         <span className="admin-count">{items.length}</span>
       </div>
       <form className="admin-taxonomy-form" onSubmit={submit}>
         <label>
-          {label} name
+          {t(kind === 'category' ? 'Category name' : 'Tag name')}{' '}
           <input
             ref={nameInput}
             required
             maxLength={80}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={kind === 'category' ? 'For example: Development' : 'For example: Astro'}
+            placeholder={
+              kind === 'category' ? t('For example: Development') : t('For example: Astro')
+            }
           />
         </label>
         <label>
-          Slug
+          {t('Slug')}{' '}
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="Leave blank to generate automatically"
+            placeholder={t('Leave blank to generate automatically')}
           />
         </label>
         <div className="admin-form-actions">
           <button disabled={busy} className="admin-button primary" type="submit">
-            {edit ? 'Save changes' : `Add ${label.toLowerCase()}`}
+            {edit ? t('Save changes') : t(kind === 'category' ? 'Add category' : 'Add tag')}
           </button>
           {edit && (
             <button
@@ -1385,16 +1462,18 @@ function TaxonomySection({
                 setSlug('');
               }}
             >
-              Cancel
+              {t('Cancel')}{' '}
             </button>
           )}
         </div>
       </form>
       {revealed && !matches(revealed) && (
         <p className="admin-subtle" role="status">
-          已儲存「{revealed.name}」，暫時顯示這個項目，原搜尋條件已保留{' '}
+          {t('Saved “{name}”. This item is temporarily shown while your search is preserved.', {
+            name: revealed.name,
+          })}{' '}
           <button className="admin-button small" type="button" onClick={dismissReveal}>
-            只看搜尋結果
+            {t('Show search results only')}{' '}
           </button>
         </p>
       )}
@@ -1404,8 +1483,8 @@ function TaxonomySection({
           <input
             type="search"
             maxLength={200}
-            aria-label={`Search ${label.toLowerCase()} items`}
-            placeholder="Search names or slugs…"
+            aria-label={t(kind === 'category' ? 'Search category items' : 'Search tag items')}
+            placeholder={t('Search names or slugs…')}
             value={query}
             onChange={(event) => {
               dismissReveal();
@@ -1445,11 +1524,14 @@ function TaxonomySection({
                   nameInput.current?.scrollIntoView({ block: 'center', behavior: 'auto' });
                 }}
               >
-                Edit
+                {t('Edit')}{' '}
               </button>
               <button
                 className="admin-icon-button danger"
-                aria-label={`Delete ${label.toLowerCase()} ${item.name}`}
+                aria-label={t(
+                  kind === 'category' ? 'Delete category {name}' : 'Delete tag {name}',
+                  { name: item.name },
+                )}
                 disabled={busy}
                 onClick={() => remove(item)}
               >
@@ -1460,8 +1542,12 @@ function TaxonomySection({
         ) : (
           <p className="admin-subtle">
             {state.q
-              ? 'No matching items. Try another search.'
-              : `No ${label.toLowerCase()} items yet. Add one above.`}
+              ? t('No matching items. Try another search.')
+              : t(
+                  kind === 'category'
+                    ? 'No category items yet. Add one above.'
+                    : 'No tag items yet. Add one above.',
+                )}
           </p>
         )}
       </div>
@@ -1471,7 +1557,7 @@ function TaxonomySection({
           dismissReveal();
           setPage(page);
         }}
-        label={`${label} pagination`}
+        label={kind === 'category' ? 'Category pagination' : 'Tag pagination'}
       />
     </section>
   );
@@ -1483,6 +1569,7 @@ function SettingsForm({
   about: boolean;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useAdminLanguage();
   const { data, setData, error, setError, loading, refresh } =
     useRemote<SettingsSnapshot>('/api/admin/settings');
   const [baseline, setBaseline] = useState<string | null>(null);
@@ -1545,7 +1632,7 @@ function SettingsForm({
     );
     const link = document.createElement('a');
     link.href = url;
-    link.download = '未儲存的網站設定.json';
+    link.download = t('Unsaved site settings.json');
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -1555,12 +1642,19 @@ function SettingsForm({
     setBusy(true);
     try {
       const latest = await api<SettingsSnapshot>('/api/admin/settings');
-      if (!window.confirm('重新載入會取代這個分頁的未儲存內容，請先下載副本以保留修改')) return;
+      if (
+        !window.confirm(
+          t(
+            'Reloading replaces unsaved changes in this tab. Download a copy first to keep your edits.',
+          ),
+        )
+      )
+        return;
       setData(latest);
       setBaseline(JSON.stringify(latest));
       setConflict(false);
       setError('');
-      setMessage('已載入最新設定');
+      setMessage('Latest settings loaded');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -1584,10 +1678,10 @@ function SettingsForm({
     options: { multiline?: boolean; help?: string; required?: boolean; type?: string } = {},
   ) => (
     <label className="admin-field">
-      {label}
+      {t(label)}
       {options.multiline ? (
         <textarea
-          aria-label={label}
+          aria-label={t(label)}
           maxLength={fieldLimits[key]}
           value={String(data?.[key] ?? '')}
           onChange={(e) => change(key, e.target.value)}
@@ -1596,7 +1690,7 @@ function SettingsForm({
         />
       ) : (
         <input
-          aria-label={label}
+          aria-label={t(label)}
           maxLength={fieldLimits[key]}
           type={options.type || 'text'}
           required={options.required}
@@ -1604,15 +1698,15 @@ function SettingsForm({
           onChange={(e) => change(key, e.target.value)}
         />
       )}
-      {options.help && <small>{options.help}</small>}
+      {options.help && <small>{t(options.help)}</small>}
     </label>
   );
   const imageControl = (key: 'logo' | 'avatar' | 'heroImage', label: string) => (
     <div className="admin-field">
-      <span>{label}</span>
+      <span>{t(label)}</span>
       <div className="admin-setting-image">
         {data?.[key] ? (
-          <img src={data[key]} alt={label} />
+          <img src={data[key]} alt={t(label)} />
         ) : (
           <div className="admin-image-placeholder">
             <Image size={25} />
@@ -1620,44 +1714,48 @@ function SettingsForm({
         )}
         <div>
           <button className="admin-button small" type="button" onClick={() => setImageField(key)}>
-            Choose image
+            {t('Choose image')}{' '}
           </button>
           {data?.[key] && (
             <button className="admin-button small" type="button" onClick={() => change(key, '')}>
-              Remove image
+              {t('Remove image')}{' '}
             </button>
           )}
         </div>
       </div>
       <input
-        aria-label={`${label} URL`}
+        aria-label={t('{label} URL', { label: t(label) })}
         maxLength={2048}
         value={data?.[key] || ''}
         onChange={(e) => change(key, e.target.value)}
-        placeholder="/media/… or /images/…"
+        placeholder={t('/media/… or /images/…')}
       />
     </div>
   );
   return (
     <>
       <PageTitle
-        label={about ? 'PROFILE' : 'CONFIGURATION'}
-        title={about ? 'About me' : 'Site settings'}
+        label={about ? t('PROFILE') : t('CONFIGURATION')}
+        title={about ? t('About me') : t('Site settings')}
         description={
           about
-            ? 'Introduce yourself and give readers a way to stay in touch.'
-            : 'Manage your site identity, search details, and account security.'
+            ? t('Introduce yourself and give readers a way to stay in touch.')
+            : t('Manage your site identity, search details, and account security.')
         }
       />
       <Alert message={error} />
       {conflict && (
-        <div className="admin-recovery" role="region" aria-label="設定版本衝突">
+        <div className="admin-recovery" role="region" aria-label={t('Settings version conflict')}>
           <div>
-            <strong>設定已有較新的版本</strong>
-            <p>這個分頁的修改仍保留，請下載副本，再重新載入最新設定後編輯</p>
+            <strong>{t('Newer settings are available')}</strong>
+            <p>
+              {t(
+                'Your changes in this tab are kept. Download a copy, then reload the latest settings to continue editing.',
+              )}
+            </p>
           </div>
           <button className="admin-button small" type="button" onClick={downloadSettings}>
-            下載未儲存副本
+            {t('Download unsaved copy')}{' '}
           </button>
           <button
             className="admin-button small"
@@ -1665,7 +1763,7 @@ function SettingsForm({
             disabled={busy}
             onClick={reloadSettings}
           >
-            重新載入最新設定
+            {t('Reload latest settings')}{' '}
           </button>
         </div>
       )}
@@ -1673,7 +1771,7 @@ function SettingsForm({
         message={
           message
             ? dirty
-              ? 'Saved submitted settings. You still have unsaved changes.'
+              ? t('Saved submitted settings. You still have unsaved changes.')
               : message
             : ''
         }
@@ -1681,11 +1779,11 @@ function SettingsForm({
       />
       {error && !data && (
         <button className="admin-button" type="button" onClick={refresh}>
-          Retry loading settings
+          {t('Retry loading settings')}{' '}
         </button>
       )}
       {loading ? (
-        <p className="admin-loading">Loading settings…</p>
+        <p className="admin-loading">{t('Loading settings…')}</p>
       ) : (
         data && (
           <form className="admin-settings-grid" onSubmit={save} aria-busy={busy}>
@@ -1693,43 +1791,49 @@ function SettingsForm({
               <section className="admin-panel admin-form-panel">
                 <div className="admin-panel-heading">
                   <div>
-                    <h2>{about ? 'Your introduction' : 'Identity & search'}</h2>
+                    <h2>{about ? t('Your introduction') : t('Identity & search')}</h2>
                     <p>
                       {about
-                        ? 'These details appear on your homepage and About page.'
-                        : 'Help readers recognize your site in the browser and search results.'}
+                        ? t('These details appear on your homepage and About page.')
+                        : t('Help readers recognize your site in the browser and search results.')}
                     </p>
                   </div>
                 </div>
                 <div className="admin-form-body">
                   {about ? (
                     <>
-                      {field('authorName', 'Display name', { required: true })}
-                      {field('homeIntro', 'Homepage introduction (Markdown)', {
+                      {field('authorName', t('Display name'), { required: true })}
+                      {field('homeIntro', t('Homepage introduction (Markdown)'), {
                         multiline: true,
                         required: true,
-                        help: 'Supports Markdown headings, links, and images. Saving immediately updates the homepage.',
+                        help: t(
+                          'Supports Markdown headings, links, and images. Saving immediately updates the homepage.',
+                        ),
                       })}
-                      {field('bio', 'Short bio', {
+                      {field('bio', t('Short bio'), {
                         multiline: true,
-                        help: 'Appears in the sidebar and About page metadata.',
+                        help: t('Appears in the sidebar and About page metadata.'),
                       })}
-                      {field('about', 'About me', {
+                      {field('about', t('About me'), {
                         multiline: true,
-                        help: 'Use Markdown for headings, lists, links, and images.',
+                        help: t('Use Markdown for headings, lists, links, and images.'),
                       })}
                     </>
                   ) : (
                     <>
-                      {field('siteName', 'Site name', { required: true })}
-                      {field('tagline', 'Tagline')}
-                      {field('description', 'Site description', {
+                      {field('siteName', t('Site name'), { required: true })}
+                      {field('tagline', t('Tagline'))}
+                      {field('description', t('Site description'), {
                         multiline: true,
-                        help: 'Used for search metadata. Edit your homepage introduction under About me.',
+                        help: t(
+                          'Used for search metadata. Edit your homepage introduction under About me.',
+                        ),
                       })}
-                      {field('siteUrl', 'Public site URL', {
+                      {field('siteUrl', t('Public site URL'), {
                         type: 'url',
-                        help: 'For example, https://your-domain.com. Used by canonical URLs, RSS, and sitemap. The deployment SITE_URL must match.',
+                        help: t(
+                          'For example, https://your-domain.com. Used by canonical URLs, RSS, and sitemap. The deployment SITE_URL must match.',
+                        ),
                       })}
                     </>
                   )}
@@ -1739,8 +1843,8 @@ function SettingsForm({
                 <section className="admin-panel admin-form-panel">
                   <div className="admin-panel-heading">
                     <div>
-                      <h2>Social links</h2>
-                      <p>Help readers find you elsewhere.</p>
+                      <h2>{t('Social links')}</h2>
+                      <p>{t('Help readers find you elsewhere.')}</p>
                     </div>
                     <button
                       className="admin-button small"
@@ -1750,19 +1854,19 @@ function SettingsForm({
                         change('socialLinks', [...data.socialLinks, { label: '', url: '' }])
                       }
                     >
-                      <Plus size={15} /> Add link
+                      <Plus size={15} /> {t('Add link')}{' '}
                     </button>
                   </div>
                   <div className="admin-form-body">
                     {data.socialLinks.map((link, index) => (
                       <div className="admin-social-row" key={index}>
                         <label>
-                          Platform
+                          {t('Platform')}{' '}
                           <input
                             value={link.label}
                             required
                             maxLength={50}
-                            placeholder="GitHub"
+                            placeholder={t('GitHub')}
                             onChange={(e) =>
                               change(
                                 'socialLinks',
@@ -1774,13 +1878,13 @@ function SettingsForm({
                           />
                         </label>
                         <label>
-                          URL
+                          {t('URL')}{' '}
                           <input
                             type="url"
                             value={link.url}
                             required
                             maxLength={2048}
-                            placeholder="https://…"
+                            placeholder={t('https://…')}
                             onChange={(e) =>
                               change(
                                 'socialLinks',
@@ -1794,7 +1898,7 @@ function SettingsForm({
                         <button
                           className="admin-icon-button danger"
                           type="button"
-                          aria-label={`Remove social link ${index + 1}`}
+                          aria-label={t('Remove social link {number}', { number: index + 1 })}
                           onClick={() =>
                             change(
                               'socialLinks',
@@ -1807,7 +1911,7 @@ function SettingsForm({
                       </div>
                     ))}
                     {!data.socialLinks.length && (
-                      <p className="admin-subtle">No social links yet.</p>
+                      <p className="admin-subtle">{t('No social links yet.')}</p>
                     )}
                   </div>
                 </section>
@@ -1816,20 +1920,24 @@ function SettingsForm({
             <aside>
               <section className="admin-panel admin-form-panel">
                 <div className="admin-panel-heading">
-                  <h2>{about ? 'Your avatar' : 'Site images'}</h2>
+                  <h2>{about ? t('Your avatar') : t('Site images')}</h2>
                 </div>
                 <div className="admin-form-body">
                   {about ? (
-                    imageControl('avatar', 'Avatar')
+                    imageControl('avatar', t('Avatar'))
                   ) : (
                     <>
-                      {imageControl('logo', 'Site logo')}
-                      {imageControl('heroImage', 'Homepage image')}
+                      {imageControl('logo', t('Site logo'))}
+                      {imageControl('heroImage', t('Homepage image'))}
                     </>
                   )}
                   <div className="admin-note">
                     <Image size={17} />
-                    <p>Use your media library to keep image management and backups in one place.</p>
+                    <p>
+                      {t(
+                        'Use your media library to keep image management and backups in one place.',
+                      )}
+                    </p>
                   </div>
                 </div>
               </section>
@@ -1837,9 +1945,9 @@ function SettingsForm({
             <div className="admin-settings-savebar">
               <div>
                 <strong role="status">
-                  {busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All settings saved'}
+                  {busy ? t('Saving…') : dirty ? t('Unsaved changes') : t('All settings saved')}
                 </strong>
-                <span>Changes go live when you save.</span>
+                <span>{t('Changes go live when you save.')}</span>
               </div>
               <button
                 className="admin-button primary"
@@ -1847,7 +1955,7 @@ function SettingsForm({
                 type="submit"
               >
                 <Check size={17} />
-                {busy ? 'Saving…' : 'Save settings'}
+                {busy ? t('Saving…') : t('Save settings')}
               </button>
             </div>
           </form>
@@ -1865,6 +1973,7 @@ function SettingsForm({
   );
 }
 function PasswordForm() {
+  const { t } = useAdminLanguage();
   const [currentPassword, setCurrent] = useState('');
   const [newPassword, setNew] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -1899,8 +2008,8 @@ function PasswordForm() {
     <section className="admin-panel admin-password-panel">
       <div className="admin-panel-heading">
         <div>
-          <h2>Account security</h2>
-          <p>Changing your password signs out your other sessions.</p>
+          <h2>{t('Account security')}</h2>
+          <p>{t('Changing your password signs out your other sessions.')}</p>
         </div>
         <ShieldCheck size={22} />
       </div>
@@ -1909,7 +2018,7 @@ function PasswordForm() {
         <Alert message={message} success />
         <div className="admin-password-fields">
           <label>
-            Current password
+            {t('Current password')}{' '}
             <input
               required
               type="password"
@@ -1919,7 +2028,7 @@ function PasswordForm() {
             />
           </label>
           <label>
-            New password
+            {t('New password')}{' '}
             <input
               required
               minLength={12}
@@ -1929,10 +2038,10 @@ function PasswordForm() {
               value={newPassword}
               onChange={(e) => setNew(e.target.value)}
             />
-            <small>At least 12 characters</small>
+            <small>{t('At least 12 characters')}</small>
           </label>
           <label>
-            Confirm new password
+            {t('Confirm new password')}{' '}
             <input
               required
               minLength={12}
@@ -1945,7 +2054,7 @@ function PasswordForm() {
           </label>
         </div>
         <button type="submit" className="admin-button" disabled={busy}>
-          {busy ? 'Updating…' : 'Update password'}
+          {busy ? t('Updating…') : t('Update password')}
         </button>
       </form>
     </section>

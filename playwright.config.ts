@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const browserExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:4321';
 // 本機 Edge 啟動會產生 Windows 4625，反覆測試曾導致 RDP 帳號鎖定。
 if (
   browserExecutable &&
@@ -20,7 +21,17 @@ export default defineConfig({
   expect: { timeout: 15000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:4321',
+    baseURL,
+    // 既有操作流程以已選英文的站長執行；語言測試另以空白儲存驗證預設繁中
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: new URL(baseURL).origin,
+          localStorage: [{ name: 'kaiyo-admin-language', value: 'en' }],
+        },
+      ],
+    },
     headless: true,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

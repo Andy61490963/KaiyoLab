@@ -10,6 +10,13 @@ test('owner setup, publishing, and responsive reading', async ({
   const password = process.env.E2E_PASSWORD || 'KaiyoLab-e2e-password-2026';
   await page.goto('/setup');
   if (new URL(page.url()).pathname === '/setup') {
+    await page.evaluate(() => localStorage.removeItem('kaiyo-admin-language'));
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'zh-TW');
+    await expect(page.getByRole('heading', { name: '設定網站與管理帳號' })).toBeVisible();
+    await page.getByLabel('顯示名稱').fill('Kaiyo');
+    await page.getByRole('button', { name: 'English', exact: true }).click();
+    await expect(page.getByLabel('Display name')).toHaveValue('Kaiyo');
     expect(process.env.SETUP_TOKEN, 'A one-time setup token is required').toBeTruthy();
     await page.getByLabel('One-time setup token').fill(process.env.SETUP_TOKEN!);
     await page.getByLabel('Display name').fill('Kaiyo');

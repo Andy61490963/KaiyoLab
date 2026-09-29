@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import '../styles/admin.css';
+import { adminText } from '../lib/admin-language';
 interface Props {
   title?: string;
 }
@@ -8,7 +9,7 @@ const { title = 'Admin' } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en" class="admin-document">
+<html lang="zh-TW" class="admin-document" data-admin-language="zh-TW">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -16,7 +17,7 @@ const { title = 'Admin' } = Astro.props;
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f8f4e6" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title} · KaiyoLab</title>
+    <title>{adminText(title)} · KaiyoLab</title>
     <script is:inline>
       (() => {
         let theme;
@@ -29,6 +30,12 @@ const { title = 'Admin' } = Astro.props;
             : window.matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
               : 'light';
+        let language = 'zh-TW';
+        try {
+          language = localStorage.getItem('kaiyo-admin-language') === 'en' ? 'en' : 'zh-TW';
+        } catch {}
+        document.documentElement.dataset.adminLanguage = language;
+        document.documentElement.lang = language;
       })();
     </script>
   </head>

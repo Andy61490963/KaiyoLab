@@ -78,8 +78,10 @@ test('分類標籤超過一頁時新增與改名可見，刪除回有效頁並�
     const outside = `outside-filter-${Date.now()}`;
     await add(outside);
     await expect(search).toHaveValue(prefix);
-    await expect(panel.getByText(/暫時顯示這個項目，原搜尋條件已保留/)).toBeVisible();
-    await panel.getByRole('button', { name: '只看搜尋結果', exact: true }).click();
+    await expect(
+      panel.getByText(/This item is temporarily shown while your search is preserved/),
+    ).toBeVisible();
+    await panel.getByRole('button', { name: 'Show search results only', exact: true }).click();
     await expect(row(outside)).toHaveCount(0);
     await expect(search).toHaveValue(prefix);
     await expect(panel.getByText('Showing 1–10 of 10', { exact: true })).toBeVisible();

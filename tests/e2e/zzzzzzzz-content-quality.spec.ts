@@ -33,8 +33,8 @@ test('發布提示與搬移連結預覽保持可讀，匯入連回新草稿', as
     await expect(publish).toBeVisible();
     await publish.click();
     const dialog = page.getByRole('dialog', { name: 'Review before publishing' });
-    await expect(dialog.getByText(/找不到章節錨點：.*#section-不存在/)).toBeVisible();
-    await expect(dialog.getByText(/Mermaid 圖表語法錯誤/)).toBeVisible();
+    await expect(dialog.getByText(/Section anchor not found: .*#section-不存在/)).toBeVisible();
+    await expect(dialog.getByText(/Mermaid syntax error/)).toBeVisible();
     await expect(dialog.getByText('These suggestions do not block publishing')).toBeVisible();
     for (const width of [375, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
@@ -88,8 +88,8 @@ test('發布提示與搬移連結預覽保持可讀，匯入連回新草稿', as
       page.getByRole('button', { name: 'Check archive' }).click(),
     ]);
     expect(preview.ok(), await preview.text()).toBe(true);
-    await expect(page.getByRole('heading', { name: '站內連結調整' })).toBeVisible();
-    const adjustments = page.locator('.transfer-adjustments').filter({ hasText: '封存檔連結' });
+    await expect(page.getByRole('heading', { name: 'Internal link changes' })).toBeVisible();
+    const adjustments = page.locator('.transfer-adjustments').filter({ hasText: 'Archive link' });
     await expect(adjustments).toContainText(`${oldPath}-import-1?from=archive#section-`);
     for (const theme of ['light', 'dark']) {
       for (const width of [375, 768, 1440]) {
