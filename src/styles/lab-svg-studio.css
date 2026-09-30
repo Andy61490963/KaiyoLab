@@ -1,0 +1,244 @@
+.svg-studio-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-block: 14px;
+  border-block: 1px solid var(--border);
+  margin-bottom: 24px;
+  color: var(--muted);
+  font: 12px/1.6 var(--font-mono);
+}
+.svg-studio-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 32px;
+  align-items: start;
+}
+.svg-studio-viewport {
+  min-width: 0;
+  position: sticky;
+  top: 24px;
+}
+.svg-studio-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: 14px;
+}
+.svg-studio-tabs > span {
+  margin-left: auto;
+  color: var(--muted);
+  font: 11px var(--font-mono);
+}
+.svg-studio-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  touch-action: none;
+}
+.svg-studio-grid {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.svg-studio-origin {
+  stroke: var(--muted);
+}
+.svg-studio-ghost {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 5 7;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.svg-studio-nodes > g {
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+.svg-studio-nodes > g:active {
+  cursor: grabbing;
+}
+.svg-studio-hit {
+  fill: transparent;
+}
+.svg-studio-node {
+  fill: var(--bg);
+  stroke: var(--text);
+  stroke-width: 2;
+}
+.svg-studio-nodes > g:focus-visible .svg-studio-hit {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: 3 3;
+}
+.svg-studio-nodes text {
+  fill: var(--text);
+  stroke: var(--surface);
+  stroke-width: 3;
+  paint-order: stroke;
+  font: 13px var(--font-mono);
+  pointer-events: none;
+}
+.svg-studio-transport {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+}
+.svg-studio-blend {
+  flex: 1;
+}
+.svg-studio-transport > output {
+  width: 4ch;
+  font: 14px var(--font-mono);
+  text-align: right;
+}
+.svg-studio-settings {
+  display: grid;
+  gap: 25px;
+}
+.svg-studio-settings fieldset {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  min-width: 0;
+}
+.svg-studio-settings legend {
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 650;
+}
+.svg-studio-settings .lab-field {
+  margin-bottom: 10px;
+  position: relative;
+}
+.svg-studio-settings .lab-field > output {
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.svg-studio-settings .lab-field > input[type='range'] {
+  padding-inline: 0;
+  width: 100%;
+}
+.svg-studio-seed {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.svg-studio-seed .lab-field {
+  flex: 1;
+  margin: 0;
+}
+.svg-studio-coordinates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.svg-studio-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.svg-studio-color-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.svg-studio-color-row input[type='color'] {
+  width: 68px;
+  height: 44px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+}
+.svg-studio-export {
+  border-top: 1px solid var(--border);
+  margin-top: 34px;
+  padding-top: 26px;
+}
+.svg-studio-export-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.svg-studio-export-heading h2 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.svg-studio-export-heading .lab-controls {
+  margin-top: 0;
+}
+.svg-studio-code {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  font: 12px/1.8 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.svg-studio-feedback {
+  min-height: 24px;
+}
+@media (max-width: 800px) {
+  .svg-studio-workbench {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .svg-studio-viewport {
+    position: static;
+  }
+  .svg-studio-settings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+@media (max-width: 480px) {
+  .svg-studio-settings {
+    grid-template-columns: 1fr;
+  }
+  .svg-studio-transport {
+    gap: 12px;
+  }
+  .svg-studio-tabs > span {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  .svg-studio-nodes text {
+    font-size: 21px;
+  }
+  .svg-studio-hit {
+    r: 43px;
+  }
+  .svg-studio-code {
+    font-size: 11px;
+    padding: 12px;
+  }
+}

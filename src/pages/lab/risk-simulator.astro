@@ -1,9 +1,3 @@
 ---
-import Layout from '../../layouts/LabLayout.astro';
-import Demo from '../../components/lab/RiskLab';
-import { experiments } from '../../lib/lab/experiments';
+return Astro.redirect('/lab/grid-studio', 301);
 ---
-
-<Layout experiment={experiments[1]}>
-  <Demo client:load />
-</Layout>

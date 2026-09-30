@@ -50,16 +50,16 @@ const next =
     </header>
     <section
       class="lab-demo"
-      aria-label="Interactive experiment"
-      data-ui-label-en="Interactive experiment"
-      data-ui-label-zh="互動實驗"
+      aria-label="Interactive tool"
+      data-ui-label-en="Interactive tool"
+      data-ui-label-zh="互動工具"
     >
       <slot />
       <noscript>
         <p class="lab-loading">
           <Text
-            zh="啟用 JavaScript 即可操作實驗，下方技術說明仍可直接閱讀"
-            en="Enable JavaScript to run this experiment. Technical notes remain available below."
+            zh="啟用 JavaScript 即可操作工具，下方技術說明仍可直接閱讀"
+            en="Enable JavaScript to use this tool. Technical notes remain available below."
           />
         </p>
       </noscript>
@@ -81,14 +81,9 @@ const next =
         ))}
       </div>
     </section>
-    <nav
-      class="lab-next"
-      aria-label="Experiments"
-      data-ui-label-en="Experiments"
-      data-ui-label-zh="實驗導覽"
-    >
+    <nav class="lab-next" aria-label="Tools" data-ui-label-en="Tools" data-ui-label-zh="工具導覽">
       <a href="/lab">
-        <Text zh="回到實驗索引" en="Back to the index" />
+        <Text zh="回到工具索引" en="Back to the index" />
       </a>
       <a href={`/lab/${next.slug}`}>
         <Text {...next.title} /> →
