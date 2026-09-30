@@ -825,10 +825,10 @@
   .public-frame {
     margin-left: 0;
   }
-  /* 內容與側欄之間只留 gutter，避免限寬區再次置中而累積空白 */
+  /* 填滿既有內容框，兩側只保留相同 gutter，文字行長由閱讀樣式限制 */
   .public-site .page-shell,
   .public-footer {
-    margin-inline: 0 auto;
+    max-width: none;
   }
 }
 @media (min-width: 1320px) {
