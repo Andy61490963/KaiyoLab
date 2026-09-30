@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   pageNumbers,
   positiveInteger,
@@ -129,12 +130,10 @@ export function useListing(config: ListConfig, syncUrl = true) {
 export function ListOrder({
   config,
   sort,
-  pageSize,
   onChange,
 }: {
   config: ListConfig;
   sort: string;
-  pageSize: number;
   onChange: (patch: { sort?: string; pageSize?: number }) => void;
 }) {
   const { t } = useAdminLanguage();
@@ -154,31 +153,71 @@ export function ListOrder({
           ))}
         </select>
       </label>
-      <label>
-        {t('Per page')}
-        <select
-          aria-label={t('Per page')}
-          value={pageSize}
-          onChange={(event) => onChange({ pageSize: Number(event.target.value) })}
-        >
-          {config.sizes.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
     </div>
+  );
+}
+export function ListPageSize({
+  config,
+  pageSize,
+  onChange,
+  disabled = false,
+}: {
+  config: ListConfig;
+  pageSize: number;
+  onChange: (pageSize: number) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useAdminLanguage();
+  return (
+    <label className="admin-list-page-size">
+      <span className="sr-only">{t('Per page')}</span>
+      <select
+        aria-label={t('Per page')}
+        value={pageSize}
+        disabled={disabled}
+        onChange={(event) => onChange(Number(event.target.value))}
+      >
+        {config.sizes.map((value) => (
+          <option key={value} value={value}>
+            {t('{count} per page', { count: value })}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+export function ListSummary({ info, loading = false }: { info: PageInfo; loading?: boolean }) {
+  const { t } = useAdminLanguage();
+  return (
+    <span role="status" aria-live="polite">
+      {loading
+        ? t('Updating results…')
+        : info.total === 0
+          ? null
+          : info.pages === 1
+            ? t('{total} items', { total: info.total })
+            : t('Showing {from}–{to} of {total}', {
+                from: info.from,
+                to: info.to,
+                total: info.total,
+              })}
+    </span>
   );
 }
 export function ListPager({
   info,
   onPage,
+  config,
+  pageSize,
+  onPageSize,
   loading = false,
   label = 'Content pagination',
 }: {
   info?: PageInfo | null;
   onPage: (page: number) => void;
+  config: ListConfig;
+  pageSize: number;
+  onPageSize: (pageSize: number) => void;
   loading?: boolean;
   label?: string;
 }) {
@@ -186,15 +225,10 @@ export function ListPager({
   if (!info) return null;
   return (
     <div className="admin-list-pagination">
-      <span role="status" aria-live="polite">
-        {loading
-          ? t('Updating results…')
-          : t('Showing {from}–{to} of {total}', {
-              from: info.from,
-              to: info.to,
-              total: info.total,
-            })}
-      </span>
+      <div className="admin-list-page-meta">
+        <ListSummary info={info} loading={loading} />
+        <ListPageSize config={config} pageSize={pageSize} onChange={onPageSize} />
+      </div>
       {info.pages > 1 && (
         <nav aria-label={t(label)}>
           <button
@@ -202,8 +236,10 @@ export function ListPager({
             type="button"
             disabled={loading || info.page <= 1}
             onClick={() => onPage(info.page - 1)}
+            aria-label={t('Previous')}
+            title={t('Previous')}
           >
-            {t('Previous')}
+            <ChevronLeft size={17} aria-hidden="true" />
           </button>
           {pageNumbers(info.page, info.pages).map((number, index) =>
             number === 'gap' ? (
@@ -229,8 +265,10 @@ export function ListPager({
             type="button"
             disabled={loading || info.page >= info.pages}
             onClick={() => onPage(info.page + 1)}
+            aria-label={t('Next')}
+            title={t('Next')}
           >
-            {t('Next')}
+            <ChevronRight size={17} aria-hidden="true" />
           </button>
         </nav>
       )}

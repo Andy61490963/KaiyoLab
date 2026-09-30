@@ -3,6 +3,29 @@ import { UI_LANGUAGE_KEY, normalizeUiLanguage, uiText, type UiKey } from '../lib
 export const currentUiText = (key: UiKey) =>
   uiText(key, normalizeUiLanguage(document.documentElement.dataset.uiLanguage));
 
+// 局部載入的列表也需要套用目前語言，不重新綁定整頁控制項
+export function syncUiAttributes(scope: ParentNode = document) {
+  const language = normalizeUiLanguage(document.documentElement.dataset.uiLanguage);
+  for (const element of scope.querySelectorAll<HTMLElement>('[data-ui-label-en]')) {
+    if (!element.closest('[data-original-content]'))
+      element.setAttribute(
+        'aria-label',
+        (language === 'en' ? element.dataset.uiLabelEn : element.dataset.uiLabelZh) || '',
+      );
+  }
+  for (const element of scope.querySelectorAll<HTMLInputElement>('[data-ui-placeholder-en]')) {
+    if (!element.closest('[data-original-content]'))
+      element.placeholder =
+        (language === 'en' ? element.dataset.uiPlaceholderEn : element.dataset.uiPlaceholderZh) ||
+        '';
+  }
+  for (const option of scope.querySelectorAll<HTMLOptionElement>('option[data-ui-option-en]')) {
+    if (!option.closest('[data-original-content]'))
+      option.textContent =
+        (language === 'en' ? option.dataset.uiOptionEn : option.dataset.uiOptionZh) || '';
+  }
+}
+
 export function initializeUiLanguage() {
   const root = document.documentElement;
   const control = document.querySelector<HTMLElement>('.language-switch');
@@ -11,24 +34,8 @@ export function initializeUiLanguage() {
     const language = normalizeUiLanguage(value);
     root.dataset.uiLanguage = language;
     root.lang = language;
-    // Authored content is never traversed or rewritten. Only explicitly marked UI attributes change.
-    for (const element of document.querySelectorAll<HTMLElement>('[data-ui-label-en]')) {
-      if (element.closest('[data-original-content]')) continue;
-      element.setAttribute(
-        'aria-label',
-        (language === 'en' ? element.dataset.uiLabelEn : element.dataset.uiLabelZh) || '',
-      );
-    }
-    for (const element of document.querySelectorAll<HTMLInputElement>('[data-ui-placeholder-en]')) {
-      element.placeholder =
-        (language === 'en' ? element.dataset.uiPlaceholderEn : element.dataset.uiPlaceholderZh) ||
-        '';
-    }
-    // Native options cannot contain the bilingual spans used by UiText.
-    for (const option of document.querySelectorAll<HTMLOptionElement>('option[data-ui-option-en]')) {
-      if (option.closest('[data-original-content]')) continue;
-      option.textContent = (language === 'en' ? option.dataset.uiOptionEn : option.dataset.uiOptionZh) || '';
-    }
+    // 只更新有明確標記的介面屬性，不改寫作者內容
+    syncUiAttributes();
     const title = document.querySelector<HTMLTitleElement>('title[data-ui-title-en]');
     if (title)
       title.textContent =

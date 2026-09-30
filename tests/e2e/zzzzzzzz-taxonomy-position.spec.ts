@@ -21,7 +21,7 @@ test('分類標籤超過一頁時新增與改名可見，刪除回有效頁並�
       .filter({ has: page.getByRole('heading', { name: 'Tag', exact: true }) });
     const search = panel.getByRole('searchbox', { name: 'Search tag items' });
     await search.fill(prefix);
-    await expect(panel.getByText('Showing 1–10 of 10', { exact: true })).toBeVisible();
+    await expect(panel.getByText('10 items', { exact: true })).toBeVisible();
     const row = (name: string) =>
       panel
         .locator('.admin-taxonomy-list > div')
@@ -73,7 +73,7 @@ test('分類標籤超過一頁時新增與改名可見，刪除回有效頁並�
       .getByRole('button', { name: `Delete tag ${last}`, exact: true })
       .click();
     await expect(row(last)).toHaveCount(0);
-    await expect(panel.getByText('Showing 1–10 of 10', { exact: true })).toBeVisible();
+    await expect(panel.getByText('10 items', { exact: true })).toBeVisible();
     await expect(panel.getByRole('navigation', { name: 'Tag pagination' })).toHaveCount(0);
     const outside = `outside-filter-${Date.now()}`;
     await add(outside);
@@ -84,7 +84,7 @@ test('分類標籤超過一頁時新增與改名可見，刪除回有效頁並�
     await panel.getByRole('button', { name: 'Show search results only', exact: true }).click();
     await expect(row(outside)).toHaveCount(0);
     await expect(search).toHaveValue(prefix);
-    await expect(panel.getByText('Showing 1–10 of 10', { exact: true })).toBeVisible();
+    await expect(panel.getByText('10 items', { exact: true })).toBeVisible();
   } finally {
     for (const id of ids) {
       const response = await page.request.delete(`/api/admin/taxonomies/${id}`, { headers });

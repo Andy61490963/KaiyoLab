@@ -341,14 +341,14 @@ test('文章與作品主列表可從普通欄位及標題拖曳，短點連結�
     const guest = await browser.newContext({ baseURL, javaScriptEnabled: false });
     try {
       const publicPage = await guest.newPage();
-      await publicPage.goto(`/${collection(kind)}?pageSize=8`);
+      await publicPage.goto(`/${collection(kind)}`);
       const titles = publicPage.locator(
         kind === 'article' ? '.article-list h2' : '.project-grid h2',
       );
       await expect(titles).toHaveText(
         reordered.items
           .filter((item) => item.published)
-          .slice(0, 8)
+          .slice(0, kind === 'article' ? 8 : 12)
           .map((item) => item.title),
       );
     } finally {

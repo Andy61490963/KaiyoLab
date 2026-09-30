@@ -30,9 +30,17 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ArrowDown, ArrowUp, GripVertical, RefreshCw } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  RefreshCw,
+} from 'lucide-react';
 import type { Entry, EntryKind, EntryOrderSnapshot } from '../../lib/types';
-import { pageNumbers, type ListResult } from '../../lib/listing';
+import { adminEntryList, pageNumbers, type ListResult } from '../../lib/listing';
+import { ListPageSize, ListSummary } from './ListControls';
 import { ApiError, api, errorMessage, json } from './api';
 import { useAdminLanguage } from './AdminLanguage';
 import '../../styles/admin-entry-sortable.css';
@@ -264,6 +272,7 @@ export function EntrySortableScope({
   loading,
   busy,
   onPage,
+  onPageSize,
   onChanged,
   onInteractionChange,
   onEnable,
@@ -278,6 +287,7 @@ export function EntrySortableScope({
   loading: boolean;
   busy: boolean;
   onPage: (page: number) => void;
+  onPageSize: (pageSize: number) => void;
   onChanged: () => void;
   onInteractionChange: (busy: boolean) => void;
   onEnable: () => void;
@@ -557,19 +567,29 @@ export function EntrySortableScope({
       data-entry-sortable
       data-entry-sort-enabled={eligible && !disabled}
     >
-      <div className="admin-entry-sort-help" id={instructionsId}>
-        <p>
-          {t(
-            eligible
-              ? 'Drag a row to reorder. On touch screens, hold briefly before dragging. Changes are saved immediately.'
-              : reason,
-          )}
-        </p>
-        <span className="sr-only">
-          {t(
-            'For keyboard sorting, focus the handle and press Space, use the arrow keys, then press Space to save or Escape to cancel. For a distant position, use Adjust order.',
-          )}
-        </span>
+      <span className="sr-only" id={instructionsId}>
+        {t(
+          'For keyboard sorting, focus the handle and press Space, use the arrow keys, then press Space to save or Escape to cancel. For a distant position, use Adjust order.',
+        )}
+      </span>
+      <div className="admin-entry-sort-help">
+        {eligible ? (
+          <details>
+            <summary>{t('Sorting help')}</summary>
+            <p>
+              {t(
+                'Drag a row to reorder. On touch screens, hold briefly before dragging. Changes are saved immediately.',
+              )}
+            </p>
+            <p>
+              {t(
+                'For keyboard sorting, focus the handle and press Space, use the arrow keys, then press Space to save or Escape to cancel. For a distant position, use Adjust order.',
+              )}
+            </p>
+          </details>
+        ) : (
+          <p>{t(reason)}</p>
+        )}
         {!eligible && (
           <button type="button" className="admin-button small" disabled={busy} onClick={onEnable}>
             {t('Use manual order and clear filters')}
@@ -703,15 +723,15 @@ export function EntrySortableScope({
           )}
           {info && (
             <div className="admin-list-pagination">
-              <span role="status" aria-live="polite">
-                {loading
-                  ? t('Updating results…')
-                  : t('Showing {from}–{to} of {total}', {
-                      from: info.from,
-                      to: info.to,
-                      total: info.total,
-                    })}
-              </span>
+              <div className="admin-list-page-meta">
+                <ListSummary info={info} loading={loading} />
+                <ListPageSize
+                  config={adminEntryList}
+                  pageSize={pageSize}
+                  onChange={onPageSize}
+                  disabled={busy || saving || !!activeId}
+                />
+              </div>
               {info.pages > 1 && (
                 <nav aria-label={t('Content pagination')}>
                   <button
@@ -719,8 +739,10 @@ export function EntrySortableScope({
                     className="admin-button small"
                     disabled={loading || saving || !!activeId || currentPage <= 1}
                     onClick={() => onPage(currentPage - 1)}
+                    aria-label={t('Previous')}
+                    title={t('Previous')}
                   >
-                    {t('Previous')}
+                    <ChevronLeft size={17} aria-hidden="true" />
                   </button>
                   {pageNumbers(currentPage, info.pages).map((number, index) =>
                     number === 'gap' ? (
@@ -745,8 +767,10 @@ export function EntrySortableScope({
                     className="admin-button small"
                     disabled={loading || saving || !!activeId || currentPage >= info.pages}
                     onClick={() => onPage(currentPage + 1)}
+                    aria-label={t('Next')}
+                    title={t('Next')}
                   >
-                    {t('Next')}
+                    <ChevronRight size={17} aria-hidden="true" />
                   </button>
                 </nav>
               )}

@@ -1,17 +1,29 @@
 ---
 import Ui from './UiText.astro';
-import { uiLabel, uiText, type UiKey } from '../../lib/ui-language';
+import Icon from './Icon.astro';
+import { uiLabel, uiPlaceholder, uiText, type UiKey } from '../../lib/ui-language';
 import type { ListConfig } from '../../lib/listing';
-import '../../styles/list-controls.css';
+import '../../styles/public-collection.css';
 interface Props {
   config: ListConfig;
   sort: string;
-  pageSize: number;
+  q: string;
+  searchLabel?: UiKey;
+  searchId?: string;
   anchor?: string;
+  help?: boolean;
 }
-const { config, sort, pageSize, anchor = '' } = Astro.props;
+const {
+  config,
+  sort,
+  q,
+  searchLabel = 'Search articles',
+  searchId = 'article-search',
+  anchor = '',
+  help = false,
+} = Astro.props;
 const labels: Record<string, UiKey> = {
-  manual: 'Manual order',
+  manual: 'Default order',
   newest: 'Newest first',
   oldest: 'Oldest first',
   'title-asc': 'Title A–Z',
@@ -23,17 +35,33 @@ const labels: Record<string, UiKey> = {
   class="collection-controls"
   method="get"
   action={`${Astro.url.pathname}${anchor ? `#${anchor}` : ''}`}
-  {...uiLabel('List options')}
+  role="search"
+  {...uiLabel(searchLabel)}
 >
-  {['q', 'category', 'tag'].map(
+  <div class="collection-search">
+    <label class="sr-only" for={searchId}>
+      <Ui text={searchLabel} />
+    </label>
+    <Icon name="search" size={19} />
+    <input
+      id={searchId}
+      type="search"
+      name="q"
+      value={q}
+      maxlength="200"
+      {...uiPlaceholder('Search titles or content…')}
+      autocomplete="off"
+    />
+  </div>
+  {['category', 'tag'].map(
     (name) =>
       Astro.url.searchParams.get(name) && (
         <input type="hidden" name={name} value={Astro.url.searchParams.get(name)!} />
       ),
   )}
-  <label for="collection-sort">
-    <Ui text="Sort by" />
-    <select id="collection-sort" name="sort">
+  <label class="collection-sort" for="collection-sort">
+    <Ui text="Sort" />
+    <select id="collection-sort" name="sort" {...uiLabel('Sort by')}>
       {config.sorts.map((value) => (
         <option
           value={value}
@@ -46,17 +74,21 @@ const labels: Record<string, UiKey> = {
       ))}
     </select>
   </label>
-  <label for="collection-page-size">
-    <Ui text="Per page" />
-    <select id="collection-page-size" name="pageSize">
-      {config.sizes.map((size) => (
-        <option value={size} selected={pageSize === size}>
-          {size}
-        </option>
-      ))}
-    </select>
-  </label>
-  <button type="submit">
-    <Ui text="Apply" />
+  <button id={`${searchId}-submit`} type="submit">
+    <Ui text="Search" />
   </button>
 </form>
+{help && (
+  <details class="collection-search-help" id={`${searchId}-help`}>
+    <summary id={`${searchId}-help-toggle`}>
+      <Ui text="Search help" />
+    </summary>
+    <p>
+      <Ui text="Separate keywords with spaces, or use quotes for an exact phrase" />
+    </p>
+  </details>
+)}
+<script>
+  import { initializePublicCollections } from '../../scripts/public-collections';
+  initializePublicCollections();
+</script>

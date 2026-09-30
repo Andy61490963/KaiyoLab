@@ -4,6 +4,9 @@ import {
   adminEntryList,
   adminMediaList,
   readListing,
+  readPublicListing,
+  publicListingHref,
+  projectList,
   paginate,
   pageNumbers,
   positiveInteger,
@@ -12,6 +15,24 @@ import {
 } from '../src/lib/listing';
 
 describe('list parameters and bounded pagination', () => {
+  it('固定公開筆數並從操作連結移除舊 pageSize，後台仍可調整', () => {
+    const params = new URLSearchParams('pageSize=24&sort=title-desc&page=2');
+    expect(readPublicListing(params, articleList)).toEqual({
+      pageSize: 8,
+      sort: 'title-desc',
+      page: 2,
+    });
+    expect(readPublicListing(params, projectList)).toEqual({
+      pageSize: 12,
+      sort: 'title-desc',
+      page: 2,
+    });
+    expect(readListing(new URLSearchParams('pageSize=50'), adminEntryList).pageSize).toBe(50);
+    const url = new URL('https://example.test/articles?q=MES&tag=版本&pageSize=24&page=2');
+    expect(publicListingHref(url, { page: 3 })).toBe(
+      '/articles?q=MES&tag=%E7%89%88%E6%9C%AC&page=3',
+    );
+  });
   it('rejects invalid, fractional and unsafe page values', () => {
     for (const value of [
       null,

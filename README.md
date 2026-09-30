@@ -70,6 +70,12 @@ docker compose logs --tail=100 app db
 
 文章列表與內頁使用相同的網站外框及左側導覽寬度，進入文章時不再把整個網站撐寬，桌面右欄的**目錄與相關文章一起固定**，手機改用折疊目錄
 
+公開列表將搜尋與排序集中在同一列，排序的「預設順序」沿用站長設定，文章固定每頁 8 篇，作品與 LAB 固定每頁 12 筆；只有多頁才顯示頁碼與範圍，搜尋說明與標籤可展開，已選條件可分別移除
+
+排序與篩選原地更新列表，保留焦點、閱讀位置與返回紀錄，載入失敗保留目前內容並提供重試，停用 JavaScript 時仍可透過搜尋表單與頁碼操作，詳見[搜尋、排序與分頁](docs/list-pagination.md)
+
+尚無內容的作品頁只顯示空狀態，首頁空作品區與 LAB 空站長作品區不占版面；搜尋無結果時仍保留搜尋和清除入口
+
 首頁介紹在「後台 → 關於我 → 首頁自我介紹（Markdown）」編輯，網站描述仍獨立用於搜尋引擎摘要，介面語言切換不會翻譯或改寫站長輸入的內容
 
 ### 編輯、發布與復原
@@ -99,6 +105,8 @@ Markdown 支援表格、任務清單與程式碼區塊，渲染結果經 HTML �
 - **媒體管理**：批次上傳、搜尋、替代文字、使用位置及不同尺寸縮圖，仍被內容使用的圖片不可刪除
 
 排序不會發布草稿，也不修改正文、內容版本或更新日期，另一分頁變更順序時會要求重新讀取，圖片動畫最多 200 幀，合計最多 4,000 萬解碼像素
+
+後台保留每頁筆數調整，位於分頁旁，排序選單位於搜尋旁，排序說明按需展開，發布、下架與永久刪除的確認提示保留完整文字
 
 ### 語言、搬家與系統狀態
 
@@ -136,6 +144,10 @@ Markdown 支援表格、任務清單與程式碼區塊，渲染結果經 HTML �
 <summary>公開網站、後台與編輯流程</summary>
 
 ![深色首頁](docs/screenshots/readme-home-dark.png)
+
+![文章搜尋排序工具列與收合標籤](docs/screenshots/articles-compact.png)
+
+![後台搜尋排序與底部分頁筆數](docs/screenshots/admin-list-compact.png)
 
 ![文章列表整列拖曳排序](docs/screenshots/admin-sortable-list.png)
 
@@ -317,6 +329,7 @@ node --env-file=.env.test node_modules/@playwright/test/cli.js test
 | 匯出、匯入與搬家限制     | [內容搬移](docs/content-transfer.md)         |
 | 版本紀錄與系統狀態       | [內容復原及維運](docs/maintenance.md)        |
 | Mermaid 範例與限制       | [Markdown 流程圖](docs/markdown-diagrams.md) |
+| 公開列表與後台分頁       | [搜尋、排序與分頁](docs/list-pagination.md)  |
 | LAB 架構、匯出與驗證     | [LAB 前端工具](docs/lab-engineering.md)      |
 | 開發環境與測試           | [本機開發與測試](docs/development.md)        |
 | 回報問題與貢獻           | [貢獻指南](CONTRIBUTING.md)                  |

@@ -153,53 +153,36 @@ test('手機標籤、搜尋、閱讀時間及分享資料沿用現有版型', as
         for (const width of [375, 768, 1440]) {
           await mobile.setViewportSize({ width, height: 812 });
           await mobile.goto(list);
-          const compact = width <= 800;
-          const details = mobile.locator('.tag-cloud-mobile');
-          const desktop = mobile.locator('.tag-cloud-desktop');
-          const cloud = compact ? details : desktop;
+          const details = mobile.locator('details.tag-cloud');
           const noOverflow = async () =>
             expect(
               await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
               `${theme} ${width}px 標籤篩選不得撐破版面`,
             ).toBe(true);
-          if (compact) {
-            await expect(desktop).toBeHidden();
-            await expect(details).not.toHaveAttribute('open', '');
-            await expect(details.locator('div')).toBeHidden();
-            // 以篩選元件本身驗證收合，避免既有分類數量左右本文的絕對座標
-            const closed = (await details.boundingBox())!;
-            const summary = (await details.locator('summary').boundingBox())!;
-            expect(closed.height).toBeCloseTo(summary.height, 0);
-          } else {
-            await expect(desktop).toBeVisible();
-            await expect(mobile.locator('.mobile-tag-filter')).toBeHidden();
-          }
+          await expect(details).not.toHaveAttribute('open', '');
+          await expect(details.locator('div')).toBeHidden();
+          // 全尺寸使用相同的收合入口，分類數量不應改變其操作方式
+          const closed = (await details.boundingBox())!;
+          const summary = (await details.locator('summary').boundingBox())!;
+          expect(closed.height).toBeCloseTo(summary.height, 0);
           await noOverflow();
           for (const tag of ['quality-1', longEnglishTag, longChineseTag]) {
-            if (compact) {
-              await details.locator('summary').focus();
-              await mobile.keyboard.press('Enter');
-              await expect(details).toHaveAttribute('open', '');
-            }
+            await details.locator('summary').focus();
+            await mobile.keyboard.press('Enter');
+            await expect(details).toHaveAttribute('open', '');
             await noOverflow();
             for (const value of [longEnglishTag, longChineseTag]) {
-              const link = cloud.getByRole('link', { name: `#${value}`, exact: true });
+              const link = details.getByRole('link', { name: `#${value}`, exact: true });
               await expect(link).toBeVisible();
               const box = (await link.boundingBox())!;
               expect(box.x).toBeGreaterThanOrEqual(0);
               expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
             }
-            await cloud.getByRole('link', { name: `#${tag}`, exact: true }).click();
-            if (compact) {
-              await expect(mobile.locator('.selected-tag-filter')).toContainText(`#${tag}`);
-              await expect(mobile.locator('.selected-tag-filter')).toBeVisible();
-              await expect(details).not.toHaveAttribute('open', '');
-              await expect(details.locator('div')).toBeHidden();
-            } else {
-              await expect(
-                cloud.getByRole('link', { name: `#${tag}`, exact: true }),
-              ).toHaveAttribute('aria-current', 'true');
-            }
+            await details.getByRole('link', { name: `#${tag}`, exact: true }).click();
+            await expect(mobile.locator('[data-filter-chip="tag"]')).toContainText(`#${tag}`);
+            await expect(mobile.locator('[data-filter-chip="tag"]')).toBeVisible();
+            await expect(details).not.toHaveAttribute('open', '');
+            await expect(details.locator('div')).toBeHidden();
             await noOverflow();
           }
           await testInfo.attach(`標籤篩選-${theme}-${width}`, {

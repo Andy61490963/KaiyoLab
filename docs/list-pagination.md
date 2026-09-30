@@ -1,11 +1,64 @@
-# Collection pagination and sorting
+# 搜尋、排序與分頁
 
-Public articles and projects retain their existing cards and page layout. Native GET forms add selectable date/title sorting and page sizes (8, 12, 24), search on projects, result ranges, and accessible page links. Article category/tag/search criteria survive page navigation. Changing criteria resets page one. Interface labels, including native select options, support English and Traditional Chinese; authored content is unchanged. Controls work without JavaScript.
+列表沿用目前的外框、卡片、文字大小及中英文切換，以減少重複控制項和說明為原則
 
-Admin articles/projects use SQL filtering, ordering, count, LIMIT and OFFSET. Page sizes are 10/20/50, with recently/least-recently edited and title sorting. Media and image pickers use 12/24/48, filename/date/size sorting, server-side search and batched usage resolution. Taxonomy management filters/sorts/paginates its small metadata collection locally; the complete taxonomy endpoint remains available for editor dropdowns. Picker and taxonomy controls do not modify the editor URL. Default URL parameters are omitted; selected non-default list settings survive refresh and returning from an editor.
+## 公開文章、作品與 LAB
 
-All SQL sort choices are allowlisted and include deterministic ID tie-breakers. Page inputs are positive safe integers, page sizes are bounded, empty results use page 1, and out-of-range pages clamp after deletions. Public sorting uses published snapshots only, not private draft titles or edit times. No database migration, new dependency, authentication change, or production content change is required.
+搜尋與排序共用一個 GET 表單，排序選單的「預設順序」對應站長設定的手動順序，不表示發布日期
 
-Exact `/api/admin/entries` and `/api/admin/media` collection routes return `{ items, total, page, pages, pageSize, from, to }` on GET. Their ALL handlers delegate creation/upload to the existing validated catch-all implementation; detail, mutation and action URLs are unchanged. Existing admin authentication and no-store middleware still apply.
+| 列表         | 固定每頁筆數 | 可選排序                           |
+| ------------ | ------------ | ---------------------------------- |
+| 文章         | 8            | 預設、最新、最舊、標題升冪與降冪   |
+| 作品         | 12           | 同上                               |
+| LAB 站長作品 | 12           | 同上，不影響內建五個前端工具的排列 |
 
-Validation: `npm run check`, `npm test`, `npm run test:integration`, `npm run build`, and `npm run test:e2e`. Added suites cover hostile query parameters, deterministic global ordering, published/draft separation, media search and usage, deletion/clamping, no-JavaScript navigation, translated selects, responsive widths, admin state, picker isolation and anonymous API rejection. Integration and browser fixtures belong only to disposable test databases.
+公開頁不再提供每頁筆數選單，舊連結中的 `pageSize` 不影響實際筆數，後續搜尋、篩選及換頁連結會移除這個參數，查詢及排序改變時從第一頁開始
+
+- 只有一頁時顯示一次筆數，不顯示底部範圍及頁碼
+- 多頁時只在頁碼旁顯示範圍及總數
+- 原本沒有發布內容時，隱藏搜尋、排序及零筆統計，只留下簡短空狀態
+- 首頁無作品時隱藏整個作品區，LAB 無站長作品時也隱藏該區
+- 搜尋、分類或標籤沒有結果時，保留工具列與移除條件的入口
+- 文章分類保留直接連結，標籤及進階搜尋語法改為可展開的說明，已選條件以可移除的小標籤顯示
+
+文章摘要及卡片資訊維持現況，文章列表與內頁共用相同外框寬度，目錄與相關文章一起固定的閱讀行為不變
+
+## 漸進增強與鍵盤操作
+
+有 JavaScript 時，搜尋提交、排序選擇、分類標籤及換頁會取得同一條公開路由的 SSR HTML，只替換列表區域，不重新載入整頁
+
+更新保留目前語言、展開中的說明、操作焦點與文字選取；使用者在等待期間按 Tab 或捲動畫面，也保留新的操作位置，區域外的焦點不會被拉回
+
+瀏覽器網址同步保存查詢條件，上一頁／下一頁可還原結果及各次查詢最後的閱讀位置，過期請求被取消，繼續輸入的新搜尋文字不會被舊回應覆寫
+
+載入期間保留既有結果並提供輔助工具狀態，失敗或逾時時保留列表與輸入，顯示重試入口；只有取得有效回應後才提交新的查詢網址
+
+停用 JavaScript 時，排序可選完後按「搜尋」提交，分類、標籤與頁碼仍是原生連結，輸入框和箭頭分頁都有可辨識的名稱
+
+## 後台列表
+
+| 列表               | 每頁筆數   | 操作位置                   |
+| ------------------ | ---------- | -------------------------- |
+| 文章與作品         | 10／20／50 | 搜尋旁排序，分頁旁調整筆數 |
+| 媒體庫與圖片選擇器 | 12／24／48 | 同上                       |
+| 分類標籤           | 10／20／50 | 同上                       |
+
+上一頁／下一頁以帶有中英文名稱的箭頭呈現，單頁只顯示筆數，零筆不重複顯示統計，筆數選擇仍可操作
+
+文章／作品繼續支援整列拖曳、頁碼懸停換頁、跨頁落點及鍵盤排序，排序教學預設收合，因篩選或其他排序無法拖曳時，仍顯示原因與切回完整手動列表的入口
+
+發布、下架、垃圾桶及永久刪除的後果提示保留，這次精簡不更動草稿隔離、編輯衝突與內容發布規則
+
+後台非預設查詢條件保存在網址，重新整理或從編輯器返回仍可沿用，圖片選擇器與分類控制項不改動編輯器網址
+
+## 資料與驗證
+
+公開排序只依已發布快照，草稿標題與編輯時間不影響結果；所有排序有允許清單和固定 ID 次序，頁碼必須是正整數，超出範圍會限制到有效頁
+
+管理列表 API 繼續回傳 `{ items, total, page, pages, pageSize, from, to }`，本次沒有資料庫 migration、API 格式或驗證權限變更
+
+核心測試驗證固定公開筆數與後台可調筆數，Playwright 驗證空站、零結果、單頁／多頁、無 JavaScript、中英文、375／768／1440px、焦點、歷史返回、延遲請求與失敗重試
+
+瀏覽器驗收只在獨立測試資料庫執行，空站案例暫存公開快照後於 `finally` 還原，具有本機／隔離 CI 目標檢查，不可指向正式站
+
+指令及環境設定見[本機開發與測試](development.md)

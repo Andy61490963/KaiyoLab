@@ -75,6 +75,7 @@ test('search links preserve other filters and focus the requested search field',
 }) => {
   await page.goto('/articles?q=Astro&category=Development#article-search');
   await expect(page.getByRole('searchbox', { name: 'Search articles' })).toBeFocused();
+  await page.locator('details.tag-cloud summary').click();
   const tag = page.locator('.tag-cloud a[href*="tag="]').first();
   await expect(tag).toBeVisible();
   const target = new URL((await tag.getAttribute('href'))!, page.url());

@@ -40,11 +40,7 @@ export default function SystemStatus() {
   }, []);
   return (
     <>
-      <PageTitle
-        label={t('Maintenance')}
-        title={t('System status')}
-        description={t('Check this instance and the configured maintenance records')}
-      >
+      <PageTitle title={t('System status')}>
         <button className="admin-button secondary" onClick={() => void refresh()} disabled={busy}>
           <RefreshCw size={16} />
           {t(busy ? 'Checking…' : 'Refresh status')}

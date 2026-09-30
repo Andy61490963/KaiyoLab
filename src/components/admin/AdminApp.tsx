@@ -81,24 +81,12 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
     </div>
   );
 }
-export function PageTitle({
-  label,
-  title,
-  description,
-  children,
-}: {
-  label: string;
-  title: string;
-  description: string;
-  children?: ReactNode;
-}) {
+export function PageTitle({ title, children }: { title: string; children?: ReactNode }) {
   const { t } = useAdminLanguage();
   return (
     <header className="admin-page-title">
       <div>
-        <div className="admin-eyebrow">{t(label)}</div>
         <h1>{t(title)}</h1>
-        <p>{t(description)}</p>
       </div>
       {children}
     </header>
@@ -369,11 +357,7 @@ function Dashboard() {
   }>('/api/admin/dashboard');
   return (
     <>
-      <PageTitle
-        label="YOUR WORKSPACE"
-        title={t('Overview')}
-        description="Manage your writing, projects, and the details that make this site yours."
-      >
+      <PageTitle title={t('Overview')}>
         <a className="admin-button primary" href="/admin/articles/new">
           <Plus size={17} /> {t('New article')}{' '}
         </a>
@@ -653,15 +637,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
   }
   return (
     <>
-      <PageTitle
-        label="CONTENT"
-        title={kind === 'article' ? t('Articles') : t('Projects')}
-        description={
-          kind === 'article'
-            ? t('Write, review, and publish your articles.')
-            : t('Document your projects and the work behind them.')
-        }
-      >
+      <PageTitle title={kind === 'article' ? t('Articles') : t('Projects')}>
         {!ordering && (
           <div className="admin-entry-list-actions">
             <button
@@ -733,6 +709,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </label>
+                <ListOrder config={adminEntryList} sort={state.sort} onChange={update} />
                 <select
                   aria-label={t('Filter by category')}
                   value={category}
@@ -762,12 +739,6 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                   <RefreshCw size={17} />
                 </button>
               </div>
-              <ListOrder
-                config={adminEntryList}
-                sort={state.sort}
-                pageSize={state.pageSize}
-                onChange={update}
-              />
             </fieldset>
             <EntrySortableScope
               kind={kind}
@@ -783,6 +754,7 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
               loading={loading || resolvedUrl !== listUrl}
               busy={!!busy}
               onPage={setPage}
+              onPageSize={(pageSize) => update({ pageSize })}
               onChanged={refresh}
               onInteractionChange={setSortingBusy}
               onEnable={() => update({ sort: 'manual', q: '', category: '', status: '' })}
@@ -969,15 +941,15 @@ function EntryList({ kind }: { kind: 'article' | 'project' }) {
                 </div>
               )}
             </EntrySortableScope>
-            <div className="admin-table-footer">
-              <span>
-                {t(
-                  status === 'trash'
-                    ? 'Trashed content can be restored or permanently deleted. Images remain in the media library.'
-                    : 'Draft content is only visible to you.',
-                )}
-              </span>
-            </div>
+            {status === 'trash' && (
+              <div className="admin-table-footer">
+                <span>
+                  {t(
+                    'Trashed content can be restored or permanently deleted. Images remain in the media library.',
+                  )}
+                </span>
+              </div>
+            )}
           </section>
         </>
       )}
@@ -1128,15 +1100,7 @@ function MediaLibrary({
   );
   return (
     <>
-      {!picker && (
-        <PageTitle
-          label="MEDIA"
-          title={t('Media library')}
-          description="Manage covers, avatars, and images in one place."
-        >
-          {uploadButton}
-        </PageTitle>
-      )}
+      {!picker && <PageTitle title={t('Media library')}>{uploadButton}</PageTitle>}
       {picker && (
         <div className="admin-picker-toolbar">
           {uploadButton}
@@ -1224,18 +1188,10 @@ function MediaLibrary({
         >
           <RefreshCw size={17} />
         </button>
+        <ListOrder config={adminMediaList} sort={state.sort} onChange={update} />
       </div>
-      <ListOrder
-        config={adminMediaList}
-        sort={state.sort}
-        pageSize={state.pageSize}
-        onChange={update}
-      />
       {!picker && (
         <div className="admin-media-info">
-          <span>
-            <Image size={16} /> {t('{count} images', { count: data?.total ?? 0 })}{' '}
-          </span>
           <span>{t('JPG, PNG, WebP, GIF · Up to 10 MB')}</span>
         </div>
       )}
@@ -1273,6 +1229,9 @@ function MediaLibrary({
         info={error && resolvedUrl !== listUrl ? null : data}
         loading={loading}
         onPage={setPage}
+        config={adminMediaList}
+        pageSize={state.pageSize}
+        onPageSize={(pageSize) => update({ pageSize })}
         label="Media pagination"
       />
     </>
@@ -1412,11 +1371,7 @@ function TaxonomyManager() {
     useRemote<Taxonomies>('/api/admin/taxonomies');
   return (
     <>
-      <PageTitle
-        label="ORGANIZATION"
-        title={t('Categories & tags')}
-        description="Organize your content so readers can find related topics."
-      />
+      <PageTitle title={t('Categories & tags')} />
       <Alert message={error} />
       <div className="admin-taxonomy-columns">
         {(['category', 'tag'] as const).map((kind) => (
@@ -1642,7 +1597,6 @@ function TaxonomySection({
         <ListOrder
           config={taxonomyList}
           sort={state.sort}
-          pageSize={state.pageSize}
           onChange={(patch) => {
             dismissReveal();
             update(patch);
@@ -1700,6 +1654,12 @@ function TaxonomySection({
       </div>
       <ListPager
         info={page}
+        config={taxonomyList}
+        pageSize={state.pageSize}
+        onPageSize={(pageSize) => {
+          dismissReveal();
+          update({ pageSize });
+        }}
         onPage={(page) => {
           dismissReveal();
           setPage(page);
@@ -1881,15 +1841,7 @@ function SettingsForm({
   );
   return (
     <>
-      <PageTitle
-        label={about ? t('PROFILE') : t('CONFIGURATION')}
-        title={about ? t('About me') : t('Site settings')}
-        description={
-          about
-            ? t('Introduce yourself and give readers a way to stay in touch.')
-            : t('Manage your site identity, search details, and account security.')
-        }
-      />
+      <PageTitle title={about ? t('About me') : t('Site settings')} />
       <Alert message={error} />
       {conflict && (
         <div className="admin-recovery" role="region" aria-label={t('Settings version conflict')}>

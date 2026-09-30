@@ -6,9 +6,9 @@ import EmptyState from '../../components/public/EmptyState.astro';
 import Pagination from '../../components/public/Pagination.astro';
 import CollectionControls from '../../components/public/CollectionControls.astro';
 import Icon from '../../components/public/Icon.astro';
-import { uiLabel, uiPlaceholder } from '../../lib/ui-language';
+import { uiLabel } from '../../lib/ui-language';
 import { getSettings, listPublished } from '../../lib/content';
-import { listingHref, projectList, readListing } from '../../lib/listing';
+import { publicListingHref, projectList, readPublicListing } from '../../lib/listing';
 import { LAB_CATEGORY } from '../../lib/lab';
 import Text from '../../components/lab/LabText.astro';
 import { experiments } from '../../lib/lab/experiments';
@@ -16,11 +16,12 @@ import '../../styles/lab.css';
 import '../../styles/lab-index.css';
 
 const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 200);
-const options = readListing(Astro.url.searchParams, projectList);
+const options = readPublicListing(Astro.url.searchParams, projectList);
 const [settings, result] = await Promise.all([
   getSettings(),
   listPublished({ kind: 'project', category: LAB_CATEGORY, q, ...options }),
 ]);
+const showPublished = result.total > 0 || !!q;
 ---
 
 <PublicLayout
@@ -43,80 +44,20 @@ const [settings, result] = await Promise.all([
       </p>
     </header>
     <section
-      class="lab-index-lead"
+      class="lab-experiment-index"
       aria-label="Frontend tools"
       data-ui-label-en="Frontend tools"
       data-ui-label-zh="前端工具"
     >
-      <div>
-        <p class="lab-kicker">FRONTEND / TOOLS & PLAYGROUNDS</p>
-        <h2>
-          <Text zh="調整細節，直接看見差異" en="Tune it. See the difference." />
-        </h2>
-        <p>
-          <Text
-            zh="動畫曲線、響應式版面、SVG 造型、3D 輪播與粒子背景，五個可以操作，也能匯出程式碼或素材的前端工具"
-            en="Easing curves, responsive layouts, SVG shapes, 3D carousels and particle backgrounds. Five hands-on tools with code or asset exports."
-          />
-        </p>
-        <a class="lab-feature-link" href="/lab/motion-studio">
-          <Text zh="打開動畫曲線編輯器" en="Open motion studio" /> <span aria-hidden="true">↗</span>
-        </a>
-      </div>
-      <div class="lab-index-figure" aria-hidden="true">
-        <svg viewBox="0 0 320 250" fill="none">
-          <path
-            d="M40 42H280M40 96H280M40 150H280M40 204H280M40 42V204M100 42V204M160 42V204M220 42V204M280 42V204"
-            class="lab-figure-grid"
-          />
-          <path d="M40 204L280 42" class="lab-figure-reference" />
-          <path d="M40 204L140 204M180 42L280 42" class="lab-figure-handle" />
-          <path d="M40 204C140 204 180 42 280 42" class="lab-figure-curve" />
-          <circle cx="40" cy="204" r="3" class="lab-figure-endpoint" />
-          <circle cx="280" cy="42" r="3" class="lab-figure-endpoint" />
-          <circle cx="140" cy="204" r="6" class="lab-figure-point" />
-          <circle cx="180" cy="42" r="6" class="lab-figure-point" />
-          <circle cx="160" cy="123" r="4" class="lab-figure-endpoint" />
-          <text x="148" y="220">
-            P1
-          </text>
-          <text x="165" y="29">
-            P2
-          </text>
-          <text x="20" y="17">
-            CONTROL POINTS / LIVE PREVIEW
-          </text>
-          <text x="66" y="246">
-            cubic-bezier(0.42, 0, 0.58, 1)
-          </text>
-        </svg>
-        <span>01—05 / FRONTEND TOOLKIT</span>
-      </div>
-    </section>
-    <section
-      class="lab-experiment-index"
-      aria-label="Tool index"
-      data-ui-label-en="Tool index"
-      data-ui-label-zh="工具索引"
-    >
-      <div class="lab-index-caption">
-        <span>
-          <Text zh="工具索引" en="Tool index" />
-        </span>
-        <span>
-          05 <Text zh="個工具" en="tools" />
-        </span>
-      </div>
       {experiments.map((experiment) => (
         <a class="lab-index-row" href={`/lab/${experiment.slug}`}>
-          <span class="lab-row-number">{experiment.number}</span>
+          <span class="lab-row-number" aria-hidden="true">
+            {experiment.number}
+          </span>
           <div>
-            <p class="lab-kicker">
-              <Text {...experiment.category} />
-            </p>
-            <h3>
+            <h2>
               <Text {...experiment.title} />
-            </h3>
+            </h2>
             <p class="lab-row-description">
               <Text {...experiment.description} />
             </p>
@@ -132,79 +73,70 @@ const [settings, result] = await Promise.all([
         </a>
       ))}
     </section>
-    <section class="lab-published-heading" id="lab-published">
-      <h2>
-        <Text zh="站長作品" en="Published projects" />
-      </h2>
-      <p>
-        <Text
-          zh="從後台發布到 LAB 的實驗與工具"
-          en="Experiments and tools published from the CMS"
-        />
-      </p>
-    </section>
-    <form class="search-form" method="get" action="/lab#lab-published" role="search">
-      <label class="sr-only" for="lab-search">
-        <Ui text="Search LAB" />
-      </label>
-      <Icon name="search" size={19} />
-      <input
-        id="lab-search"
-        type="search"
-        name="q"
-        value={q}
-        maxlength="200"
-        {...uiPlaceholder('Search titles or content…')}
-        autocomplete="off"
-      />
-      <input type="hidden" name="sort" value={options.sort} />
-      <input type="hidden" name="pageSize" value={options.pageSize} />
-      <button type="submit">
-        <Ui text="Search" /> <Icon name="arrow" size={16} />
-      </button>
-    </form>
-    <CollectionControls
-      config={projectList}
-      sort={options.sort}
-      pageSize={result.pageSize}
-      anchor="lab-published"
-    />
-    <div class="collection-results">
-      <span>
-        <Ui
-          text={result.total === 1 ? '{count} experiment' : '{count} experiments'}
-          values={{ count: result.total }}
-        />
-        {q && <Ui text=" matching “{query}”" values={{ query: q }} />}
-      </span>
-      {q && (
-        <a href={`${listingHref(Astro.url, { q: null, page: null })}#lab-published`}>
-          <Ui text="Clear filters" /> <Icon name="close" size={14} />
-        </a>
-      )}
-    </div>
-    <section class="lab-grid" {...uiLabel('LAB list')}>
-      {result.items.length ? (
-        result.items.map((entry) => <ProjectCard entry={entry} />)
-      ) : (
-        <EmptyState
-          title={q ? 'No matching experiments' : 'No published experiments yet'}
-          description={
-            q
-              ? 'Try another keyword or clear the search.'
-              : 'Published experiments and tools will appear here.'
-          }
-          icon="flask"
-        />
+    <section
+      id="lab-published"
+      data-public-collection
+      data-collection-id="lab"
+      data-collection-anchor="lab-published"
+      hidden={!showPublished}
+      aria-labelledby={showPublished ? 'lab-published-title' : undefined}
+    >
+      {showPublished && (
+        <>
+          <header class="lab-published-heading">
+            <h2 id="lab-published-title">
+              <Text zh="站長作品" en="Published projects" />
+            </h2>
+          </header>
+          <CollectionControls
+            config={projectList}
+            sort={options.sort}
+            q={q}
+            searchLabel="Search LAB"
+            searchId="lab-search"
+            anchor="lab-published"
+          />
+          <div data-collection-results data-total={result.total} data-page={result.page}>
+            <div class="collection-results">
+              {result.pages === 1 && result.total > 0 && (
+                <span>
+                  <Ui
+                    text={result.total === 1 ? '{count} experiment' : '{count} experiments'}
+                    values={{ count: result.total }}
+                  />
+                </span>
+              )}
+              {q && (
+                <a
+                  href={`${publicListingHref(Astro.url, { q: null, page: null })}#lab-published`}
+                  data-collection-link
+                >
+                  <Ui text="Clear filters" /> <Icon name="close" size={14} />
+                </a>
+              )}
+            </div>
+            <section class="lab-grid" {...uiLabel('LAB list')}>
+              {result.items.length ? (
+                result.items.map((entry) => <ProjectCard entry={entry} />)
+              ) : (
+                <EmptyState
+                  title="No matching experiments"
+                  description="Try another keyword or clear the search."
+                  icon="flask"
+                />
+              )}
+            </section>
+            <Pagination
+              page={result.page}
+              pages={result.pages}
+              total={result.total}
+              pageSize={result.pageSize}
+              anchor="lab-published"
+            />
+          </div>
+        </>
       )}
     </section>
-    <Pagination
-      page={result.page}
-      pages={result.pages}
-      total={result.total}
-      pageSize={result.pageSize}
-      anchor="lab-published"
-    />
   </div>
 </PublicLayout>
 
