@@ -4,7 +4,6 @@ import path from 'node:path';
 import { gzip, gunzip } from 'node:zlib';
 import { promisify } from 'node:util';
 import { asc, inArray, sql } from 'drizzle-orm';
-import sharp from 'sharp';
 import { z } from 'zod';
 import { db, entries, entryRevisions, entrySlugs, media, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
@@ -17,6 +16,8 @@ import { DRAFT_REVISION_LIMIT } from './history-rules';
 import type { EntryContent, SiteSettings } from './types';
 import { archiveUrl, rewriteMarkdownUrls } from './markdown-links';
 import { compactEntryOrder } from './entry-order';
+import { sanitizeArchiveImage } from './image-processing';
+import { normalizeLegacyBranding } from './site-branding';
 
 const compress = promisify(gzip);
 const decompress = promisify(gunzip);
@@ -273,27 +274,14 @@ export async function decodeArchive(input: Buffer): Promise<LoadedArchive> {
     )
       throw new HttpError(413, 'Images exceed the 10 MB per image or 30 MB total limit.');
     try {
-      const metadata = await sharp(buffer, { limitInputPixels: 5_760_000 }).metadata();
-      if (
-        metadata.format !== 'webp' ||
-        metadata.width !== image.width ||
-        metadata.height !== image.height ||
-        (metadata.pages || 1) > 1
-      )
-        throw new Error();
-      // 完整解碼後重新編碼，排除只有合法檔頭、截斷影像與額外附加內容
-      const clean = await sharp(buffer, { limitInputPixels: 5_760_000 })
-        .webp({ lossless: true })
-        .toBuffer();
+      const { data: clean } = await sanitizeArchiveImage(buffer, image.width, image.height);
       cleanedBytes += clean.length;
       if (clean.length > transferLimits.imageBytes || cleanedBytes > transferLimits.totalImageBytes)
-        throw new Error();
+        throw new HttpError(400, 'Images exceed the 10 MB per image or 30 MB total limit.');
       images.set(image.id, clean);
-    } catch {
-      throw new HttpError(
-        400,
-        'An image is invalid, animated, or does not match its declared dimensions.',
-      );
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      throw new HttpError(400, 'An image is invalid or does not match its declared dimensions.');
     }
   }
   for (const id of imageReferences([archive.entries, archive.settings, archive.revisions])) {
@@ -414,7 +402,7 @@ async function planImport(database: Database, loaded: LoadedArchive, applySettin
       `${original.content.title} · 草稿`,
     );
   }
-  const plannedSettings = { ...archive.settings };
+  const plannedSettings = normalizeLegacyBranding(archive.settings);
   if (applySettings) {
     plannedSettings.about = rewriteLinks(plannedSettings.about, '/about', '關於我');
     plannedSettings.homeIntro = rewriteLinks(plannedSettings.homeIntro, '/', '首頁介紹');
@@ -727,7 +715,9 @@ export async function exportArchive(): Promise<Buffer> {
     const [config] = await tx.select().from(settings);
     const merged: SiteSettings = { ...defaultSettings, ...config?.value };
     merged.homeIntro ||= defaultHomeIntro(merged);
-    const { siteUrl: _siteUrl, ...publicSettings } = settingsSchema.parse(merged);
+    const { siteUrl: _siteUrl, ...publicSettings } = settingsSchema.parse(
+      normalizeLegacyBranding(merged),
+    );
     if (
       allEntries.length > transferLimits.entries ||
       allMedia.length > transferLimits.images ||

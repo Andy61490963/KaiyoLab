@@ -116,7 +116,7 @@ const updatedDate = new Date(entry.updatedAt).toLocaleDateString('en-US', {
             </p>
           )}
           <div class="article-byline">
-            <img src={settings.avatar || '/favicon.svg'} alt="" width="44" height="44" />
+            {settings.avatar && <img src={settings.avatar} alt="" width="44" height="44" />}
             <a class="article-author" href="/about" data-original-content translate="no">
               {settings.authorName || settings.siteName}
             </a>

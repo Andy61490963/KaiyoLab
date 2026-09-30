@@ -24,6 +24,7 @@
 ## 其他素材
 
 - 介面圖示使用 Lucide。
+- 原本的 K 徽章已移除，不再作為網站圖示或作者預設頭像；`public/favicon.svg` 僅保留透明空圖相容舊網址，自訂圖片仍可透過後台設定
 - 字體使用 Noto Sans TC、Space Grotesk 與 JetBrains Mono，隨 Fontsource 套件本地載入。
 - README 截圖取自 KaiyoLab 實際運行的前台與後台，存放於 `docs/screenshots/`。
 

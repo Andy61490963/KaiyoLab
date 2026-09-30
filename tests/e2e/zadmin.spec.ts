@@ -99,7 +99,7 @@ test('media upload, alt text, profile settings, and in-use image protection', as
       ),
     });
     await expect(page.getByRole('alert')).toContainText(
-      'Only PNG, JPEG, and WebP images are supported.',
+      'Only PNG, JPEG, WebP, and GIF images are supported.',
     );
     const buffer = await sharp({
       create: { width: 96, height: 96, channels: 3, background: '#74e2ce' },

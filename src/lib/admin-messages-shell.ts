@@ -93,7 +93,7 @@ export const shellMessages: Record<string, string> = {
   'Images cannot exceed 10 MB.': '圖片大小不可超過 10 MB',
   'Introduce yourself': '編輯個人介紹',
   'Introduce yourself and give readers a way to stay in touch.': '編輯介紹與讀者可以找到你的連結',
-  'JPG, PNG, WebP · Up to 10 MB': 'JPG、PNG、WebP · 最大 10 MB',
+  'JPG, PNG, WebP, GIF · Up to 10 MB': 'JPG、PNG、WebP、GIF · 最大 10 MB',
   'KaiyoLab Admin': 'KaiyoLab 管理後台',
   'KaiyoLab · Content workspace': 'KaiyoLab · 內容管理',
   'Largest first': '檔案由大到小',
@@ -143,7 +143,7 @@ export const shellMessages: Record<string, string> = {
   'Not used yet': '尚未使用',
   ORGANIZATION: '內容分類',
   'Oldest first': '最舊在前',
-  'Only PNG, JPEG, and WebP images are supported.': '僅支援 PNG、JPEG 與 WebP 圖片',
+  'Only PNG, JPEG, WebP, and GIF images are supported.': '僅支援 PNG、JPEG、WebP 與 GIF 圖片',
   'Open admin menu': '開啟後台選單',
   'Organize your content so readers can find related topics.':
     '管理分類與標籤，方便讀者找到相關內容',

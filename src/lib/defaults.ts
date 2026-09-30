@@ -7,7 +7,7 @@ export const defaultSettings: SiteSettings = {
   homeIntro: '',
   authorName: 'Andy',
   about: defaultAbout('Andy'),
-  logo: '/favicon.svg',
+  logo: '',
   avatar: '',
   heroImage: '',
   socialLinks: [],

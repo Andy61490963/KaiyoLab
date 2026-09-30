@@ -79,7 +79,15 @@ export const errorMessages: Record<string, string> = {
   'Images cannot exceed 10 MB.': '圖片不能超過 10 MB',
   'Choose an image.': '請選擇圖片',
   'Upload an image no larger than 10 MB.': '請上傳不超過 10 MB 的圖片',
-  'Only PNG, JPEG, and WebP images are supported.': '只支援 PNG、JPEG 及 WebP 圖片',
+  'Only PNG, JPEG, WebP, and GIF images are supported.': '只支援 PNG、JPEG、WebP 及 GIF 圖片',
+  'The image format does not match its MIME type.': '圖片內容與檔案宣告的格式不符',
+  'Images cannot exceed 200 frames or 40 million decoded pixels.':
+    '動畫最多 200 幀，圖片解碼後的所有影格合計不可超過 4,000 萬像素',
+  'The image is invalid or could not be processed within 15 seconds.':
+    '圖片無效或無法在 15 秒內處理，請縮小圖片或減少動畫影格後重試',
+  'The processed image exceeds 10 MB. Use a smaller image or fewer frames.':
+    '處理後的圖片超過 10 MB，請縮小圖片或減少動畫影格',
+  'An image is invalid or does not match its declared dimensions.': '圖片無效或尺寸與匯入資料不符',
   'The image is invalid or exceeds the pixel limit.': '圖片無效或超過像素上限',
   'Restore this content from the trash first.': '請先從垃圾桶還原內容',
   'Move this content to the trash before deleting it permanently.':

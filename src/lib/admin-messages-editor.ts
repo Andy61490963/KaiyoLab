@@ -1,4 +1,6 @@
 export const editorMessages: Record<string, string> = {
+  'Choose LAB to also show this project on the LAB page after publication.':
+    '選擇 LAB 分類，發布後也會顯示於 LAB 頁面',
   'Loading editor…': '正在載入編輯器…',
   'Back to list': '返回列表',
   'Back to articles': '返回文章列表',

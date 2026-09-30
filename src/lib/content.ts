@@ -3,6 +3,7 @@ import { db, entries, entrySlugs, settings, taxonomies } from './db';
 import { defaultSettings } from './defaults';
 import { defaultHomeIntro } from './home-intro';
 import { repairLegacySiteCopy } from './site-copy';
+import { normalizeLegacyBranding } from './site-branding';
 import { literalLike, paginate } from './listing';
 import { searchTerms } from './public-search';
 import type { Entry, EntryKind, PublicEntry, Taxonomy, SiteSettings } from './types';
@@ -19,11 +20,13 @@ export function serializeEntry(row: typeof entries.$inferSelect): Entry {
 }
 export async function getSettings(): Promise<SiteSettings> {
   const [row] = await db().select().from(settings);
-  const merged = repairLegacySiteCopy({
-    ...defaultSettings,
-    ...row?.value,
-    siteUrl: process.env.SITE_URL || row?.value.siteUrl || defaultSettings.siteUrl,
-  });
+  const merged = repairLegacySiteCopy(
+    normalizeLegacyBranding({
+      ...defaultSettings,
+      ...row?.value,
+      siteUrl: process.env.SITE_URL || row?.value.siteUrl || defaultSettings.siteUrl,
+    }),
+  );
   return { ...merged, homeIntro: merged.homeIntro?.trim() || defaultHomeIntro(merged) };
 }
 export async function listTaxonomies(

@@ -273,7 +273,10 @@ test('首次發布顯示新增、清空正文顯示刪除，HTML 在比較區維
   await dialog.getByRole('button', { name: 'Confirm publication', exact: true }).click();
   await expect(dialog).toBeHidden();
   expect((await request.get(publicPath(entry))).status()).toBe(200);
-  await page.locator('.cm-content[contenteditable=true]').fill('');
+  const bodyEditor = page.locator('.cm-content[contenteditable=true]');
+  await bodyEditor.press('ControlOrMeta+A');
+  await bodyEditor.press('Backspace');
+  await expect(bodyEditor).toHaveText('');
   ({ dialog } = await openReview(page));
   await expect(dialog.locator('[data-diff-range] code')).toHaveText('@@ -1,3 +0,0 @@');
   await expect(dialog.locator('[data-diff-kind="remove"] [data-diff-text]')).toHaveText(lines);

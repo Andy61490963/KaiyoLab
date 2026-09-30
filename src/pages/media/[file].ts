@@ -2,11 +2,12 @@ import type { APIRoute } from 'astro';
 import path from 'node:path';
 import { readFile, mkdir, writeFile, rename, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import sharp from 'sharp';
+import { processMediaVariant } from '../../lib/image-processing';
 import { mediaWidth } from '../../lib/media-presentation';
 import { eq, and, isNull, isNotNull } from 'drizzle-orm';
 import { db, media, entries, settings, systemState } from '../../lib/db';
 import { getAuth } from '../../lib/auth';
+import { errorResponse, HttpError } from '../../lib/http';
 export const GET: APIRoute = async ({ params, request, url: requestUrl }) => {
   if (!/^[a-f0-9-]{36}\.webp$/.test(params.file || '')) return new Response(null, { status: 404 });
   const width = mediaWidth((requestUrl || new URL(request.url)).searchParams.get('w'));
@@ -38,10 +39,7 @@ export const GET: APIRoute = async ({ params, request, url: requestUrl }) => {
         file = await readFile(variant);
       } catch {
         const original = await readFile(path.join(directory, id + '.webp'));
-        file = await sharp(original, { limitInputPixels: 40_000_000 })
-          .resize({ width, withoutEnlargement: true })
-          .webp({ quality: 82 })
-          .toBuffer();
+        file = await processMediaVariant(original, width);
         // 派生快取寫入失敗不影響原圖或閱讀，權限檢查永遠在快取讀取前
         const temporary = `${variant}.${randomUUID()}.tmp`;
         try {
@@ -62,7 +60,8 @@ export const GET: APIRoute = async ({ params, request, url: requestUrl }) => {
         'X-Content-Type-Options': 'nosniff',
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpError) return errorResponse(error);
     return new Response(null, { status: 404 });
   }
 };
