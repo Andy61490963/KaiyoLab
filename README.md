@@ -305,6 +305,8 @@ node --env-file=.env.test node_modules/@playwright/test/cli.js test
 
 在自己的網站網址後加 `/admin`，未登入會轉到 `/login`，尚未初始化時先開 `/setup`
 
+公開網站不顯示後台入口，站長可直接輸入網址或加入書籤
+
 **初始化碼在哪裡？**
 
 本機執行 `docker compose logs app`，Zeabur 則查看應用程式服務的執行日誌，初始化完成後重啟不再顯示代碼，忘記密碼請使用帳號復原指令

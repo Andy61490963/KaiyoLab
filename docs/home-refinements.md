@@ -6,7 +6,7 @@ The existing sidebar width, page container, typography, colors, timeline Markdow
 
 The EN / 中文 control is at the upper right on desktop and in the compact header on mobile. The thumb animates for 200ms; reduced-motion settings disable the transition. Its two buttons support keyboard activation, stable accessible names, and selected states. The preference is stored under `kaiyo-ui-language`, restored before first paint, and synchronized between tabs. Blocked storage still permits switching on the current page. Without JavaScript, the English interface and native navigation remain available; the inactive language control stays hidden.
 
-Only explicitly marked interface copy and accessibility labels change. Authored home/About Markdown, article and project titles, excerpts, bodies, code, taxonomy names, and social-link labels stay in their original language. The admin interface is unchanged by this refinement. Dates remain in their existing presentation. There is no translation API and no new application dependency. The sidebar's lower section contains only the requested GitHub profile; RSS and admin routes are retained elsewhere.
+語言切換只處理明確標記的介面文案與無障礙標籤，首頁／關於我的 Markdown、文章與作品標題、摘要、內文、程式碼、分類名稱及社群連結名稱保留原文，日期沿用既有格式，不新增翻譯 API 或相依套件，前台中文介面不使用中文句號，左側底部保留 GitHub、頁尾保留 RSS 與關於我，公開頁面不提供管理入口，站長以 `/admin` 網址或書籤進入後台
 
 ## Initial articles
 
