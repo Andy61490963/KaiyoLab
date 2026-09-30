@@ -1,45 +1,73 @@
 import { expect, test } from '@playwright/test';
 
-test('列表進入文章與返回時外框、側欄、內容起點及語言切換保持一致', async ({ page }) => {
-  const measure = () =>
-    page.evaluate(() =>
-      Object.fromEntries(
-        ['.public-site', '.public-header', 'main .page-shell', '.language-switch'].map(
-          (selector) => {
-            const rect = document.querySelector(selector)!.getBoundingClientRect();
-            return [selector, { x: rect.x, width: rect.width }];
-          },
+for (const collection of [
+  { name: '文章', path: '/articles', detail: '.article-detail', heading: '.article-heading' },
+  {
+    name: '作品',
+    path: '/projects',
+    detail: '.project-detail',
+    heading: '.project-detail-heading',
+  },
+]) {
+  test(`列表進入${collection.name}與返回時外框、側欄、內容起點及語言切換保持一致`, async ({
+    page,
+  }) => {
+    const measure = () =>
+      page.evaluate(() =>
+        Object.fromEntries(
+          ['.public-site', '.public-header', 'main .page-shell', '.language-switch'].map(
+            (selector) => {
+              const rect = document.querySelector(selector)!.getBoundingClientRect();
+              return [selector, { x: rect.x, width: rect.width }];
+            },
+          ),
         ),
-      ),
-    );
-  for (const width of [1920, 1440, 1320, 1280, 1024, 768, 390]) {
-    await page.setViewportSize({ width, height: 1000 });
-    await page.goto('/articles');
-    await expect(page.locator('.language-switch')).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
-    const list = await measure();
-    await page.locator('main a[href^="/articles/"]').first().click();
-    await expect(page.locator('[data-article-reader]')).toBeVisible();
-    await expect(page.locator('.language-switch')).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
-    const detail = await measure();
-    for (const selector of Object.keys(list)) {
+      );
+    for (const width of [1920, 1440, 1320, 1280, 1024, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(collection.path);
+      await expect(page.locator('.language-switch')).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const list = await measure();
+      const listHeading = (await page.locator('.collection-header h1').boundingBox())!;
+      await page.locator(`main a[href^="${collection.path}/"]`).first().click();
+      await expect(page.locator(collection.detail)).toBeVisible();
+      await expect(page.locator('.language-switch')).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const detail = await measure();
+      const detailHeading = (await page.locator(collection.heading).boundingBox())!;
       expect(
-        Math.abs(list[selector].x - detail[selector].x),
-        `${width} ${selector} 起點`,
+        Math.abs(detailHeading.x - listHeading.x),
+        `${width} ${collection.name}標題與列表內容起點`,
       ).toBeLessThan(1);
+      for (const selector of Object.keys(list)) {
+        expect(
+          Math.abs(list[selector].x - detail[selector].x),
+          `${width} ${selector} 起點`,
+        ).toBeLessThan(1);
+        expect(
+          Math.abs(list[selector].width - detail[selector].width),
+          `${width} ${selector} 寬度`,
+        ).toBeLessThan(1);
+      }
       expect(
-        Math.abs(list[selector].width - detail[selector].width),
-        `${width} ${selector} 寬度`,
-      ).toBeLessThan(1);
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      ).toBe(true);
+      if (width >= 1024) {
+        const gutter = await page
+          .locator(collection.detail)
+          .evaluate((element) => parseFloat(getComputedStyle(element).paddingInlineStart));
+        const header = detail['.public-header'];
+        const gap = detailHeading.x - (header.x + header.width);
+        expect(Math.abs(gap - gutter), `${width} ${collection.name}側欄與內容間距`).toBeLessThan(1);
+        expect(gap, `${width} ${collection.name}沒有疊加置中留白`).toBeLessThanOrEqual(57);
+      }
+      if (width >= 1320 && collection.path === '/articles')
+        await expect(page.locator('.article-rail-sticky')).toBeVisible();
+      await page.locator(`${collection.detail} > .back-link`).click();
+      await expect(page.locator('.language-switch')).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      expect(await measure()).toEqual(list);
     }
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
-      true,
-    );
-    if (width >= 1320) await expect(page.locator('.article-rail-sticky')).toBeVisible();
-    await page.locator('.article-detail > .back-link').click();
-    await expect(page.locator('.language-switch')).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
-    expect(await measure()).toEqual(list);
-  }
-});
+  });
+}

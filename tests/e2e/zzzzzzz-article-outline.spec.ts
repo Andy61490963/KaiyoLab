@@ -181,7 +181,13 @@ test('長中文目錄在桌機內捲動，手機與平板保留可操作的折�
         expect(bounds!.y).toBeGreaterThanOrEqual(80);
         expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(880);
         const position = await page.evaluate(() => scrollY);
-        await page.mouse.move(1270, 350);
+        const visibleRail = await card.evaluate((node) => {
+          const rect = node.getBoundingClientRect();
+          const top = Math.max(0, rect.top);
+          const bottom = Math.min(innerHeight, rect.bottom);
+          return { x: rect.left + rect.width / 2, y: (top + bottom) / 2 };
+        });
+        await page.mouse.move(visibleRail.x, visibleRail.y);
         await page.mouse.wheel(0, -240);
         await expect.poll(() => page.evaluate(() => scrollY)).toBe(position);
         // 矮視窗與長目錄也只有外層捲軸；Tab 必須到得了推薦與標籤
