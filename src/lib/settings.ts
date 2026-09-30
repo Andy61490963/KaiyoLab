@@ -6,17 +6,20 @@ import { defaultHomeIntro } from './home-intro';
 import { HttpError, settingsSchema } from './http';
 import { ensureMedia, lockContent } from './media';
 import { repairLegacySiteCopy } from './site-copy';
+import { normalizeLegacyBranding } from './site-branding';
 import type { SiteSettings } from './types';
 
 export type SettingsSnapshot = SiteSettings & { version: number };
 const updateSchema = settingsSchema.extend({ version: z.number().int().positive() });
 
 function snapshot(row: typeof settings.$inferSelect): SettingsSnapshot {
-  const merged = repairLegacySiteCopy({
-    ...defaultSettings,
-    ...row.value,
-    siteUrl: process.env.SITE_URL || row.value.siteUrl || defaultSettings.siteUrl,
-  });
+  const merged = repairLegacySiteCopy(
+    normalizeLegacyBranding({
+      ...defaultSettings,
+      ...row.value,
+      siteUrl: process.env.SITE_URL || row.value.siteUrl || defaultSettings.siteUrl,
+    }),
+  );
   return {
     ...merged,
     homeIntro: merged.homeIntro?.trim() || defaultHomeIntro(merged),
@@ -31,7 +34,8 @@ export async function getSettingsSnapshot(): Promise<SettingsSnapshot> {
 }
 
 export async function saveSettingsSnapshot(input: unknown): Promise<SettingsSnapshot> {
-  const { version, ...value } = updateSchema.parse(input);
+  const { version, ...parsed } = updateSchema.parse(input);
+  const value = normalizeLegacyBranding(parsed);
   value.siteUrl = process.env.SITE_URL || value.siteUrl;
   return db().transaction(async (tx) => {
     const database = tx as unknown as ReturnType<typeof db>;

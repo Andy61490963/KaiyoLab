@@ -2,7 +2,6 @@ import type { APIRoute } from 'astro';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import sharp from 'sharp';
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, entries, taxonomies, media } from '../../../lib/db';
@@ -10,6 +9,7 @@ import { json, body, HttpError, errorResponse, contentSchema } from '../../../li
 import { serializeEntry, listTaxonomies } from '../../../lib/content';
 import { getSettingsSnapshot, saveSettingsSnapshot } from '../../../lib/settings';
 import { persistMediaFile } from '../../../lib/media-persistence';
+import { imageLimits, processUploadImage } from '../../../lib/image-processing';
 import { emptyContent } from '../../../lib/defaults';
 import { renderMarkdown } from '../../../lib/markdown';
 import { listMedia, mediaUsages, mediaUrl, lockContent, ensureMedia } from '../../../lib/media';
@@ -52,7 +52,7 @@ async function syncTaxonomies(database: ReturnType<typeof db>, content: EntryCon
   }
 }
 async function upload(request: Request) {
-  const max = 10 * 1024 * 1024;
+  const max = imageLimits.bytes;
   if (Number(request.headers.get('content-length') || 0) > max + 65536)
     throw new HttpError(413, 'Images cannot exceed 10 MB.');
   const reader = request.body?.getReader();
@@ -77,20 +77,8 @@ async function upload(request: Request) {
   const file = parsed.get('file');
   if (!(file instanceof File) || file.size > max)
     throw new HttpError(400, 'Upload an image no larger than 10 MB.');
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
-    throw new HttpError(400, 'Only PNG, JPEG, and WebP images are supported.');
   const input = Buffer.from(await file.arrayBuffer());
-  try {
-    const output = await sharp(input, { limitInputPixels: 40_000_000 }).metadata();
-    if (!['png', 'jpeg', 'webp'].includes(output.format || '')) throw new Error();
-  } catch {
-    throw new HttpError(400, 'The image is invalid or exceeds the pixel limit.');
-  }
-  const result = await sharp(input, { limitInputPixels: 40_000_000 })
-    .rotate()
-    .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 85 })
-    .toBuffer({ resolveWithObject: true });
+  const result = await processUploadImage(input, file.type);
   const id = randomUUID();
   const alt = z
     .string()
@@ -109,8 +97,8 @@ async function upload(request: Request) {
           alt,
           mime: 'image/webp',
           size: result.data.length,
-          width: result.info.width,
-          height: result.info.height,
+          width: result.width,
+          height: result.height,
         })
         .returning();
       return row;

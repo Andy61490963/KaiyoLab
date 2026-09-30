@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminLanguage } from './AdminLanguage';
 import { editorCodeMirrorPhrases } from '../../lib/admin-messages-editor';
+import { LAB_CATEGORY } from '../../lib/lab';
 import { readRecovery, type DraftRecovery } from './draft-recovery';
 import EntryHistory from './EntryHistory';
 import PublishReview from './PublishReview';
@@ -861,16 +862,27 @@ export default function EntryEditor({
                 {t('Category')}
                 <select
                   value={content.category}
+                  aria-label={t('Category')}
+                  aria-describedby={entry.kind === 'project' ? 'project-lab-help' : undefined}
                   disabled={editorLocked || !!entry.deletedAt || !!recovery}
                   onChange={(e) => update('category', e.target.value)}
                 >
                   <option value="">{t('Uncategorized')}</option>
+                  {entry.kind === 'project' &&
+                    !taxonomy.categories.some((category) => category.name === LAB_CATEGORY) && (
+                      <option value={LAB_CATEGORY}>{LAB_CATEGORY}</option>
+                    )}
                   {taxonomy.categories.map((category) => (
                     <option value={category.name} key={category.id}>
                       {category.name}
                     </option>
                   ))}
                 </select>
+                {entry.kind === 'project' && (
+                  <small id="project-lab-help">
+                    {t('Choose LAB to also show this project on the LAB page after publication.')}
+                  </small>
+                )}
               </label>
               <fieldset
                 className="admin-tag-options"

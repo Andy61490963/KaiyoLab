@@ -1073,8 +1073,8 @@ function MediaLibrary({
         item.status = 'uploading';
         setUploads(queue.map((item) => ({ ...item })));
         try {
-          if (!['image/png', 'image/jpeg', 'image/webp'].includes(item.file.type))
-            throw new Error('Only PNG, JPEG, and WebP images are supported.');
+          if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(item.file.type))
+            throw new Error('Only PNG, JPEG, WebP, and GIF images are supported.');
           if (item.file.size > 10 * 1024 * 1024) throw new Error('Images cannot exceed 10 MB.');
           const form = new FormData();
           form.append('file', item.file);
@@ -1117,7 +1117,7 @@ function MediaLibrary({
         type="file"
         multiple
         aria-label={t('Upload image file')}
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/gif"
         disabled={busy}
         onChange={(event) => {
           void upload(Array.from(event.target.files || []));
@@ -1140,7 +1140,7 @@ function MediaLibrary({
       {picker && (
         <div className="admin-picker-toolbar">
           {uploadButton}
-          <small>{t('JPG, PNG, WebP · Up to 10 MB')}</small>
+          <small>{t('JPG, PNG, WebP, GIF · Up to 10 MB')}</small>
         </div>
       )}
       <Alert message={error} />
@@ -1236,7 +1236,7 @@ function MediaLibrary({
           <span>
             <Image size={16} /> {t('{count} images', { count: data?.total ?? 0 })}{' '}
           </span>
-          <span>{t('JPG, PNG, WebP · Up to 10 MB')}</span>
+          <span>{t('JPG, PNG, WebP, GIF · Up to 10 MB')}</span>
         </div>
       )}
       {loading ? (
