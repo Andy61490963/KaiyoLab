@@ -26,13 +26,12 @@
   width: 66px;
 }
 .grid-studio-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 224px;
+  display: block;
   border-block: 1px solid var(--border);
 }
 .grid-studio-preview {
   min-width: 0;
-  padding: 16px 20px 12px 0;
+  padding: 16px 0 12px;
 }
 .grid-studio-preview-bar,
 .grid-studio-preview-caption,
@@ -52,9 +51,32 @@
 }
 .grid-studio-widths .lab-button {
   padding-inline: 9px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  gap: 3px;
+  font-size: 14px;
+  gap: 8px;
+}
+.grid-studio-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-block: 16px;
+}
+.grid-studio-advanced {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+}
+.grid-studio-advanced > summary {
+  min-height: 48px;
+  padding-block: 14px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.grid-studio-advanced > summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.grid-studio .lab-button {
+  min-height: 44px;
+  min-width: 44px;
 }
 .grid-studio-widths .lab-button span {
   font-size: 10px;
@@ -173,11 +195,16 @@
 }
 .grid-studio-inspector {
   min-width: 0;
-  border-left: 1px solid var(--border);
-  padding: 16px 0 16px 20px;
-  display: flex;
-  flex-direction: column;
+  border-top: 1px solid var(--border);
+  padding: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
   gap: 14px;
+}
+.grid-studio-inspector-title,
+.grid-studio-alignments {
+  grid-column: 1 / -1;
 }
 .grid-studio-inspector-title > span {
   font: 10px var(--font-mono);

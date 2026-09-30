@@ -3,6 +3,26 @@
   min-width: 0;
   border-block: 1px solid var(--border);
 }
+.kinetic-appearances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-block: 16px;
+}
+.kinetic-advanced {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.kinetic-advanced > summary {
+  min-height: 44px;
+  padding-block: 16px;
+  cursor: pointer;
+  color: var(--text);
+}
+.kinetic-advanced > summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
 .kinetic-topline {
   display: flex;
   justify-content: space-between;

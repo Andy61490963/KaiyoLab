@@ -3,15 +3,14 @@
 }
 .lab-index-row {
   display: grid;
-  grid-template-columns: 40px 1fr 36px;
-  gap: 20px;
-  padding: 32px 4px;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(0, 1.3fr);
+  gap: 32px;
+  padding: 28px 4px;
   border-bottom: 1px solid var(--border);
-  align-items: start;
+  align-items: center;
 }
-.lab-row-number {
-  font: 13px/2 var(--font-mono);
-  color: var(--accent);
+.lab-row-copy {
+  min-width: 0;
 }
 .lab-index-row h2 {
   font-size: clamp(24px, 3vw, 32px);
@@ -25,20 +24,40 @@
   font-size: 15px;
   line-height: 1.85;
 }
-.lab-index-row .lab-tags {
-  margin: 12px 0 0;
-}
-.lab-row-arrow {
-  font-size: 26px;
+.lab-row-outcome {
   color: var(--muted);
-  transition: transform 0.22s;
+  font-size: 13px;
+  margin: 12px 0 0;
+  line-height: 1.6;
 }
-.lab-index-row:hover .lab-row-arrow {
-  transform: translate(3px, -3px);
+.lab-row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+}
+.lab-row-action > span:last-child {
+  transition: transform 0.2s;
+}
+.lab-index-row:is(:hover, :focus-visible) .lab-row-action > span:last-child {
+  transform: translateX(4px);
+}
+.lab-index-row:is(:hover, :focus-visible) h2 {
   color: var(--accent);
 }
-.lab-index-row:hover h2 {
-  color: var(--accent);
+.lab-index-row:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.lab-index-row-secondary {
+  grid-template-columns: minmax(180px, 0.65fr) minmax(0, 1.5fr);
+}
+.lab-index-row-secondary h2 {
+  font-size: clamp(24px, 2.5vw, 28px);
 }
 .lab-published-heading {
   padding-top: 60px;
@@ -50,15 +69,20 @@
 }
 @media (max-width: 650px) {
   .lab-index-row {
-    grid-template-columns: 24px 1fr 20px;
-    gap: 10px;
-    padding-block: 26px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding-block: 24px;
   }
   .lab-row-description {
     font-size: 14px;
   }
-  .lab-index-row .lab-tags {
-    font-size: 9px;
-    gap: 4px 10px;
+  .lab-index-row h2 {
+    margin-bottom: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-row-action > span:last-child {
+    transition: none;
+    transform: none !important;
   }
 }

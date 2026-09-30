@@ -27,6 +27,22 @@ const studies = [
   { image: 'damping', zh: '暫態響應', en: 'Transient response', formula: 'e⁻ᵝᵗ cos(ωt)' },
 ] as const;
 
+const appearances: Array<{ id: string; zh: string; en: string; options: KineticOptions }> = [
+  {
+    id: 'flat',
+    zh: '平面',
+    en: 'Flat',
+    options: { perspective: 1800, spacing: 1.05, tilt: 0, depth: 0, scale: 0, blur: 0 },
+  },
+  { id: 'depth', zh: '立體', en: 'Depth', options: { ...defaultKineticOptions } },
+  {
+    id: 'tilted',
+    zh: '傾斜',
+    en: 'Tilted',
+    options: { perspective: 650, spacing: 0.8, tilt: 25, depth: 145, scale: 0.08, blur: 1.2 },
+  },
+];
+
 export default function KineticCarousel() {
   const { t, reducedMotion, visible } = useLabEnvironment();
   const root = useRef<HTMLDivElement>(null);
@@ -223,9 +239,23 @@ export default function KineticCarousel() {
       data-active-slide={active}
       data-autoplay={autoplay && !reducedMotion}
     >
-      <div className="kinetic-topline">
-        <span>{t('3D 輪播調校', '3D CAROUSEL TUNER')}</span>
-        <span>01—06 / CONTINUOUS</span>
+      <div className="kinetic-appearances" role="group" aria-label={t('畫廊風格', 'Gallery looks')}>
+        {appearances.map((appearance) => (
+          <button
+            type="button"
+            className="lab-button"
+            key={appearance.id}
+            aria-pressed={Object.entries(appearance.options).every(
+              ([key, value]) => options[key as keyof KineticOptions] === value,
+            )}
+            onClick={() => {
+              setAutoplay(false);
+              setOptions({ ...appearance.options });
+            }}
+          >
+            {t(appearance.zh, appearance.en)}
+          </button>
+        ))}
       </div>
       <div
         className="kinetic-stage"
@@ -332,43 +362,6 @@ export default function KineticCarousel() {
         ))}
         <span className="kinetic-axis" aria-hidden="true" />
       </div>
-      <div className="lab-tool-settings">
-        {(
-          [
-            ['perspective', '透視距離', 'Perspective', 400, 1800, 50, 'px'],
-            ['spacing', '卡片間距', 'Card spacing', 0.6, 1.4, 0.05, '×'],
-            ['tilt', '側向旋轉', 'Side rotation', 0, 25, 1, '°'],
-            ['depth', '景深距離', 'Depth distance', 0, 180, 5, 'px'],
-            ['scale', '景深縮放', 'Depth scale', 0, 0.2, 0.01, ''],
-            ['blur', '速度模糊', 'Velocity blur', 0, 4, 0.1, 'px'],
-          ] as const
-        ).map(([key, zh, en, min, max, step, unit]) => (
-          <label className="lab-field" key={key}>
-            <span>
-              {t(zh, en)}{' '}
-              <output>
-                {options[key]}
-                {unit}
-              </output>
-            </span>
-            <input
-              type="range"
-              aria-label={t(zh, en)}
-              min={min}
-              max={max}
-              step={step}
-              value={options[key]}
-              onChange={(event) => {
-                setAutoplay(false);
-                setOptions((previous) => ({ ...previous, [key]: Number(event.target.value) }));
-              }}
-            />
-          </label>
-        ))}
-        <button className="lab-button" onClick={() => setOptions({ ...defaultKineticOptions })}>
-          {t('重設外觀', 'Reset appearance')}
-        </button>
-      </div>
       <div className="kinetic-caption" aria-live={autoplay ? 'off' : 'polite'} aria-atomic="true">
         <span className="kinetic-index">
           {String(active + 1).padStart(2, '0')}
@@ -376,7 +369,6 @@ export default function KineticCarousel() {
         </span>
         <div>
           <h2>{t(studies[active].zh, studies[active].en)}</h2>
-          <p>{studies[active].formula}</p>
         </div>
       </div>
       <div className="lab-controls kinetic-controls">
@@ -448,27 +440,71 @@ export default function KineticCarousel() {
               'Drag horizontally or use arrow keys — interaction pauses autoplay, Esc cancels a drag',
             )}
       </p>
-      <div className="kinetic-readout" aria-hidden="true">
-        <span>
-          {t('連續座標', 'POSITION')} <output ref={positionOutput}>0.00</output>
-        </span>
-        <span>
-          {t('速度', 'VELOCITY')} <output ref={velocityOutput}>0.00</output> <small>slides/s</small>
-        </span>
-        <span>m = 1 · k = 150 · c = 19</span>
-      </div>
-      <p className="lab-note">
-        {t(
-          '匯出包含目前外觀參數與繪製函式，可接到自己的拖曳或動畫狀態，手機預覽會降低模糊量',
-          'Export the current appearance and renderer for your own gesture or animation state. Mobile preview limits blur.',
-        )}
-      </p>
-      <ToolExport
-        code={kineticSource(options)}
-        filename="carousel-renderer.js"
-        mime="text/javascript;charset=utf-8"
-        label={{ zh: '輪播 Renderer', en: 'Carousel renderer' }}
-      />
+      <details className="kinetic-advanced" data-lab-advanced>
+        <summary>{t('進階設定與匯出', 'Advanced settings & export')}</summary>
+        <p className="lab-note">
+          <code>{studies[active].formula}</code>
+        </p>
+        <div className="lab-tool-settings">
+          {(
+            [
+              ['perspective', '透視距離', 'Perspective', 400, 1800, 50, 'px'],
+              ['spacing', '卡片間距', 'Card spacing', 0.6, 1.4, 0.05, '×'],
+              ['tilt', '側向旋轉', 'Side rotation', 0, 25, 1, '°'],
+              ['depth', '景深距離', 'Depth distance', 0, 180, 5, 'px'],
+              ['scale', '景深縮放', 'Depth scale', 0, 0.2, 0.01, ''],
+              ['blur', '速度模糊', 'Velocity blur', 0, 4, 0.1, 'px'],
+            ] as const
+          ).map(([key, zh, en, min, max, step, unit]) => (
+            <label className="lab-field" key={key}>
+              <span>
+                {t(zh, en)}{' '}
+                <output>
+                  {options[key]}
+                  {unit}
+                </output>
+              </span>
+              <input
+                type="range"
+                aria-label={t(zh, en)}
+                min={min}
+                max={max}
+                step={step}
+                value={options[key]}
+                onChange={(event) => {
+                  setAutoplay(false);
+                  setOptions((previous) => ({ ...previous, [key]: Number(event.target.value) }));
+                }}
+              />
+            </label>
+          ))}
+          <button className="lab-button" onClick={() => setOptions({ ...defaultKineticOptions })}>
+            {t('重設外觀', 'Reset appearance')}
+          </button>
+        </div>
+        <div className="kinetic-readout" aria-hidden="true">
+          <span>
+            {t('連續座標', 'POSITION')} <output ref={positionOutput}>0.00</output>
+          </span>
+          <span>
+            {t('速度', 'VELOCITY')} <output ref={velocityOutput}>0.00</output>{' '}
+            <small>slides/s</small>
+          </span>
+          <span>m = 1 · k = 150 · c = 19</span>
+        </div>
+        <p className="lab-note">
+          {t(
+            '匯出包含目前外觀參數與繪製函式，可接到自己的拖曳或動畫狀態，手機預覽會降低模糊量',
+            'Export the current appearance and renderer for your own gesture or animation state. Mobile preview limits blur.',
+          )}
+        </p>
+        <ToolExport
+          code={kineticSource(options)}
+          filename="carousel-renderer.js"
+          mime="text/javascript;charset=utf-8"
+          label={{ zh: '輪播 Renderer', en: 'Carousel renderer' }}
+        />
+      </details>
     </div>
   );
 }

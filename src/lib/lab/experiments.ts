@@ -9,6 +9,56 @@ export type LabExperiment = {
   notes: { title: LabCopy; body: LabCopy }[];
 };
 
+export type LabInvitation = {
+  title: LabCopy;
+  instruction: LabCopy;
+  outcome: LabCopy;
+};
+
+// 入口先說明可以做什麼，技術名稱及原理仍保留在工具的進階說明
+export const labInvitations: Record<string, LabInvitation> = {
+  'flow-field': {
+    title: { zh: '畫一張粒子背景', en: 'Paint with particles' },
+    instruction: {
+      zh: '移動滑鼠或拖曳，讓粒子聚攏、散開，再把畫面存成圖片',
+      en: 'Move your pointer or drag to gather and scatter particles, then save your picture',
+    },
+    outcome: { zh: '可下載 PNG 圖片', en: 'Save a PNG image' },
+  },
+  'svg-studio': {
+    title: { zh: '讓形狀變個樣', en: 'Shape something new' },
+    instruction: {
+      zh: '換個輪廓、挑個顏色，按下播放看看兩個形狀如何變換',
+      en: 'Try a new outline, pick a color and play the transformation between two shapes',
+    },
+    outcome: { zh: '可下載靜態 SVG', en: 'Save a static SVG' },
+  },
+  'kinetic-carousel': {
+    title: { zh: '滑動立體畫廊', en: 'Spin a 3D gallery' },
+    instruction: {
+      zh: '左右拖動卡片，試試平面、立體與傾斜三種視角',
+      en: 'Drag the cards left or right and try flat, deep and tilted views',
+    },
+    outcome: { zh: '滑鼠、手指與方向鍵都能玩', en: 'Use your pointer, touch or arrow keys' },
+  },
+  'motion-studio': {
+    title: { zh: '讓方塊彈一下', en: 'Make it bounce' },
+    instruction: {
+      zh: '選一種動作，看看同一個方塊如何滑動、放大與淡入',
+      en: 'Pick a motion and see the same block slide, grow and fade in',
+    },
+    outcome: { zh: '進階設定可複製動畫 CSS', en: 'Copy animation CSS in advanced settings' },
+  },
+  'grid-studio': {
+    title: { zh: '拼出你的版面', en: 'Build a layout' },
+    instruction: {
+      zh: '選個版型、拖動區塊，再切到手機看看畫面怎麼排',
+      en: 'Pick a layout, move the blocks and switch to a phone-sized preview',
+    },
+    outcome: { zh: '進階設定可匯出 HTML 與 CSS', en: 'Export HTML and CSS in advanced settings' },
+  },
+};
+
 export const experiments: LabExperiment[] = [
   {
     slug: 'motion-studio',
@@ -256,3 +306,11 @@ export const experiments: LabExperiment[] = [
     ],
   },
 ];
+
+export const playfulExperiments = [
+  'flow-field',
+  'svg-studio',
+  'kinetic-carousel',
+  'motion-studio',
+  'grid-studio',
+].map((slug) => experiments.find((experiment) => experiment.slug === slug)!);

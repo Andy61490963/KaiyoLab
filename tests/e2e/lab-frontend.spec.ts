@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
 const tools = ['motion-studio', 'grid-studio', 'svg-studio', 'kinetic-carousel', 'flow-field'];
+const playOrder = ['flow-field', 'svg-studio', 'kinetic-carousel', 'motion-studio', 'grid-studio'];
 
 test('五工具在375、768、1440px明暗及中英文保持可讀且沒有執行錯誤', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -37,13 +38,13 @@ test('前端工具入口、下一頁、sitemap與舊連結轉址保持一致', a
   await expect(links).toHaveCount(5);
   expect(
     await links.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href'))),
-  ).toEqual(tools.map((slug) => `/lab/${slug}`));
-  for (let i = 0; i < tools.length; i++) {
-    await page.goto(`/lab/${tools[i]}`);
+  ).toEqual(playOrder.map((slug) => `/lab/${slug}`));
+  for (let i = 0; i < playOrder.length; i++) {
+    await page.goto(`/lab/${playOrder[i]}`);
     await expect(page.locator('main h1')).toBeVisible();
     await expect(page.locator('.lab-next a').last()).toHaveAttribute(
       'href',
-      `/lab/${tools[(i + 1) % tools.length]}`,
+      `/lab/${playOrder[(i + 1) % playOrder.length]}`,
     );
     expect(await page.locator('.lab-demo').innerText()).not.toMatch(/NaN|undefined/);
   }
@@ -64,6 +65,7 @@ test('前端工具入口、下一頁、sitemap與舊連結轉址保持一致', a
 test('輪播參數改動畫面與匯出，複製失敗可重試且舊回應不能宣稱新版本已複製', async ({ page }) => {
   await page.goto('/lab/kinetic-carousel');
   await page.getByRole('button', { name: 'English', exact: true }).click();
+  await page.locator('[data-lab-advanced] > summary').click();
   await page.getByLabel('Perspective', { exact: true }).fill('1200');
   await expect(page.locator('.kinetic-stage')).toHaveCSS('perspective', '1200px');
   const source = page.getByLabel('Carousel renderer source', { exact: true });
@@ -109,6 +111,7 @@ test('粒子工具匯出目前PNG與設定，配色及手機粒子限制實際�
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/lab/flow-field');
   await page.getByRole('button', { name: 'English', exact: true }).click();
+  await page.locator('[data-lab-advanced] > summary').click();
   const canvas = page.locator('[data-flow-canvas]');
   await expect(canvas).toHaveAttribute('data-steps', '0');
   await page.getByLabel('Particle limit', { exact: true }).fill('600');
@@ -153,7 +156,11 @@ test('未啟用JavaScript仍有工具說明與返回導覽', async ({ browser, b
       await page.goto(`/lab/${slug}`);
       await expect(page.locator('main h1')).toBeVisible();
       await expect(page.locator('noscript .lab-loading')).toBeVisible();
+      const notes = page.locator('details.lab-technical');
+      await expect(notes).not.toHaveAttribute('open');
+      await notes.locator('summary').click();
       await expect(page.locator('.lab-technical article')).toHaveCount(3);
+      await expect(page.locator('.lab-technical article').first()).toBeVisible();
       await expect(page.locator('.lab-next a').first()).toHaveAttribute('href', '/lab');
     }
   } finally {

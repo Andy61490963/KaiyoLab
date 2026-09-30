@@ -210,233 +210,57 @@ export default function MotionStudio() {
       data-dragging={dragging}
       data-progress="0.0000"
     >
-      <div className="motion-workspace">
-        <section
-          className="motion-graph-panel"
-          aria-label={t('動畫曲線編輯器', 'Easing curve editor')}
-        >
-          <div className="motion-section-label">
-            <span>01 / {t('曲線', 'CURVE')}</span>
-            <code>{formatCurve(curve)}</code>
-          </div>
-          <svg
-            className="motion-graph"
-            ref={graph}
-            viewBox="0 0 440 392"
-            aria-label={t('時間與輸出進度曲線', 'Time and output progress curve')}
-          >
-            <rect className="motion-unit-square" x="52" y="100" width="340" height="170" />
-            {[-0.5, 0, 0.5, 1, 1.5].map((value) => (
-              <g key={value}>
-                <line
-                  className="motion-grid"
-                  x1="52"
-                  x2="392"
-                  y1={graphY(value)}
-                  y2={graphY(value)}
-                />
-                <text x="40" y={graphY(value) + 4} textAnchor="end">
-                  {value}
-                </text>
-              </g>
-            ))}
-            {[0, 0.25, 0.5, 0.75, 1].map((value) => (
-              <g key={value}>
-                <line
-                  className="motion-grid"
-                  x1={graphX(value)}
-                  x2={graphX(value)}
-                  y1="15"
-                  y2="355"
-                />
-                <text x={graphX(value)} y="378" textAnchor="middle">
-                  {value}
-                </text>
-              </g>
-            ))}
-            <path
-              className="motion-diagonal"
-              d={`M ${graphX(0)} ${graphY(0)} L ${graphX(1)} ${graphY(1)}`}
-            />
-            <path
-              className="motion-control-line"
-              d={`M ${graphX(0)} ${graphY(0)} L ${graphX(curve[0])} ${graphY(curve[1])} M ${graphX(1)} ${graphY(1)} L ${graphX(curve[2])} ${graphY(curve[3])}`}
-            />
-            <path className="motion-curve" d={curvePath} />
-            <line className="motion-progress-guide" ref={guide} x1="52" x2="52" y1="355" y2="270" />
-            <circle className="motion-progress-dot" ref={marker} cx="52" cy="270" r="5" />
-            {[0, 1].map((index) => (
-              <g
-                key={index}
-                data-motion-handle={index}
-                className="motion-handle"
-                role="button"
-                tabIndex={0}
-                aria-label={t(`控制點 ${index + 1}`, `Control point ${index + 1}`)}
-                aria-describedby="motion-handle-help"
-                transform={`translate(${graphX(curve[index * 2])} ${graphY(curve[index * 2 + 1])})`}
-                onKeyDown={(event) => keyboardPoint(event, index as 0 | 1)}
-                onPointerDown={(event) => {
-                  if (event.button !== 0 || !event.isPrimary || drag.current) return;
-                  event.preventDefault();
-                  event.currentTarget.focus();
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  drag.current = {
-                    id: event.pointerId,
-                    point: index as 0 | 1,
-                    original: curve,
-                    element: event.currentTarget,
-                  };
-                  setDragging(true);
-                  setPlaying(false);
-                }}
-                onPointerMove={updatePointer}
-                onPointerUp={(event) => {
-                  if (!drag.current || drag.current.id !== event.pointerId) return;
-                  updatePointer(event);
-                  drag.current = null;
-                  setDragging(false);
-                  if (event.currentTarget.hasPointerCapture(event.pointerId))
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-                }}
-                onPointerCancel={(event) => cancelDrag(event.pointerId)}
-                onLostPointerCapture={(event) => cancelDrag(event.pointerId)}
-              >
-                <circle className="motion-handle-hit" r="34" />
-                <circle className="motion-handle-ring" r="10" />
-                <text textAnchor="middle" y="4">
-                  {index + 1}
-                </text>
-              </g>
-            ))}
-          </svg>
-          <div className="motion-axis-labels">
-            <span>{t('縱軸：輸出進度', 'Y: output progress')}</span>
-            <span>{t('橫軸：時間進度', 'X: elapsed time')}</span>
-          </div>
-          <p className="lab-note" id="motion-handle-help">
-            {t(
-              '拖曳控制點，或聚焦後用方向鍵微調，Shift 加大步幅，Esc 取消拖曳，觸控時請在畫布外捲動頁面',
-              'Drag a control point or use arrow keys when focused, Shift for larger steps, Esc to cancel a drag, scroll outside the canvas on touchscreens',
-            )}
-          </p>
-          <span className="motion-sr-only" role="status">
-            {pointNotice}
-          </span>
-        </section>
-
-        <section className="motion-settings" aria-label={t('曲線設定', 'Curve settings')}>
-          <div className="motion-section-label">
-            <span>02 / {t('設定', 'PARAMETERS')}</span>
-          </div>
-          <div className="motion-presets" aria-label={t('曲線預設', 'Curve presets')}>
-            {MOTION_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className="lab-button"
-                aria-pressed={preset.curve.every((value, index) => value === curve[index])}
-                onClick={() => changeCurve(preset.curve)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-          <form onSubmit={apply} noValidate>
-            <div className="motion-coordinates">
-              {['P1 x', 'P1 y', 'P2 x', 'P2 y'].map((label, index) => (
-                <label key={label} className="lab-field">
-                  {label}
-                  <input
-                    aria-label={label}
-                    type="text"
-                    inputMode="decimal"
-                    value={fields[index]}
-                    onChange={(event) => {
-                      setFields((previous) =>
-                        previous.map((value, field) =>
-                          field === index ? event.target.value : value,
-                        ),
-                      );
-                      setInvalid(false);
-                    }}
-                    aria-invalid={invalid}
-                  />
-                </label>
-              ))}
-            </div>
-            <label className="lab-field motion-duration">
-              {t('時間長度（毫秒）', 'Duration (ms)')}
-              <input
-                aria-label={t('時間長度（毫秒）', 'Duration (ms)')}
-                type="text"
-                inputMode="numeric"
-                value={durationField}
-                onChange={(event) => {
-                  setDurationField(event.target.value);
-                  setInvalid(false);
-                }}
-                aria-invalid={invalid}
-              />
-            </label>
-            <p className="lab-note">
-              {t(
-                'x：0–1，y：−0.5–1.5，時間：100–5000 ms',
-                'x: 0–1, y: −0.5–1.5, duration: 100–5000 ms',
-              )}
-            </p>
-            {invalid && (
-              <p className="motion-error" role="alert">
-                {t(
-                  '請輸入範圍內的數字，時間需為整數，預覽保留上次有效設定',
-                  'Enter numbers within the allowed ranges and a whole-number duration, the preview keeps your last valid settings',
-                )}
-              </p>
-            )}
-            <button type="submit" className="lab-button">
-              {t('套用數值', 'Apply values')}
-            </button>
-          </form>
-          <p className="lab-note motion-model-note">
-            {t(
-              '預覽先反解 Bézier 的時間座標，再計算輸出值，與 CSS timing-function 使用同一條曲線',
-              'The preview solves the Bézier time coordinate before evaluating its output, matching the CSS timing function',
-            )}
-          </p>
-        </section>
-      </div>
-
       <section className="motion-preview" aria-label={t('動畫預覽', 'Animation preview')}>
+        <div className="motion-presets" aria-label={t('曲線預設', 'Curve presets')}>
+          {MOTION_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className="lab-button"
+              aria-pressed={preset.curve.every((value, index) => value === curve[index])}
+              onClick={() => {
+                changeCurve(preset.curve);
+                renderProgress.current(0);
+                if (!reducedMotion) setPlaying(true);
+              }}
+            >
+              {t(
+                {
+                  ease: '輕柔',
+                  linear: '等速',
+                  'ease-in-out': '慢進慢出',
+                  snappy: '俐落',
+                  anticipate: '蓄力',
+                  overshoot: '彈跳',
+                }[preset.id],
+                preset.label,
+              )}
+            </button>
+          ))}
+        </div>
         <div className="motion-section-label">
-          <span>03 / {t('預覽', 'PREVIEW')}</span>
-          <span>{t('與線性進度比較', 'Compared with linear progress')}</span>
+          <span>{t('選一種節奏，按下播放', 'Choose a feel and press play')}</span>
         </div>
         <div className="motion-preview-row motion-translate-row">
-          <span className="motion-preview-label">translateX</span>
+          <span className="motion-preview-label">{t('滑動', 'Slide')}</span>
           <div className="motion-travel-track">
             <span className="motion-object" ref={translate} />
           </div>
         </div>
         <div className="motion-preview-pair">
           <div className="motion-preview-row">
-            <span className="motion-preview-label">scale</span>
+            <span className="motion-preview-label">{t('縮放', 'Grow')}</span>
             <div className="motion-static-track">
               <span className="motion-object" ref={scale} />
             </div>
           </div>
           <div className="motion-preview-row">
-            <span className="motion-preview-label">opacity</span>
+            <span className="motion-preview-label">{t('淡入', 'Fade')}</span>
             <div className="motion-static-track">
               <span className="motion-object" ref={opacity} />
             </div>
           </div>
         </div>
-        <p className="lab-note">
-          {t(
-            '位移 0 → 軌道寬度，縮放 0.45 → 1，透明度 0 → 1，透明度依 CSS 規則限制在 0–1',
-            'Translation: 0 → track width, scale: 0.45 → 1, opacity: 0 → 1, opacity is clamped to 0–1 as in CSS',
-          )}
-        </p>
         <div className="motion-playback">
           <button
             type="button"
@@ -482,12 +306,6 @@ export default function MotionStudio() {
               }}
             />
           </label>
-          <div className="motion-readout">
-            <output ref={timeOutput}>0 ms</output>
-            <span>
-              {t('輸出', 'Output')} <output ref={valueOutput}>0.000</output>
-            </span>
-          </div>
         </div>
         {reducedMotion && (
           <p className="lab-note">
@@ -499,38 +317,237 @@ export default function MotionStudio() {
         )}
       </section>
 
-      <section className="motion-export" aria-label={t('匯出 CSS', 'Export CSS')}>
-        <div className="motion-section-label">
-          <span>04 / CSS</span>
-          <button type="button" className="lab-button" onClick={copy}>
-            {copied === 'success' ? (
-              <Check size={16} aria-hidden="true" />
-            ) : (
-              <Copy size={16} aria-hidden="true" />
-            )}
-            {t('複製 CSS', 'Copy CSS')}
-          </button>
+      <details className="motion-advanced" data-lab-advanced>
+        <summary>{t('進階設定與匯出', 'Advanced settings & export')}</summary>
+        <div className="motion-workspace">
+          <section
+            className="motion-graph-panel"
+            aria-label={t('動畫曲線編輯器', 'Easing curve editor')}
+          >
+            <div className="motion-section-label">
+              <span>01 / {t('曲線', 'CURVE')}</span>
+              <code>{formatCurve(curve)}</code>
+            </div>
+            <svg
+              className="motion-graph"
+              ref={graph}
+              viewBox="0 0 440 392"
+              aria-label={t('時間與輸出進度曲線', 'Time and output progress curve')}
+            >
+              <rect className="motion-unit-square" x="52" y="100" width="340" height="170" />
+              {[-0.5, 0, 0.5, 1, 1.5].map((value) => (
+                <g key={value}>
+                  <line
+                    className="motion-grid"
+                    x1="52"
+                    x2="392"
+                    y1={graphY(value)}
+                    y2={graphY(value)}
+                  />
+                  <text x="40" y={graphY(value) + 4} textAnchor="end">
+                    {value}
+                  </text>
+                </g>
+              ))}
+              {[0, 0.25, 0.5, 0.75, 1].map((value) => (
+                <g key={value}>
+                  <line
+                    className="motion-grid"
+                    x1={graphX(value)}
+                    x2={graphX(value)}
+                    y1="15"
+                    y2="355"
+                  />
+                  <text x={graphX(value)} y="378" textAnchor="middle">
+                    {value}
+                  </text>
+                </g>
+              ))}
+              <path
+                className="motion-diagonal"
+                d={`M ${graphX(0)} ${graphY(0)} L ${graphX(1)} ${graphY(1)}`}
+              />
+              <path
+                className="motion-control-line"
+                d={`M ${graphX(0)} ${graphY(0)} L ${graphX(curve[0])} ${graphY(curve[1])} M ${graphX(1)} ${graphY(1)} L ${graphX(curve[2])} ${graphY(curve[3])}`}
+              />
+              <path className="motion-curve" d={curvePath} />
+              <line
+                className="motion-progress-guide"
+                ref={guide}
+                x1="52"
+                x2="52"
+                y1="355"
+                y2="270"
+              />
+              <circle className="motion-progress-dot" ref={marker} cx="52" cy="270" r="5" />
+              {[0, 1].map((index) => (
+                <g
+                  key={index}
+                  data-motion-handle={index}
+                  className="motion-handle"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t(`控制點 ${index + 1}`, `Control point ${index + 1}`)}
+                  aria-describedby="motion-handle-help"
+                  transform={`translate(${graphX(curve[index * 2])} ${graphY(curve[index * 2 + 1])})`}
+                  onKeyDown={(event) => keyboardPoint(event, index as 0 | 1)}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0 || !event.isPrimary || drag.current) return;
+                    event.preventDefault();
+                    event.currentTarget.focus();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    drag.current = {
+                      id: event.pointerId,
+                      point: index as 0 | 1,
+                      original: curve,
+                      element: event.currentTarget,
+                    };
+                    setDragging(true);
+                    setPlaying(false);
+                  }}
+                  onPointerMove={updatePointer}
+                  onPointerUp={(event) => {
+                    if (!drag.current || drag.current.id !== event.pointerId) return;
+                    updatePointer(event);
+                    drag.current = null;
+                    setDragging(false);
+                    if (event.currentTarget.hasPointerCapture(event.pointerId))
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                  }}
+                  onPointerCancel={(event) => cancelDrag(event.pointerId)}
+                  onLostPointerCapture={(event) => cancelDrag(event.pointerId)}
+                >
+                  <circle className="motion-handle-hit" r="34" />
+                  <circle className="motion-handle-ring" r="10" />
+                  <text textAnchor="middle" y="4">
+                    {index + 1}
+                  </text>
+                </g>
+              ))}
+            </svg>
+            <div className="motion-axis-labels">
+              <span>{t('縱軸：輸出進度', 'Y: output progress')}</span>
+              <span>{t('橫軸：時間進度', 'X: elapsed time')}</span>
+            </div>
+            <p className="lab-note" id="motion-handle-help">
+              {t(
+                '拖曳控制點，或聚焦後用方向鍵微調，Shift 加大步幅，Esc 取消拖曳，觸控時請在畫布外捲動頁面',
+                'Drag a control point or use arrow keys when focused, Shift for larger steps, Esc to cancel a drag, scroll outside the canvas on touchscreens',
+              )}
+            </p>
+            <span className="motion-sr-only" role="status">
+              {pointNotice}
+            </span>
+          </section>
+
+          <section className="motion-settings" aria-label={t('曲線設定', 'Curve settings')}>
+            <div className="motion-section-label">
+              <span>02 / {t('設定', 'PARAMETERS')}</span>
+            </div>
+            <div className="motion-readout">
+              <output ref={timeOutput}>0 ms</output>
+              <span>
+                {t('輸出', 'Output')} <output ref={valueOutput}>0.000</output>
+              </span>
+            </div>
+            <form onSubmit={apply} noValidate>
+              <div className="motion-coordinates">
+                {['P1 x', 'P1 y', 'P2 x', 'P2 y'].map((label, index) => (
+                  <label key={label} className="lab-field">
+                    {label}
+                    <input
+                      aria-label={label}
+                      type="text"
+                      inputMode="decimal"
+                      value={fields[index]}
+                      onChange={(event) => {
+                        setFields((previous) =>
+                          previous.map((value, field) =>
+                            field === index ? event.target.value : value,
+                          ),
+                        );
+                        setInvalid(false);
+                      }}
+                      aria-invalid={invalid}
+                    />
+                  </label>
+                ))}
+              </div>
+              <label className="lab-field motion-duration">
+                {t('時間長度（毫秒）', 'Duration (ms)')}
+                <input
+                  aria-label={t('時間長度（毫秒）', 'Duration (ms)')}
+                  type="text"
+                  inputMode="numeric"
+                  value={durationField}
+                  onChange={(event) => {
+                    setDurationField(event.target.value);
+                    setInvalid(false);
+                  }}
+                  aria-invalid={invalid}
+                />
+              </label>
+              <p className="lab-note">
+                {t(
+                  'x：0–1，y：−0.5–1.5，時間：100–5000 ms',
+                  'x: 0–1, y: −0.5–1.5, duration: 100–5000 ms',
+                )}
+              </p>
+              {invalid && (
+                <p className="motion-error" role="alert">
+                  {t(
+                    '請輸入範圍內的數字，時間需為整數，預覽保留上次有效設定',
+                    'Enter numbers within the allowed ranges and a whole-number duration, the preview keeps your last valid settings',
+                  )}
+                </p>
+              )}
+              <button type="submit" className="lab-button">
+                {t('套用數值', 'Apply values')}
+              </button>
+            </form>
+            <p className="lab-note motion-model-note">
+              {t(
+                '預覽先反解 Bézier 的時間座標，再計算輸出值，與 CSS timing-function 使用同一條曲線',
+                'The preview solves the Bézier time coordinate before evaluating its output, matching the CSS timing function',
+              )}
+            </p>
+          </section>
         </div>
-        <pre tabIndex={0} aria-label={t('可複製的 CSS', 'Generated CSS')}>
-          <code>{code}</code>
-        </pre>
-        <p className="lab-note">
-          {t(
-            '套用 .motion-demo 至元素，調整 --travel 控制位移距離，程式碼包含減少動態設定',
-            'Apply .motion-demo to an element and adjust --travel to set the distance, the snippet includes reduced-motion handling',
-          )}
-        </p>
-        <p className={copied === 'failed' ? 'motion-error' : 'lab-note'} role="status">
-          {copied === 'success'
-            ? t('已複製 CSS', 'CSS copied')
-            : copied === 'failed'
-              ? t(
-                  '無法存取剪貼簿，請選取上方程式碼手動複製',
-                  'Clipboard unavailable, select the code above to copy it manually',
-                )
-              : '\u00a0'}
-        </p>
-      </section>
+
+        <section className="motion-export" aria-label={t('匯出 CSS', 'Export CSS')}>
+          <div className="motion-section-label">
+            <span>04 / CSS</span>
+            <button type="button" className="lab-button" onClick={copy}>
+              {copied === 'success' ? (
+                <Check size={16} aria-hidden="true" />
+              ) : (
+                <Copy size={16} aria-hidden="true" />
+              )}
+              {t('複製 CSS', 'Copy CSS')}
+            </button>
+          </div>
+          <pre tabIndex={0} aria-label={t('可複製的 CSS', 'Generated CSS')}>
+            <code>{code}</code>
+          </pre>
+          <p className="lab-note">
+            {t(
+              '套用 .motion-demo 至元素，調整 --travel 控制位移距離，程式碼包含減少動態設定',
+              'Apply .motion-demo to an element and adjust --travel to set the distance, the snippet includes reduced-motion handling',
+            )}
+          </p>
+          <p className={copied === 'failed' ? 'motion-error' : 'lab-note'} role="status">
+            {copied === 'success'
+              ? t('已複製 CSS', 'CSS copied')
+              : copied === 'failed'
+                ? t(
+                    '無法存取剪貼簿，請選取上方程式碼手動複製',
+                    'Clipboard unavailable, select the code above to copy it manually',
+                  )
+                : '\u00a0'}
+          </p>
+        </section>
+      </details>
     </div>
   );
 }

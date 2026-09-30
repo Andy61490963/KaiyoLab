@@ -11,7 +11,8 @@ import { getSettings, listPublished } from '../../lib/content';
 import { publicListingHref, projectList, readPublicListing } from '../../lib/listing';
 import { LAB_CATEGORY } from '../../lib/lab';
 import Text from '../../components/lab/LabText.astro';
-import { experiments } from '../../lib/lab/experiments';
+import { labInvitations, playfulExperiments } from '../../lib/lab/experiments';
+import LabPreview from '../../components/lab/LabPreview.astro';
 import '../../styles/lab.css';
 import '../../styles/lab-index.css';
 
@@ -28,7 +29,7 @@ const showPublished = result.total > 0 || !!q;
   settings={settings}
   title="LAB"
   titleKey="LAB"
-  description="Frontend tools for motion, responsive layouts, SVG shapes, 3D carousels and particle backgrounds."
+  description="Play with particles, morphing shapes, 3D galleries, motion and layouts. No coding needed."
 >
   <div class="page-shell lab-page lab-index">
     <header class="collection-header">
@@ -38,38 +39,39 @@ const showPublished = result.total > 0 || !!q;
       </h1>
       <p>
         <Text
-          zh="前端工具，調整、預覽，再帶回自己的專案"
-          en="Frontend tools to tune, preview and use in your own projects"
+          zh="用滑鼠或手指試試看，不需要寫程式"
+          en="Try these with your pointer or your fingers — no coding needed"
         />
       </p>
     </header>
     <section
       class="lab-experiment-index"
-      aria-label="Frontend tools"
-      data-ui-label-en="Frontend tools"
-      data-ui-label-zh="前端工具"
+      aria-label="Interactive experiments"
+      data-ui-label-en="Interactive experiments"
+      data-ui-label-zh="互動實驗"
     >
-      {experiments.map((experiment) => (
-        <a class="lab-index-row" href={`/lab/${experiment.slug}`}>
-          <span class="lab-row-number" aria-hidden="true">
-            {experiment.number}
-          </span>
-          <div>
+      {playfulExperiments.map((experiment, index) => (
+        <a
+          class:list={['lab-index-row', { 'lab-index-row-secondary': index > 2 }]}
+          data-lab-slug={experiment.slug}
+          href={`/lab/${experiment.slug}`}
+        >
+          <LabPreview slug={experiment.slug} />
+          <div class="lab-row-copy">
             <h2>
-              <Text {...experiment.title} />
+              <Text {...labInvitations[experiment.slug].title} />
             </h2>
             <p class="lab-row-description">
-              <Text {...experiment.description} />
+              <Text {...labInvitations[experiment.slug].instruction} />
             </p>
-            <ul class="lab-tags">
-              {experiment.tags.map((tag) => (
-                <li>{tag}</li>
-              ))}
-            </ul>
+            <p class="lab-row-outcome">
+              <Text {...labInvitations[experiment.slug].outcome} />
+            </p>
+            <span class="lab-row-action">
+              <Text zh="進去玩" en="Try it" />
+              <span aria-hidden="true">→</span>
+            </span>
           </div>
-          <span class="lab-row-arrow" aria-hidden="true">
-            ↗
-          </span>
         </a>
       ))}
     </section>

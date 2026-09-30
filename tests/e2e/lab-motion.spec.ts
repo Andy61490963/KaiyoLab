@@ -6,6 +6,12 @@ async function openExperiment(page: Page, slug: string) {
   await page.getByRole('button', { name: 'English', exact: true }).click();
 }
 
+async function openAdvanced(page: Page) {
+  const details = page.locator('[data-lab-advanced]');
+  await details.locator('summary').click();
+  await expect(details).toHaveAttribute('open', '');
+}
+
 test('輪播連續循環、鍵盤與減少動態模式保持可操作', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openExperiment(page, 'kinetic-carousel');
@@ -98,6 +104,7 @@ test('流場逐步、種子重建與鍵盤施力可重現且不依賴動畫', as
   await page.getByRole('button', { name: 'Step 0.1 s', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-steps', '12');
   expect(await image()).not.toBe(original);
+  await openAdvanced(page);
   await page.getByRole('button', { name: 'Reset field', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-steps', '0');
   expect(await image()).toBe(original);
@@ -124,6 +131,7 @@ test('流場逐步、種子重建與鍵盤施力可重現且不依賴動畫', as
 test('減少動態時鍵盤作用力可帶入單步，Esc 或焦點離開實驗區才解除', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openExperiment(page, 'flow-field');
+  await openAdvanced(page);
   const canvas = page.locator('[data-flow-canvas]');
   const probe = page.locator('.flow-probe > span');
   const step = page.getByRole('button', { name: 'Step 0.1 s', exact: true });
@@ -157,7 +165,7 @@ test('減少動態時鍵盤作用力可帶入單步，Esc 或焦點離開實驗�
   await canvas.press('Home');
   await canvas.press('Tab');
   await expect(probe).toBeVisible();
-  await page.getByRole('link', { name: 'Back to the index', exact: true }).focus();
+  await page.getByRole('link', { name: 'Back to LAB', exact: true }).focus();
   await expect(probe).toBeHidden();
   await step.focus();
   await page.keyboard.press('Enter');
@@ -259,6 +267,7 @@ test('流場暫停保留軌跡、繼續運行與離開可視區停止模擬', as
     .poll(async () => Number(await canvas.getAttribute('data-steps')))
     .toBeGreaterThan(steps + 12);
   await page.setViewportSize({ width: 1440, height: 600 });
+  await openAdvanced(page);
   await page.locator('footer').last().scrollIntoViewIfNeeded();
   await expect(field).toHaveAttribute('data-running', 'false');
   const stopped = await canvas.getAttribute('data-steps');
@@ -292,6 +301,7 @@ test('兩種作品在窄螢幕、中英文和明暗主題保持尺寸與操作',
       ).toBe(true);
       if ([390, 1440].includes(width)) {
         await page.getByRole('button', { name: '繁體中文', exact: true }).click();
+        if (slug === 'flow-field') await openAdvanced(page);
         await expect(
           page.getByRole('button', {
             name: slug === 'flow-field' ? '重建流場' : '回到第一張',

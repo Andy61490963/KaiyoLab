@@ -1,6 +1,36 @@
 .flow-lab {
   min-width: 0;
 }
+.flow-appearances,
+.flow-palette-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-block: 16px;
+}
+.flow-palette-actions {
+  align-items: end;
+}
+.flow-palette-actions label {
+  min-width: 0;
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+.flow-advanced {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.flow-advanced > summary {
+  min-height: 44px;
+  padding-block: 16px;
+  cursor: pointer;
+  color: var(--text);
+}
+.flow-advanced > summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
 .flow-topline {
   display: flex;
   align-items: center;
