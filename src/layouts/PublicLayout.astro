@@ -22,6 +22,7 @@ interface Props {
   settings: SiteSettings;
   title?: string;
   titleKey?: UiKey;
+  titleTranslations?: { en: string; zh: string };
   description?: string;
   image?: string;
   article?: boolean;
@@ -33,6 +34,7 @@ const {
   settings,
   title,
   titleKey,
+  titleTranslations,
   description = settings.description,
   image,
   article = false,
@@ -43,7 +45,11 @@ const author = settings.authorName || settings.siteName;
 const pageTitle = title
   ? `${title} · ${settings.siteName}`
   : `${settings.siteName} — ${settings.tagline}`;
-const titleZh = titleKey ? `${uiText(titleKey, 'zh-TW')} · ${settings.siteName}` : undefined;
+const titleZh = titleTranslations
+  ? `${titleTranslations.zh} · ${settings.siteName}`
+  : titleKey
+    ? `${uiText(titleKey, 'zh-TW')} · ${settings.siteName}`
+    : undefined;
 const siteUrl = settings.siteUrl || Astro.url.origin;
 const canonical = new URL(Astro.url.pathname, siteUrl).href;
 const socialImage =
@@ -76,8 +82,8 @@ const active = (href: string) =>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#f8f4e6" />
     <title
-      lang={titleKey ? undefined : contentLanguage}
-      data-ui-title-en={titleKey ? pageTitle : undefined}
+      lang={titleKey || titleTranslations ? undefined : contentLanguage}
+      data-ui-title-en={titleKey || titleTranslations ? pageTitle : undefined}
       data-ui-title-zh={titleZh}
     >{pageTitle}</title>
     <link rel="canonical" href={canonical} />
