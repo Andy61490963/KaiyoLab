@@ -825,6 +825,11 @@
   .public-frame {
     margin-left: 0;
   }
+  /* 內容與側欄之間只留 gutter，避免限寬區再次置中而累積空白 */
+  .public-site .page-shell,
+  .public-footer {
+    margin-inline: 0 auto;
+  }
 }
 @media (min-width: 1320px) {
   .public-site .reading-layout {
