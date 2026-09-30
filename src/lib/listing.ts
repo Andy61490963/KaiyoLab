@@ -74,6 +74,13 @@ export function readListing(params: URLSearchParams, config: ListConfig) {
     sort: config.sorts.includes(sort) ? sort : config.defaultSort,
   };
 }
+/** 公開頁固定筆數，舊分享網址中的 pageSize 不影響讀者看到的列表 */
+export function readPublicListing(params: URLSearchParams, config: ListConfig) {
+  return { ...readListing(params, config), pageSize: config.defaultSize };
+}
+export function publicListingHref(url: URL, changes: Record<string, string | number | null>) {
+  return listingHref(url, { ...changes, pageSize: null });
+}
 export function paginate(
   total: number,
   requestedPage: unknown = 1,

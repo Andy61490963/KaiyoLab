@@ -19,6 +19,22 @@
 .admin-entry-sort-help p {
   flex: 1 1 300px;
 }
+.admin-entry-sort-help details {
+  width: 100%;
+}
+.admin-entry-sort-help summary {
+  width: fit-content;
+  padding-block: 8px;
+  cursor: pointer;
+}
+.admin-entry-sort-help summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.admin-entry-sort-help details p {
+  max-width: 84ch;
+  margin-top: 6px;
+}
 .admin-entry-sort-status {
   min-height: 26px;
   padding: 0 24px 6px;

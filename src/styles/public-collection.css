@@ -1,0 +1,201 @@
+/* 公開列表使用同一組控制項，保持既有字級與網站外框 */
+.public-site .collection-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.public-site .collection-search {
+  display: flex;
+  flex: 1 1 240px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding-inline: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.public-site .collection-search svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.public-site .collection-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+.public-site .collection-sort {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  min-width: 0;
+}
+.public-site .collection-controls select,
+.public-site .collection-controls button {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 15px;
+  max-width: 100%;
+}
+.public-site .collection-controls button {
+  cursor: pointer;
+}
+.public-site .collection-controls button:hover {
+  background: var(--accent-soft);
+}
+.public-site [data-public-collection] :is(input, select, button, summary, a):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.public-site .collection-search-help {
+  margin-top: 8px;
+  color: var(--muted);
+}
+.public-site .collection-search-help summary,
+.public-site .collection-tag-filter summary {
+  width: fit-content;
+  min-height: 44px;
+  padding-block: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.public-site .collection-search-help p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.public-site .collection-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 8px 20px;
+  margin-top: 16px;
+}
+.public-site .collection-filters .category-nav {
+  flex: 1 1 auto;
+}
+.public-site .collection-tag-filter {
+  margin: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.public-site .collection-tag-filter[open] {
+  flex-basis: 100%;
+}
+.public-site .collection-tag-filter > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-block: 4px 12px;
+}
+.public-site .collection-tag-filter a {
+  min-height: 44px;
+  padding-inline: 8px;
+}
+.public-site .collection-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.public-site .collection-filter-chips a {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.public-site .collection-filter-chips a svg {
+  flex-shrink: 0;
+}
+.public-site .collection-filter-chips li {
+  min-width: 0;
+  max-width: 100%;
+}
+.public-site .collection-results:empty {
+  display: none;
+}
+.public-site .collection-results:has(.collection-filter-chips:only-child) {
+  padding-bottom: 8px;
+}
+.public-site .collection-empty {
+  color: var(--muted);
+  margin-block: 24px;
+}
+.public-site .collection-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: 24px;
+}
+.public-site .collection-page-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.public-site .collection-pagination .pagination {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.public-site .collection-feedback {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.public-site .collection-feedback[hidden] {
+  display: none;
+}
+.public-site [data-public-collection][aria-busy='true'] [data-collection-results] {
+  opacity: 0.6;
+}
+.public-site .collection-feedback button {
+  min-height: 44px;
+  padding-inline: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  cursor: pointer;
+}
+@media (max-width: 620px) {
+  .public-site .collection-search {
+    flex-basis: 100%;
+  }
+  .public-site .collection-sort {
+    flex: 1 1 auto;
+  }
+  .public-site .collection-sort select {
+    flex: 1;
+    min-width: 0;
+  }
+  .public-site .collection-filters {
+    gap: 8px;
+  }
+  .public-site .collection-tag-filter[open] {
+    flex-basis: 100%;
+  }
+}

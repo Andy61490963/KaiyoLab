@@ -17,7 +17,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
     state = await context.storageState();
     for (const [kind, count] of [
       ['article', 11],
-      ['project', 9],
+      ['project', 13],
     ] as const) {
       for (let i = 1; i <= count; i++) {
         const created = await context.request.post('/api/admin/entries', {
@@ -115,10 +115,10 @@ test('public lists sort globally, preserve filters across pages and work without
     expect(new URL(page.url()).searchParams.has('page')).toBe(false);
     await expect(page.locator('.article-list h2').first()).toContainText(`${prefix} 11`);
     await page.goto(`/projects?q=${encodeURIComponent(prefix)}&sort=title-asc&pageSize=8`);
-    await expect(page.locator('.project-grid h2')).toHaveCount(8);
+    await expect(page.locator('.project-grid h2')).toHaveCount(12);
     await page.getByRole('link', { name: 'Next page', exact: true }).click();
     await expect(page.locator('.project-grid h2')).toHaveCount(1);
-    await expect(page.locator('.project-grid h2').first()).toContainText(`${prefix} 09`);
+    await expect(page.locator('.project-grid h2').first()).toContainText(`${prefix} 13`);
   } finally {
     await context.close();
   }

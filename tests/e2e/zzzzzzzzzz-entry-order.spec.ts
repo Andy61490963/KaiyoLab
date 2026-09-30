@@ -158,19 +158,20 @@ test('文章與作品可真實拖拉、重載保留順序，公開列表與草�
       const publicPage = await publicContext.newPage();
       const path = kind === 'article' ? 'articles' : 'projects';
       const selector = kind === 'article' ? '.article-list h2' : '.project-grid h2';
-      await publicPage.goto(`/${path}?pageSize=8`);
+      const pageSize = kind === 'article' ? 8 : 12;
+      await publicPage.goto(`/${path}`);
       await expect(publicPage.locator('#collection-sort')).toHaveValue('manual');
       await expect(publicPage.locator(selector)).toHaveText(
         order.items
           .filter((item) => item.published)
-          .slice(0, 8)
+          .slice(0, pageSize)
           .map((item) => item.title),
       );
-      await publicPage.goto(`/${path}?pageSize=8&page=2`);
+      await publicPage.goto(`/${path}?page=2`);
       await expect(publicPage.locator(selector)).toHaveText(
         order.items
           .filter((item) => item.published)
-          .slice(8, 16)
+          .slice(pageSize, pageSize * 2)
           .map((item) => item.title),
       );
       for (const item of order.items.filter((item) => !item.published))

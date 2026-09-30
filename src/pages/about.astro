@@ -2,13 +2,13 @@
 import Ui from '../components/public/UiText.astro';
 import PublicLayout from '../layouts/PublicLayout.astro';
 import { getSettings } from '../lib/content';
-import { renderMarkdown } from '../lib/markdown';
+import { renderAboutMarkdown } from '../lib/about';
 import { defaultAbout } from '../lib/site-copy';
 import { contentLanguage } from '../lib/reading';
 
 const settings = await getSettings();
-const rendered = await renderMarkdown(settings.about || defaultAbout(settings.authorName));
-const hasTitle = rendered.toc.some((heading) => heading.depth === 1);
+const rendered = await renderAboutMarkdown(settings.about || defaultAbout(settings.authorName));
+const { hasTitle } = rendered;
 const language = contentLanguage(settings.about || defaultAbout(settings.authorName));
 ---
 

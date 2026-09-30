@@ -107,7 +107,6 @@ export default function ContentTransfer() {
     <>
       <header className="admin-page-title">
         <div>
-          <div className="admin-eyebrow">{t('Workspace')}</div>
           <h1>{t('Content transfer')}</h1>
           <p>
             {t(

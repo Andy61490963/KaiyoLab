@@ -269,7 +269,7 @@ test('刪除最後一頁唯一內容回到有效頁碼並保留搜尋、分類�
   await expect(row(page, last)).toBeVisible();
   await confirmDelete(page, deleteButton(page, last), last, true);
   await expect(page.locator('.admin-table tbody tr')).toHaveCount(10);
-  await expect(page.locator('.admin-list-pagination')).toContainText('Showing 1–10 of 10');
+  await expect(page.locator('.admin-list-pagination')).toContainText('10 items');
   await expect(page.getByRole('button', { name: 'Refresh list', exact: true })).toBeFocused();
   await expect(page.getByLabel('Search articles', { exact: true })).toHaveValue(group);
   await expect(page.getByLabel('Filter by category', { exact: true })).toHaveValue(category);

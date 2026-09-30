@@ -2,30 +2,31 @@
 import Ui from '../../components/public/UiText.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import EntryCard from '../../components/public/EntryCard.astro';
-import EmptyState from '../../components/public/EmptyState.astro';
 import Pagination from '../../components/public/Pagination.astro';
 import CollectionControls from '../../components/public/CollectionControls.astro';
 import Icon from '../../components/public/Icon.astro';
-import { uiLabel, uiPlaceholder } from '../../lib/ui-language';
+import { uiLabel, type UiKey } from '../../lib/ui-language';
 import { getSettings, listPublished, listTaxonomies } from '../../lib/content';
-import { articleList, listingHref, readListing } from '../../lib/listing';
+import { articleList, publicListingHref, readPublicListing } from '../../lib/listing';
+import '../../styles/public-collection.css';
 const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 200);
 const category = Astro.url.searchParams.get('category') || '';
 const tag = Astro.url.searchParams.get('tag') || '';
-const options = readListing(Astro.url.searchParams, articleList);
+const options = readPublicListing(Astro.url.searchParams, articleList);
 const [settings, result, taxonomy] = await Promise.all([
   getSettings(),
   listPublished({ kind: 'article', q, category, tag, ...options }),
   listTaxonomies(),
 ]);
-const filterLink = (key: 'category' | 'tag', value: string) =>
-  listingHref(Astro.url, {
-    [key]: value,
-    page: null,
-    sort: options.sort,
-    pageSize: options.pageSize,
-  });
-const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, page: null });
+const filtered = Boolean(q || category || tag);
+const filterLink = (key: 'q' | 'category' | 'tag', value: string) =>
+  publicListingHref(Astro.url, { [key]: value, page: null });
+const clearLink = publicListingHref(Astro.url, { q: null, category: null, tag: null, page: null });
+const chips: Array<{ key: 'q' | 'category' | 'tag'; value: string; label: UiKey }> = [
+  { key: 'q', value: q, label: 'Remove search: {value}' },
+  { key: 'category', value: category, label: 'Remove category: {value}' },
+  { key: 'tag', value: tag, label: 'Remove tag: {value}' },
+];
 ---
 
 <PublicLayout
@@ -39,134 +40,102 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
       <h1>
         <Ui text="Articles" />
       </h1>
-      <p>
-        <Ui text="Development notes, practical guides, and things worth documenting." />
-      </p>
     </header>
-    <div class="collection-layout">
-      <aside class="collection-sidebar">
-        <h2>
-          <Ui text="Categories" />
-        </h2>
-        <nav class="category-nav" {...uiLabel('Article categories')}>
-          <a
-            href={filterLink('category', '')}
-            class:list={{ active: !category }}
-            aria-current={!category ? 'true' : undefined}
-          >
-            <Ui text="All categories" />
-          </a>
-          {taxonomy.categories.map((item) => (
-            <a
-              href={filterLink('category', item.name)}
-              class:list={{ active: category === item.name }}
-              aria-current={category === item.name ? 'true' : undefined}
-            >
-              {item.name}
-            </a>
-          ))}
-        </nav>
-        {taxonomy.tags.length > 0 && (
-          <div class="tag-cloud tag-cloud-desktop">
-            <h2>
-              <Ui text="Tags" />
-            </h2>
-            <div>
-              {tag && (
-                <a href={filterLink('tag', '')}>
-                  <Ui text="Clear tag" />
-                </a>
-              )}
-              {taxonomy.tags.map((item) => (
+    <section data-public-collection data-collection-id="articles">
+      {(result.total > 0 || filtered) && (
+        <>
+          <CollectionControls config={articleList} sort={options.sort} q={q} help />
+          <div class="collection-filters">
+            {taxonomy.categories.length > 0 && (
+              <nav class="category-nav" {...uiLabel('Article categories')}>
                 <a
-                  href={filterLink('tag', item.name)}
-                  class:list={{ active: tag === item.name }}
-                  aria-current={tag === item.name ? 'true' : undefined}
+                  data-collection-link
+                  href={filterLink('category', '')}
+                  class:list={{ active: !category }}
+                  aria-current={!category ? 'true' : undefined}
                 >
-                  #{item.name}
+                  <Ui text="All categories" />
                 </a>
-              ))}
-            </div>
-          </div>
-        )}
-        {taxonomy.tags.length > 0 && (
-          <div class="mobile-tag-filter">
-            {tag && (
-              <p class="selected-tag-filter">
-                <span data-original-content translate="no">
-                  #{tag}
-                </span>
-                <a href={filterLink('tag', '')}>
-                  <Ui text="Clear tag" />
-                </a>
-              </p>
-            )}
-            <details class="tag-cloud tag-cloud-mobile">
-              <summary>
-                <Ui text="Tags" /> <span class="tag-filter-count">{taxonomy.tags.length}</span>
-              </summary>
-              <div>
-                {taxonomy.tags.map((item) => (
+                {taxonomy.categories.map((item) => (
                   <a
-                    href={filterLink('tag', item.name)}
-                    class:list={{ active: tag === item.name }}
-                    aria-current={tag === item.name ? 'true' : undefined}
+                    data-collection-link
+                    href={filterLink('category', item.name)}
+                    class:list={{ active: category === item.name }}
+                    aria-current={category === item.name ? 'true' : undefined}
+                    data-original-content
+                    translate="no"
                   >
-                    #{item.name}
+                    {item.name}
                   </a>
                 ))}
-              </div>
-            </details>
+              </nav>
+            )}
+            {taxonomy.tags.length > 0 && (
+              <details class="tag-cloud collection-tag-filter" id="article-tag-filter">
+                <summary id="article-tag-filter-toggle">
+                  <Ui text="Tags" /> <span class="tag-filter-count">{taxonomy.tags.length}</span>
+                </summary>
+                <div>
+                  {taxonomy.tags.map((item) => (
+                    <a
+                      data-collection-link
+                      href={filterLink('tag', item.name)}
+                      class:list={{ active: tag === item.name }}
+                      aria-current={tag === item.name ? 'true' : undefined}
+                      data-original-content
+                      translate="no"
+                    >
+                      #{item.name}
+                    </a>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        </>
+      )}
+      <div data-collection-results data-total={result.total} data-page={result.page}>
+        {((result.total > 0 && result.pages === 1) || filtered) && (
+          <div class="collection-results">
+            {result.total > 0 && result.pages === 1 && (
+              <span>
+                <Ui
+                  text={result.total === 1 ? '{count} article' : '{count} articles'}
+                  values={{ count: result.total }}
+                />
+              </span>
+            )}
+            {filtered && (
+              <>
+                <ul class="collection-filter-chips">
+                  {chips
+                    .filter((chip) => chip.value)
+                    .map((chip) => (
+                      <li>
+                        <a
+                          data-collection-link
+                          data-filter-chip={chip.key}
+                          href={filterLink(chip.key, '')}
+                          {...uiLabel(chip.label, { value: chip.value })}
+                        >
+                          <span data-original-content translate="no">
+                            {chip.key === 'tag' ? '#' : ''}
+                            {chip.value}
+                          </span>
+                          <Icon name="close" size={14} />
+                        </a>
+                      </li>
+                    ))}
+                </ul>
+                {chips.filter((chip) => chip.value).length > 1 && (
+                  <a data-collection-link href={clearLink}>
+                    <Ui text="Clear filters" />
+                  </a>
+                )}
+              </>
+            )}
           </div>
         )}
-      </aside>
-      <div class="collection-content">
-        <form class="search-form" method="get" action="/articles" role="search">
-          <label class="sr-only" for="article-search">
-            <Ui text="Search articles" />
-          </label>
-          <Icon name="search" size={19} />
-          <input
-            id="article-search"
-            type="search"
-            name="q"
-            value={q}
-            maxlength="200"
-            {...uiPlaceholder('Search titles or content…')}
-            autocomplete="off"
-            aria-describedby="article-search-help"
-          />
-          {category && <input type="hidden" name="category" value={category} />}
-          {tag && <input type="hidden" name="tag" value={tag} />}
-          <input type="hidden" name="sort" value={options.sort} />
-          <input type="hidden" name="pageSize" value={options.pageSize} />
-          <button type="submit">
-            <Ui text="Search" /> <Icon name="arrow" size={16} />
-          </button>
-        </form>
-        <p id="article-search-help" class="search-help">
-          <span class="ui-text" translate="no">
-            <span lang="en">Separate keywords with spaces, or use quotes for an exact phrase</span>
-            <span lang="zh-TW">用空白分隔關鍵字，雙引號內的文字會作為完整片語搜尋</span>
-          </span>
-        </p>
-        <CollectionControls config={articleList} sort={options.sort} pageSize={result.pageSize} />
-        <div class="collection-results">
-          <span>
-            <Ui
-              text={result.total === 1 ? '{count} article' : '{count} articles'}
-              values={{ count: result.total }}
-            />
-            {q && <Ui text=" matching “{query}”" values={{ query: q }} />}
-            {category && <Ui text=" in {category}" values={{ category }} />}
-            {tag && <Ui text=" tagged #{tag}" values={{ tag }} />}
-          </span>
-          {(q || tag || category) && (
-            <a href={clearLink}>
-              <Ui text="Clear filters" /> <Icon name="close" size={14} />
-            </a>
-          )}
-        </div>
         <div class="article-list">
           {result.items.length ? (
             result.items.map((entry, index) => (
@@ -177,14 +146,9 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
               />
             ))
           ) : (
-            <EmptyState
-              title={q || tag || category ? 'No matching articles' : 'No published articles yet'}
-              description={
-                q || tag || category
-                  ? 'Try another keyword or clear the category and tag filters.'
-                  : 'Published articles will appear here.'
-              }
-            />
+            <p class="collection-empty">
+              <Ui text={filtered ? 'No matching articles' : 'No published articles yet'} />
+            </p>
           )}
         </div>
         <Pagination
@@ -194,6 +158,6 @@ const clearLink = listingHref(Astro.url, { q: null, category: null, tag: null, p
           pageSize={result.pageSize}
         />
       </div>
-    </div>
+    </section>
   </div>
 </PublicLayout>

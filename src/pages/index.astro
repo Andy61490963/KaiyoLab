@@ -93,27 +93,23 @@ const hasTitle = homeIntro.toc.some((heading) => heading.depth === 1);
         </div>
       </section>
     )}
-    <section class="home-section" aria-labelledby="featured-projects-title">
-      <div class="home-section-heading">
-        <h2 id="featured-projects-title">
-          <Ui text={selectedProjects.total ? 'Selected Projects' : 'Projects'} />
-        </h2>
-        <a href="/projects">
-          <Ui text="All projects" /> <span aria-hidden="true">→</span>
-        </a>
-      </div>
-      {projects.items.length ? (
+    {projects.items.length > 0 && (
+      <section class="home-section" aria-labelledby="featured-projects-title">
+        <div class="home-section-heading">
+          <h2 id="featured-projects-title">
+            <Ui text={selectedProjects.total ? 'Selected Projects' : 'Projects'} />
+          </h2>
+          <a href="/projects">
+            <Ui text="All projects" /> <span aria-hidden="true">→</span>
+          </a>
+        </div>
         <div class="home-project-list">
           {projects.items.map((entry) => (
             <ProjectCard entry={entry} headingLevel="h3" />
           ))}
         </div>
-      ) : (
-        <p class="home-empty">
-          <Ui text="No published projects yet. Projects will appear here when they are ready to share." />
-        </p>
-      )}
-    </section>
+      </section>
+    )}
     {taxonomy.categories.length > 0 && (
       <section class="home-section home-topics" aria-labelledby="topics-title">
         <h2 id="topics-title">
