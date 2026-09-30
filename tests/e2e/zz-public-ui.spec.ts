@@ -13,10 +13,16 @@ test('public pages have English navigation and fit narrow screens', async ({ pag
         expect(response?.status()).toBe(200);
         await expect(page.locator('html')).toHaveAttribute('lang', 'en');
         await expect(page.locator('main h1').first()).toBeVisible();
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${path}: ${width}px / ${theme}`).toBe(true);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+          `${path}: ${width}px / ${theme}`,
+        ).toBe(true);
         expect(await page.locator('.public-brand').locator('img').count()).toBe(0);
         if (path === '/about' && [375, 1440].includes(width)) {
-          await testInfo.attach(`about-${theme}-${width}`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+          await testInfo.attach(`about-${theme}-${width}`, {
+            body: await page.screenshot({ fullPage: true }),
+            contentType: 'image/png',
+          });
         }
       }
     }
@@ -25,7 +31,11 @@ test('public pages have English navigation and fit narrow screens', async ({ pag
 });
 
 test('mobile navigation works without JavaScript', async ({ browser, baseURL }) => {
-  const context = await browser.newContext({ baseURL, javaScriptEnabled: false, viewport: { width: 375, height: 812 } });
+  const context = await browser.newContext({
+    baseURL,
+    javaScriptEnabled: false,
+    viewport: { width: 375, height: 812 },
+  });
   try {
     const page = await context.newPage();
     await page.goto('/');
@@ -38,7 +48,9 @@ test('mobile navigation works without JavaScript', async ({ browser, baseURL }) 
     await nav.getByRole('link', { name: 'About Me', exact: true }).click();
     await expect(page).toHaveURL(/\/about\/?$/);
     await expect(page.locator('main h1').first()).toBeVisible();
-  } finally { await context.close(); }
+  } finally {
+    await context.close();
+  }
 });
 
 test('menu closes on Escape and resize without duplicate visible navigation', async ({ page }) => {
@@ -53,11 +65,14 @@ test('menu closes on Escape and resize without duplicate visible navigation', as
   await page.getByRole('button', { name: 'Open menu', exact: true }).click();
   await page.setViewportSize({ width: 1024, height: 900 });
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
+  await expect(page.locator('#mobile-menu')).toHaveJSProperty('open', false);
   await page.setViewportSize({ width: 375, height: 812 });
   await expect(nav).toBeHidden();
 });
 
-test('search links preserve other filters and focus the requested search field', async ({ page }) => {
+test('search links preserve other filters and focus the requested search field', async ({
+  page,
+}) => {
   await page.goto('/articles?q=Astro&category=Development#article-search');
   await expect(page.getByRole('searchbox', { name: 'Search articles' })).toBeFocused();
   const tag = page.locator('.tag-cloud a[href*="tag="]').first();
@@ -72,7 +87,11 @@ test('search links preserve other filters and focus the requested search field',
 
 test('system theme still works when storage is unavailable', async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage blocked', 'SecurityError'); } });
+    Object.defineProperty(window, 'localStorage', {
+      get() {
+        throw new DOMException('Storage blocked', 'SecurityError');
+      },
+    });
   });
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/about');
