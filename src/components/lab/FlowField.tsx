@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { Pause, Play, RotateCcw, StepForward } from 'lucide-react';
+import { Pause, Play, RotateCcw, Shuffle, StepForward } from 'lucide-react';
 import { useLabEnvironment } from './useLabEnvironment';
 import {
   createFlow,
@@ -12,6 +12,36 @@ import {
 } from '../../lib/lab/flow-engine';
 import '../../styles/lab-flow.css';
 import ToolExport from './ToolExport';
+
+const appearances = [
+  {
+    id: 'berry',
+    zh: '莓紅流線',
+    en: 'Berry threads',
+    seed: 731,
+    palette: 'brand',
+    density: 1100,
+    speed: 1,
+  },
+  {
+    id: 'ocean',
+    zh: '海面波紋',
+    en: 'Ocean ripples',
+    seed: 238,
+    palette: 'ocean',
+    density: 860,
+    speed: 0.6,
+  },
+  {
+    id: 'ink',
+    zh: '黑白速寫',
+    en: 'Ink sketch',
+    seed: 903,
+    palette: 'mono',
+    density: 300,
+    speed: 1.8,
+  },
+] as const;
 
 export default function FlowField() {
   const { t, reducedMotion, visible, theme } = useLabEnvironment();
@@ -283,6 +313,14 @@ export default function FlowField() {
     setAppliedSeed(value);
     resetRef.current();
   };
+  const applySeed = (value: number) => {
+    setSeed(String(value));
+    seedRef.current = value;
+    setAppliedSeed(value);
+    setError(false);
+    setImageStatus('idle');
+    resetRef.current();
+  };
   return (
     <div
       className="flow-lab"
@@ -295,9 +333,30 @@ export default function FlowField() {
         if (!event.currentTarget.contains(event.relatedTarget)) clearProbe();
       }}
     >
-      <div className="flow-topline">
-        <span>{t('粒子背景產生器', 'PARTICLE BACKGROUND GENERATOR')}</span>
-        <span>∇ · v = 0</span>
+      <div className="flow-appearances" role="group" aria-label={t('背景風格', 'Background looks')}>
+        {appearances.map((appearance) => (
+          <button
+            className="lab-button"
+            type="button"
+            key={appearance.id}
+            disabled={!available}
+            aria-pressed={
+              appliedSeed === appearance.seed &&
+              palette === appearance.palette &&
+              density === appearance.density &&
+              speed === appearance.speed
+            }
+            onClick={() => {
+              setPalette(appearance.palette);
+              setDensity(appearance.density);
+              setSpeed(appearance.speed);
+              speedRef.current = appearance.speed;
+              applySeed(appearance.seed);
+            }}
+          >
+            {t(appearance.zh, appearance.en)}
+          </button>
+        ))}
       </div>
       <div className="flow-stage">
         <canvas
@@ -379,11 +438,6 @@ export default function FlowField() {
         <div className="flow-probe" ref={marker} hidden aria-hidden="true" data-polarity={polarity}>
           <span>{polarity === 1 ? '+' : '−'}</span>
         </div>
-        <span className="flow-coordinate" aria-hidden="true">
-          {t('六層勢函數', '6 HARMONIC LAYERS')}
-          <br />
-          ψ(x, y, t) → curl ψ
-        </span>
       </div>
       {!available && (
         <p role="alert" className="lab-note">
@@ -393,18 +447,6 @@ export default function FlowField() {
           )}
         </p>
       )}
-      <div className="flow-strip lab-metrics" aria-hidden="true">
-        <span>
-          {t('粒子', 'PARTICLES')} <output ref={countOutput}>—</output>
-        </span>
-        <span>
-          {t('模擬時間', 'SIMULATION')} <output ref={timeOutput}>0.00</output> s
-        </span>
-        <span>
-          FPS <output ref={fpsOutput}>—</output>
-        </span>
-        <span>Δt = 1/120 s</span>
-      </div>
       <div className="lab-controls flow-controls">
         <button
           className="lab-button"
@@ -445,82 +487,19 @@ export default function FlowField() {
             {t('排斥 −', 'Repel −')}
           </button>
         </div>
-        <label className="lab-field flow-speed">
-          {t('流速', 'Flow speed')} <output>{speed.toFixed(1)}×</output>
-          <input
-            type="range"
-            min="0.3"
-            max="2"
-            step="0.1"
-            value={speed}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              setSpeed(value);
-              speedRef.current = value;
-            }}
-          />
-        </label>
-      </div>
-      <form
-        className="flow-seed"
-        onSubmit={(event) => {
-          event.preventDefault();
-          reset();
-        }}
-      >
-        <label className="lab-field">
-          {t('隨機種子', 'Seed')}
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={9}
-            value={seed}
-            aria-invalid={error}
-            aria-describedby={error ? 'flow-seed-error' : undefined}
-            onChange={(event) => setSeed(event.target.value)}
-          />
-        </label>
-        <button className="lab-button" disabled={!available} type="submit">
-          <RotateCcw size={16} />
-          {t('重建流場', 'Reset field')}
+        <button
+          className="lab-button"
+          disabled={!available}
+          onClick={() => {
+            const next = Math.floor(Math.random() * 1000000000);
+            applySeed(next === appliedSeed ? (next + 1) % 1000000000 : next);
+          }}
+        >
+          <Shuffle size={16} aria-hidden="true" />
+          {t('換一張', 'Shuffle background')}
         </button>
-        <p className="lab-note">
-          {t('相同種子、時間與操作，得到相同軌跡', 'Same seed, time and input — same trajectories')}
-        </p>
-      </form>
-      {error && (
-        <p id="flow-seed-error" role="alert">
-          {t('請輸入 0 到 999999999 的整數', 'Enter an integer from 0 to 999999999')}
-        </p>
-      )}
-      <p className="lab-note" id="flow-instructions">
-        {reducedMotion &&
-          t(
-            '已減少動態，自動播放已關閉，可逐步觀察流場',
-            'Reduced motion is on — autoplay is disabled, step through the field',
-          )}
-        <span>
-          {t(
-            ' 移動滑鼠或拖曳畫布施力，也可聚焦畫布後用方向鍵移動作用點，Enter 切換作用力、Esc 解除',
-            ' Move your pointer or drag on the canvas to apply force, or focus it and use arrow keys to move the probe, Enter to toggle force and Esc to release',
-          )}
-        </span>
-      </p>
-      <div className="lab-tool-settings">
-        <label className="lab-field">
-          <span>
-            {t('粒子上限', 'Particle limit')} <output>{density}</output>
-          </span>
-          <input
-            type="range"
-            aria-label={t('粒子上限', 'Particle limit')}
-            min="120"
-            max="1100"
-            step="20"
-            value={density}
-            onChange={(event) => setDensity(Number(event.target.value))}
-          />
-        </label>
+      </div>
+      <div className="flow-palette-actions">
         <label className="lab-field">
           {t('背景配色', 'Background palette')}
           <select
@@ -552,36 +531,139 @@ export default function FlowField() {
           {t('下載目前背景 PNG', 'Download background PNG')}
         </button>
       </div>
-      <p className="lab-note" role="status">
-        {imageStatus === 'failed'
-          ? t('背景匯出失敗，請重試', 'Could not export the background — retry')
-          : imageStatus === 'saved'
-            ? t(
+      <p className="lab-note" id="flow-instructions">
+        {reducedMotion &&
+          t(
+            '已減少動態，自動播放已關閉，可逐步觀察流場',
+            'Reduced motion is on — autoplay is disabled, step through the field',
+          )}
+        <span>
+          {t(
+            ' 移動滑鼠或拖曳畫布，試試吸引和排斥粒子',
+            ' Move your pointer or drag on the canvas to attract or repel the particles',
+          )}
+        </span>
+        <span className="sr-only">
+          {t(
+            '聚焦畫布後可用方向鍵移動作用點，Enter 切換作用力、Esc 解除',
+            'Focus the canvas and use arrow keys to move the probe, Enter to toggle force and Esc to release',
+          )}
+        </span>
+      </p>
+      {imageStatus !== 'idle' && (
+        <p className="lab-note" role="status">
+          {imageStatus === 'failed'
+            ? t('背景匯出失敗，請重試', 'Could not export the background — retry')
+            : t(
                 '已下載目前畫面，可作為網站背景',
                 'Downloaded the current frame for use as a website background',
-              )
-            : t(
-                '手機最多顯示 480 個粒子，PNG 依目前畫布解析度匯出',
-                'Mobile displays up to 480 particles. PNG uses the current canvas resolution.',
               )}
-      </p>
-      <ToolExport
-        code={JSON.stringify(
-          {
-            seed: appliedSeed,
-            particleLimit: density,
-            speed,
-            palette,
-            polarity,
-            integrationStep: FLOW_STEP,
-          },
-          null,
-          2,
+        </p>
+      )}
+      <details className="flow-advanced" data-lab-advanced>
+        <summary>{t('進階設定與匯出', 'Advanced settings & export')}</summary>
+        <div className="flow-strip lab-metrics" aria-hidden="true">
+          <span>
+            {t('粒子', 'PARTICLES')} <output ref={countOutput}>—</output>
+          </span>
+          <span>
+            {t('模擬時間', 'SIMULATION')} <output ref={timeOutput}>0.00</output> s
+          </span>
+          <span>
+            FPS <output ref={fpsOutput}>—</output>
+          </span>
+          <span>Δt = 1/120 s</span>
+        </div>
+        <div className="lab-tool-settings">
+          <label className="lab-field flow-speed">
+            {t('流速', 'Flow speed')} <output>{speed.toFixed(1)}×</output>
+            <input
+              type="range"
+              min="0.3"
+              max="2"
+              step="0.1"
+              value={speed}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                setSpeed(value);
+                speedRef.current = value;
+              }}
+            />
+          </label>
+          <label className="lab-field">
+            <span>
+              {t('粒子上限', 'Particle limit')} <output>{density}</output>
+            </span>
+            <input
+              type="range"
+              aria-label={t('粒子上限', 'Particle limit')}
+              min="120"
+              max="1100"
+              step="20"
+              value={density}
+              onChange={(event) => setDensity(Number(event.target.value))}
+            />
+          </label>
+        </div>
+        <form
+          className="flow-seed"
+          onSubmit={(event) => {
+            event.preventDefault();
+            reset();
+          }}
+        >
+          <label className="lab-field">
+            {t('隨機種子', 'Seed')}
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={9}
+              value={seed}
+              aria-invalid={error}
+              aria-describedby={error ? 'flow-seed-error' : undefined}
+              onChange={(event) => setSeed(event.target.value)}
+            />
+          </label>
+          <button className="lab-button" disabled={!available} type="submit">
+            <RotateCcw size={16} />
+            {t('重建流場', 'Reset field')}
+          </button>
+          <p className="lab-note">
+            {t(
+              '相同種子、時間與操作，得到相同軌跡',
+              'Same seed, time and input — same trajectories',
+            )}
+          </p>
+        </form>
+        {error && (
+          <p id="flow-seed-error" role="alert">
+            {t('請輸入 0 到 999999999 的整數', 'Enter an integer from 0 to 999999999')}
+          </p>
         )}
-        filename="particle-background.json"
-        mime="application/json"
-        label={{ zh: '背景參數 JSON', en: 'Background settings JSON' }}
-      />
+        <p className="lab-note">
+          {t(
+            '手機最多顯示 480 個粒子，PNG 依目前畫布解析度匯出',
+            'Mobile displays up to 480 particles. PNG uses the current canvas resolution.',
+          )}
+        </p>
+        <ToolExport
+          code={JSON.stringify(
+            {
+              seed: appliedSeed,
+              particleLimit: density,
+              speed,
+              palette,
+              polarity,
+              integrationStep: FLOW_STEP,
+            },
+            null,
+            2,
+          )}
+          filename="particle-background.json"
+          mime="application/json"
+          label={{ zh: '背景參數 JSON', en: 'Background settings JSON' }}
+        />
+      </details>
     </div>
   );
 }

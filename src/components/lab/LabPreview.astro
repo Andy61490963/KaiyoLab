@@ -1,0 +1,135 @@
+---
+import { createFlow, stepFlow, type FlowProbe } from '../../lib/lab/flow-engine';
+import { createGridPreset } from '../../lib/lab/grid-studio';
+import { defaultKineticOptions } from '../../lib/lab/kinetic-export';
+import { MOTION_PRESETS } from '../../lib/lab/motion-studio';
+import { generateSvgPoints, svgCurve, svgPath } from '../../lib/lab/svg-studio';
+import '../../styles/lab-preview.css';
+
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+
+// 以工具使用的模擬器產生固定粒子軌跡，瀏覽器不需執行粒子引擎
+function particleTrails() {
+  const state = createFlow(731, 56, 1.6);
+  const probe: FlowProbe = { x: 0, y: 0, active: false, polarity: 1, strength: 1.8 };
+  const paths = Array.from({ length: state.count }, (_, index) => ({
+    path: `M${((state.x[index] / state.width) * 320).toFixed(1)} ${((state.y[index] / state.height) * 200).toFixed(1)}`,
+    x: state.x[index],
+    y: state.y[index],
+  }));
+  for (let frame = 0; frame < 192; frame++) {
+    stepFlow(state, probe);
+    if (frame % 12 !== 11) continue;
+    paths.forEach((trail, index) => {
+      const x = state.x[index];
+      const y = state.y[index];
+      const wrapped =
+        Math.abs(x - trail.x) > state.width / 2 || Math.abs(y - trail.y) > state.height / 2;
+      trail.path += `${wrapped ? 'M' : 'L'}${((x / state.width) * 320).toFixed(1)} ${((y / state.height) * 200).toFixed(1)}`;
+      trail.x = x;
+      trail.y = y;
+    });
+  }
+  return paths.map(({ path }) => path);
+}
+
+const trails = slug === 'flow-field' ? particleTrails() : [];
+const shapes =
+  slug === 'svg-studio'
+    ? [287, 911].map((seed) => svgPath(svgCurve(generateSvgPoints(seed, 8, 0.65), 0.9)))
+    : [];
+const grid = slug === 'grid-studio' ? createGridPreset('gallery') : undefined;
+const cells = grid?.items.map((item) => {
+  const gap = grid.gap / 2;
+  const width = (272 - gap * (grid.columns - 1)) / grid.columns;
+  const height = (152 - gap * (grid.rows - 1)) / grid.rows;
+  return {
+    id: item.id,
+    x: 24 + (item.column - 1) * (width + gap),
+    y: 24 + (item.row - 1) * (height + gap),
+    width: item.columnSpan * width + (item.columnSpan - 1) * gap,
+    height: item.rowSpan * height + (item.rowSpan - 1) * gap,
+  };
+});
+const easing = MOTION_PRESETS.find((preset) => preset.id === 'overshoot')!;
+const carousel = ['orbit', 'wave', 'surface'];
+---
+
+<span class={`lab-preview lab-preview-${slug}`} data-lab-preview={slug} aria-hidden="true">
+  {slug === 'flow-field' && (
+    <svg viewBox="0 0 320 200" focusable="false">
+      <g class="lab-preview-trails" fill="none">
+        {trails.map((path, index) => (
+          <path
+            d={path}
+            pathLength="100"
+            class:list={{ 'lab-preview-trail-accent': index % 3 === 0 }}
+          />
+        ))}
+      </g>
+    </svg>
+  )}
+  {slug === 'svg-studio' && (
+    <svg viewBox="0 0 320 200" focusable="false">
+      <g transform="translate(19 -41) scale(.47)">
+        <path class="lab-preview-shape-outline" d={shapes[1]} transform="translate(36 -8)" />
+        <path
+          class="lab-preview-shape"
+          d={shapes[0]}
+          style={`--preview-shape-b: path('${shapes[1]}')`}
+        />
+      </g>
+    </svg>
+  )}
+  {slug === 'kinetic-carousel' && (
+    <span class="lab-preview-carousel">
+      {carousel.map((image, index) => {
+        const distance = index - 1;
+        return (
+          <img
+            src={`/images/lab/kinetic-${image}.svg`}
+            alt=""
+            width="720"
+            height="900"
+            loading="lazy"
+            decoding="async"
+            draggable="false"
+            style={`--preview-card-x: ${distance * defaultKineticOptions.spacing * 100}%; --preview-card-tilt: ${-distance * defaultKineticOptions.tilt}deg; --preview-card-scale: ${1 - Math.abs(distance) * defaultKineticOptions.scale}; z-index: ${distance === 0 ? 2 : 1}`}
+          />
+        );
+      })}
+    </span>
+  )}
+  {slug === 'motion-studio' && (
+    <svg
+      viewBox="0 0 320 200"
+      focusable="false"
+      style={`--preview-easing: cubic-bezier(${easing.curve.join(',')})`}
+    >
+      <path class="lab-preview-motion-track" d="M40 57H280" />
+      <rect class="lab-preview-motion-target" x="244" y="39" width="36" height="36" rx="7" />
+      <rect class="lab-preview-motion-move" x="40" y="39" width="36" height="36" rx="7" />
+      <rect class="lab-preview-motion-scale" x="40" y="120" width="42" height="42" rx="8" />
+      <rect class="lab-preview-motion-fade" x="244" y="120" width="36" height="36" rx="7" />
+      <path class="lab-preview-motion-arrow" d="M112 142H207M201 136L207 142L201 148" />
+    </svg>
+  )}
+  {slug === 'grid-studio' && (
+    <svg viewBox="0 0 320 200" focusable="false">
+      {cells?.map((cell, index) => (
+        <rect
+          class:list={['lab-preview-grid-cell', { 'lab-preview-grid-feature': index === 0 }]}
+          data-preview-cell={cell.id}
+          x={cell.x}
+          y={cell.y}
+          width={cell.width}
+          height={cell.height}
+          rx="5"
+        />
+      ))}
+    </svg>
+  )}
+</span>

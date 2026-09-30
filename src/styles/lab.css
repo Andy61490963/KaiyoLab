@@ -8,7 +8,7 @@
   text-transform: uppercase;
 }
 .lab-heading {
-  margin: 20px 0;
+  margin: 12px 0 16px;
   max-width: 800px;
   font-size: clamp(32px, 4.7vw, 60px);
   line-height: 1.12;
@@ -49,8 +49,25 @@
   padding-block: 3px;
 }
 .lab-demo {
-  margin-block: 28px 48px;
+  margin-block: 24px 36px;
   min-width: 0;
+}
+.lab-technical > summary,
+[data-lab-advanced] > summary {
+  min-height: 44px;
+  padding-block: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text);
+}
+.lab-technical > summary:focus-visible,
+[data-lab-advanced] > summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.lab-technical[open] > summary,
+[data-lab-advanced][open] > summary {
+  margin-bottom: 16px;
 }
 .lab-demo *,
 .lab-controls > * {

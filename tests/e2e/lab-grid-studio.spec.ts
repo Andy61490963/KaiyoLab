@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 async function openGrid(page: Page) {
   await page.goto('/lab/grid-studio');
   await page.getByRole('button', { name: 'English', exact: true }).click();
+  await page.locator('[data-lab-advanced] > summary').click();
+  await expect(page.locator('[data-lab-advanced]')).toHaveAttribute('open');
   await expect(page.getByLabel('Preset', { exact: true })).toBeVisible();
 }
 
@@ -102,7 +104,7 @@ test('Grid 手機與桌面預覽、中英文與深色模式不溢出，減少動
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const previewWidth of [390, 768, 1200]) {
-      await page.getByRole('button', { name: new RegExp(`^${previewWidth}\\s*px$`) }).click();
+      await page.getByRole('button', { name: new RegExp(`${previewWidth}\\s*px$`) }).click();
       await expect(page.locator('.grid-studio-frame')).toHaveAttribute(
         'data-preview-width',
         String(previewWidth),
@@ -112,7 +114,7 @@ test('Grid 手機與桌面預覽、中英文與深色模式不溢出，減少動
       ).toBe(true);
     }
   }
-  await page.getByRole('button', { name: /^390\s*px$/ }).click();
+  await page.getByRole('button', { name: /390\s*px$/ }).click();
   await expect(page.locator('.grid-studio-grid')).toHaveAttribute('data-stacked', 'true');
   await expect(page.locator('[data-grid-item="content"]')).toHaveCSS('grid-column-start', 'auto');
   await page.getByLabel('Selected block', { exact: true }).selectOption('detail');

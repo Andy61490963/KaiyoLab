@@ -5,6 +5,8 @@ async function openStudio(page: Page) {
   await page.goto('/lab/svg-studio');
   await page.getByRole('button', { name: 'English', exact: true }).click();
   await expect(page.locator('[data-svg-studio]')).toBeVisible();
+  await page.locator('[data-lab-advanced] > summary').click();
+  await expect(page.locator('[data-lab-advanced]')).toHaveAttribute('open');
 }
 
 test('SVG 節點可用鍵盤精調、重現種子並產生連續的中間形狀', async ({ page }) => {

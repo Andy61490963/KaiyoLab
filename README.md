@@ -118,17 +118,21 @@ Markdown 支援表格、任務清單與程式碼區塊，渲染結果經 HTML �
 
 內容搬家不包含帳號憑證及部署密鑰，來源站網址與舊網址別名僅供改寫內容連結，不會直接啟用原站轉址，需要完整保留登入與部署資料時，請使用[備份與還原](docs/backup-restore.md)，搬家流程及限制見[內容搬移](docs/content-transfer.md)
 
-## LAB 前端工具
+## LAB 互動實驗
 
-[LAB](https://kaiyo.zeabur.app/lab) 收錄五個可直接操作、預覽並匯出結果的前端工具，工具在瀏覽器執行，不會修改網站內容
+[LAB](https://kaiyo.zeabur.app/lab) 先展示可以玩出的效果：畫粒子背景、讓形狀變換、滑動立體畫廊，再到動畫與版面實驗，使用滑鼠、手指或鍵盤即可操作，不需要先懂程式
 
-| 工具                                                           | 操作                                                         | 輸出                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------- |
-| [動畫曲線編輯器](https://kaiyo.zeabur.app/lab/motion-studio)   | 拖拉 Bézier 控制點、播放或拖動時間軸，預覽位移／縮放／透明度 | CSS 動畫                   |
-| [Grid 版面編排器](https://kaiyo.zeabur.app/lab/grid-studio)    | 拖拉區塊、調整行列與跨度、切換容器寬度                       | 響應式 HTML／CSS           |
-| [SVG 形狀工作台](https://kaiyo.zeabur.app/lab/svg-studio)      | 生成輪廓、編輯節點與控制柄、預覽 A／B 變形                   | 目前形狀的靜態 SVG         |
-| [3D 輪播調校器](https://kaiyo.zeabur.app/lab/kinetic-carousel) | 拖拉輪播、調整透視、景深、間距與模糊                         | 外觀參數及繪製函式         |
-| [粒子背景產生器](https://kaiyo.zeabur.app/lab/flow-field)      | 調整種子、粒子數、配色及吸引／排斥作用力                     | 目前畫面的 PNG 與設定 JSON |
+入口預覽取自各工具的幾何與素材，滑鼠停留或鍵盤聚焦時提供短暫示範；內頁先呈現畫面、玩法和一鍵預設，精確參數與程式碼收在「進階設定與匯出」，製作原理可展開「看看怎麼做的」
+
+五個實驗在瀏覽器執行，不會修改網站內容，既有前端工具與輸出功能均保留
+
+| 工具                                                          | 操作                                             | 輸出                       |
+| ------------------------------------------------------------- | ------------------------------------------------ | -------------------------- |
+| [畫一張粒子背景](https://kaiyo.zeabur.app/lab/flow-field)     | 套用風格、吸引／排斥粒子，進階可調整種子與粒子數 | 目前畫面的 PNG 與設定 JSON |
+| [讓形狀變個樣](https://kaiyo.zeabur.app/lab/svg-studio)       | 換輪廓與填色、播放 A／B 變形，進階可編輯節點     | 目前形狀的靜態 SVG         |
+| [滑動立體畫廊](https://kaiyo.zeabur.app/lab/kinetic-carousel) | 拖拉卡片、切換三種視角，進階可調整透視與景深     | 外觀參數及繪製函式         |
+| [讓方塊彈一下](https://kaiyo.zeabur.app/lab/motion-studio)    | 選動作、播放或拖動時間軸，進階可調整 Bézier 曲線 | CSS 動畫                   |
+| [拼出你的版面](https://kaiyo.zeabur.app/lab/grid-studio)      | 套用版型、拖拉區塊、切換裝置寬度，進階可調整行列 | 響應式 HTML／CSS           |
 
 輪播輸出需自行整合卡片與手勢控制，粒子 JSON 是設定，並非完整動畫程式，SVG 不包含變形動畫，工具狀態不會自動保存，離開前請複製或下載結果
 
@@ -156,17 +160,19 @@ Markdown 支援表格、任務清單與程式碼區塊，渲染結果經 HTML �
 </details>
 
 <details>
-<summary>LAB 工具與預覽</summary>
+<summary>LAB 互動實驗與預覽</summary>
 
-![LAB 工具索引](docs/screenshots/lab-index.png)
+![LAB 成果預覽與遊玩入口](docs/screenshots/lab-index.png)
 
-![動畫曲線編輯器](docs/screenshots/lab-motion.png)
+![畫一張粒子背景](docs/screenshots/lab-flow.png)
 
-![Grid 版面編排器](docs/screenshots/lab-grid.png)
+![讓形狀變個樣](docs/screenshots/lab-svg.png)
 
-![SVG 形狀工作台](docs/screenshots/lab-svg.png)
+![滑動立體畫廊](docs/screenshots/lab-carousel.png)
 
-![粒子背景產生器](docs/screenshots/lab-flow.png)
+![讓方塊彈一下](docs/screenshots/lab-motion.png)
+
+![拼出你的版面](docs/screenshots/lab-grid.png)
 
 </details>
 

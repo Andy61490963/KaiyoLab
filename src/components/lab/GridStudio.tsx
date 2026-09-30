@@ -272,61 +272,26 @@ export default function GridStudio() {
       data-dragging={dragging}
       aria-label={t('Grid 排版工具', 'CSS Grid studio')}
     >
-      <div className="grid-studio-toolbar">
-        <label className="lab-field">
-          {t('起始版型', 'Preset')}
-          <select
-            aria-label={t('起始版型', 'Preset')}
-            value={preset}
-            onChange={(event) => choosePreset(event.target.value as GridPreset)}
+      <div
+        className="grid-studio-choices"
+        role="group"
+        aria-label={t('選一個版型', 'Choose a layout')}
+      >
+        {(['editorial', 'dashboard', 'gallery'] as const).map((value, index) => (
+          <button
+            type="button"
+            className="lab-button"
+            key={value}
+            aria-pressed={preset === value}
+            onClick={() => choosePreset(value)}
           >
-            <option value="editorial">{t('內容網站', 'Editorial')}</option>
-            <option value="dashboard">{t('管理面板', 'Dashboard')}</option>
-            <option value="gallery">{t('作品畫廊', 'Gallery')}</option>
-          </select>
-        </label>
-        <label className="lab-field">
-          {t('欄數', 'Columns')}
-          <input
-            aria-label={t('欄數', 'Columns')}
-            type="number"
-            min="1"
-            max="12"
-            value={document.columns}
-            onChange={(event) => updateGeometry('columns', event.target.valueAsNumber)}
-          />
-        </label>
-        <label className="lab-field">
-          {t('列數', 'Rows')}
-          <input
-            aria-label={t('列數', 'Rows')}
-            type="number"
-            min="1"
-            max="8"
-            value={document.rows}
-            onChange={(event) => updateGeometry('rows', event.target.valueAsNumber)}
-          />
-        </label>
-        <label className="lab-field">
-          {t('間距', 'Gap')}{' '}
-          <span className="grid-studio-input-unit">
-            <input
-              aria-label={t('間距', 'Gap')}
-              type="number"
-              min="0"
-              max="48"
-              value={document.gap}
-              onChange={(event) => updateGeometry('gap', event.target.valueAsNumber)}
-            />
-            <span>px</span>
-          </span>
-        </label>
-        <button type="button" className="lab-button" onClick={() => choosePreset(preset)}>
-          <RotateCcw size={15} />
-          {t('重設', 'Reset')}
-        </button>
+            {t(
+              ['內容網站', '管理面板', '作品畫廊'][index],
+              ['Editorial', 'Dashboard', 'Gallery'][index],
+            )}
+          </button>
+        ))}
       </div>
-
       <div className="grid-studio-workspace">
         <div className="grid-studio-preview">
           <div className="grid-studio-preview-bar">
@@ -346,8 +311,11 @@ export default function GridStudio() {
                     setPreviewWidth(width);
                   }}
                 >
-                  {width}
-                  <span>px</span>
+                  {t(
+                    width === 390 ? '手機' : width === 768 ? '平板' : '桌機',
+                    width === 390 ? 'Phone' : width === 768 ? 'Tablet' : 'Desktop',
+                  )}
+                  <span>{width}px</span>
                 </button>
               ))}
             </div>
@@ -364,7 +332,7 @@ export default function GridStudio() {
             <span>
               {stacked
                 ? t('窄版自動依 DOM 順序單欄排列', 'Narrow layout follows DOM order in one column')
-                : t('真實 CSS Grid · 拖曳或方向鍵定位', 'Live CSS Grid · drag or use arrow keys')}
+                : t('拖曳方塊，試試不同的排列', 'Drag the blocks and try another arrangement')}
             </span>
             <span>{Math.round(scale * 100)}%</span>
           </div>
@@ -452,6 +420,78 @@ export default function GridStudio() {
               'Arrow keys move · Shift + arrows resize · Esc cancels drag · use position fields in narrow preview',
             )}
           </p>
+        </div>
+      </div>
+
+      <div className="grid-studio-status" role="status" aria-live="polite">
+        <span>{status}</span>
+        <span>
+          {document.items.length} {t('區塊', 'blocks')} · {document.columns} × {document.rows}
+        </span>
+      </div>
+      {overlaps.length > 0 && (
+        <p className="grid-studio-warning" role="note">
+          {t(
+            `有 ${overlaps.length} 組區塊重疊，輸出會保留重疊，後面的區塊顯示在上層，可用「選取區塊」切換被遮住的項目`,
+            `${overlaps.length} overlapping pair(s) — export preserves overlap, later blocks paint on top; use Selected block to reach covered items`,
+          )}
+        </p>
+      )}
+      <details className="grid-studio-advanced" data-lab-advanced>
+        <summary>{t('進階設定與匯出', 'Advanced settings & export')}</summary>
+        <div className="grid-studio-toolbar">
+          <label className="lab-field">
+            {t('起始版型', 'Preset')}
+            <select
+              aria-label={t('起始版型', 'Preset')}
+              value={preset}
+              onChange={(event) => choosePreset(event.target.value as GridPreset)}
+            >
+              <option value="editorial">{t('內容網站', 'Editorial')}</option>
+              <option value="dashboard">{t('管理面板', 'Dashboard')}</option>
+              <option value="gallery">{t('作品畫廊', 'Gallery')}</option>
+            </select>
+          </label>
+          <label className="lab-field">
+            {t('欄數', 'Columns')}
+            <input
+              aria-label={t('欄數', 'Columns')}
+              type="number"
+              min="1"
+              max="12"
+              value={document.columns}
+              onChange={(event) => updateGeometry('columns', event.target.valueAsNumber)}
+            />
+          </label>
+          <label className="lab-field">
+            {t('列數', 'Rows')}
+            <input
+              aria-label={t('列數', 'Rows')}
+              type="number"
+              min="1"
+              max="8"
+              value={document.rows}
+              onChange={(event) => updateGeometry('rows', event.target.valueAsNumber)}
+            />
+          </label>
+          <label className="lab-field">
+            {t('間距', 'Gap')}{' '}
+            <span className="grid-studio-input-unit">
+              <input
+                aria-label={t('間距', 'Gap')}
+                type="number"
+                min="0"
+                max="48"
+                value={document.gap}
+                onChange={(event) => updateGeometry('gap', event.target.valueAsNumber)}
+              />
+              <span>px</span>
+            </span>
+          </label>
+          <button type="button" className="lab-button" onClick={() => choosePreset(preset)}>
+            <RotateCcw size={15} />
+            {t('重設', 'Reset')}
+          </button>
         </div>
 
         <aside className="grid-studio-inspector" aria-label={t('區塊屬性', 'Block properties')}>
@@ -597,75 +637,60 @@ export default function GridStudio() {
             ))}
           </div>
         </aside>
-      </div>
-
-      <div className="grid-studio-status" role="status" aria-live="polite">
-        <span>{status}</span>
-        <span>
-          {document.items.length} {t('區塊', 'blocks')} · {document.columns} × {document.rows}
-        </span>
-      </div>
-      {overlaps.length > 0 && (
-        <p className="grid-studio-warning" role="note">
-          {t(
-            `有 ${overlaps.length} 組區塊重疊，輸出會保留重疊，後面的區塊顯示在上層，可用「選取區塊」切換被遮住的項目`,
-            `${overlaps.length} overlapping pair(s) — export preserves overlap, later blocks paint on top; use Selected block to reach covered items`,
-          )}
-        </p>
-      )}
-      <div className="grid-studio-export">
-        <div className="grid-studio-export-bar">
-          <div role="group" aria-label={t('程式碼種類', 'Code format')}>
-            <button
-              type="button"
-              aria-pressed={codeTab === 'css'}
-              onClick={() => chooseCodeTab('css')}
-              className="lab-button"
-            >
-              CSS
-            </button>
-            <button
-              type="button"
-              aria-pressed={codeTab === 'html'}
-              onClick={() => chooseCodeTab('html')}
-              className="lab-button"
-            >
-              HTML
-            </button>
-            <button
-              type="button"
-              aria-pressed={codeTab === 'standalone'}
-              onClick={() => chooseCodeTab('standalone')}
-              className="lab-button"
-            >
-              {t('完整檔案', 'Full document')}
-            </button>
+        <div className="grid-studio-export">
+          <div className="grid-studio-export-bar">
+            <div role="group" aria-label={t('程式碼種類', 'Code format')}>
+              <button
+                type="button"
+                aria-pressed={codeTab === 'css'}
+                onClick={() => chooseCodeTab('css')}
+                className="lab-button"
+              >
+                CSS
+              </button>
+              <button
+                type="button"
+                aria-pressed={codeTab === 'html'}
+                onClick={() => chooseCodeTab('html')}
+                className="lab-button"
+              >
+                HTML
+              </button>
+              <button
+                type="button"
+                aria-pressed={codeTab === 'standalone'}
+                onClick={() => chooseCodeTab('standalone')}
+                className="lab-button"
+              >
+                {t('完整檔案', 'Full document')}
+              </button>
+            </div>
+            <div>
+              <button type="button" className="lab-button" onClick={() => copyCode(false)}>
+                {feedback === 'copied' ? <Check size={15} /> : <Copy size={15} />}
+                {t('複製程式碼', 'Copy code')}
+              </button>
+              <button type="button" className="lab-button" onClick={() => copyCode(true)}>
+                {t('複製完整 HTML', 'Copy full HTML')}
+              </button>
+            </div>
           </div>
-          <div>
-            <button type="button" className="lab-button" onClick={() => copyCode(false)}>
-              {feedback === 'copied' ? <Check size={15} /> : <Copy size={15} />}
-              {t('複製程式碼', 'Copy code')}
-            </button>
-            <button type="button" className="lab-button" onClick={() => copyCode(true)}>
-              {t('複製完整 HTML', 'Copy full HTML')}
-            </button>
-          </div>
+          <textarea
+            ref={code}
+            className="grid-studio-code"
+            aria-label={t('可複製的程式碼', 'Copyable code')}
+            value={exported[codeTab]}
+            readOnly
+            spellCheck={false}
+          />
+          <p className="lab-note">
+            {t(
+              '輸出包含 520px 容器查詢，依元件容器寬度切換單欄，不需要 JavaScript 或套件',
+              'Export includes a 520px container query for single-column layouts based on component width — no JavaScript or packages required',
+            )}
+          </p>
         </div>
-        <textarea
-          ref={code}
-          className="grid-studio-code"
-          aria-label={t('可複製的程式碼', 'Copyable code')}
-          value={exported[codeTab]}
-          readOnly
-          spellCheck={false}
-        />
-        <p className="lab-note">
-          {t(
-            '輸出包含 520px 容器查詢，依元件容器寬度切換單欄，不需要 JavaScript 或套件',
-            'Export includes a 520px container query for single-column layouts based on component width — no JavaScript or packages required',
-          )}
-        </p>
-      </div>
+      </details>
     </section>
   );
 }

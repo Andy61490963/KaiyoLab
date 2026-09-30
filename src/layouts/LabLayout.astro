@@ -2,51 +2,38 @@
 import PublicLayout from './PublicLayout.astro';
 import Text from '../components/lab/LabText.astro';
 import { getSettings } from '../lib/content';
-import { experiments, type LabExperiment } from '../lib/lab/experiments';
+import { labInvitations, playfulExperiments, type LabExperiment } from '../lib/lab/experiments';
 import '../styles/lab.css';
 interface Props {
   experiment: LabExperiment;
 }
 const { experiment } = Astro.props;
 const settings = await getSettings();
+const invitation = labInvitations[experiment.slug];
 const next =
-  experiments[
-    (experiments.findIndex((item) => item.slug === experiment.slug) + 1) % experiments.length
+  playfulExperiments[
+    (playfulExperiments.findIndex((item) => item.slug === experiment.slug) + 1) %
+      playfulExperiments.length
   ];
 ---
 
 <PublicLayout
   settings={settings}
-  title={experiment.title.en}
-  titleTranslations={experiment.title}
-  description={experiment.description.en}
+  title={invitation.title.en}
+  titleTranslations={invitation.title}
+  description={invitation.instruction.en}
 >
   <div class="page-shell lab-shell">
     <nav class="lab-breadcrumb" aria-label="LAB">
       <a href="/lab">← LAB</a>
-      <span aria-hidden="true">/</span>
-      <span>{experiment.number}</span>
     </nav>
     <header>
-      <p class="lab-kicker">
-        <Text {...experiment.category} />
-      </p>
       <h1 class="lab-heading">
-        <Text {...experiment.title} />
+        <Text {...invitation.title} />
       </h1>
       <p class="lab-intro">
-        <Text {...experiment.description} />
+        <Text {...invitation.instruction} />
       </p>
-      <ul
-        class="lab-tags"
-        aria-label="Technologies"
-        data-ui-label-en="Technologies"
-        data-ui-label-zh="使用技術"
-      >
-        {experiment.tags.map((tag) => (
-          <li>{tag}</li>
-        ))}
-      </ul>
     </header>
     <section
       class="lab-demo"
@@ -58,16 +45,29 @@ const next =
       <noscript>
         <p class="lab-loading">
           <Text
-            zh="啟用 JavaScript 即可操作工具，下方技術說明仍可直接閱讀"
-            en="Enable JavaScript to use this tool. Technical notes remain available below."
+            zh="啟用 JavaScript 即可操作實驗，下方的製作說明仍可直接閱讀"
+            en="Enable JavaScript to play. You can still read how it works below."
           />
         </p>
       </noscript>
     </section>
-    <section class="lab-technical">
+    <details class="lab-technical">
+      <summary>
+        <Text zh="看看怎麼做的" en="How it works" />
+      </summary>
       <h2>
-        <Text zh="技術筆記" en="Under the surface" />
+        <Text {...experiment.title} />
       </h2>
+      <ul
+        class="lab-tags"
+        aria-label="Technologies"
+        data-ui-label-en="Technologies"
+        data-ui-label-zh="使用技術"
+      >
+        {experiment.tags.map((tag) => (
+          <li>{tag}</li>
+        ))}
+      </ul>
       <div class="lab-technical-grid">
         {experiment.notes.map((note) => (
           <article>
@@ -80,13 +80,13 @@ const next =
           </article>
         ))}
       </div>
-    </section>
+    </details>
     <nav class="lab-next" aria-label="Tools" data-ui-label-en="Tools" data-ui-label-zh="工具導覽">
       <a href="/lab">
-        <Text zh="回到工具索引" en="Back to the index" />
+        <Text zh="回到 LAB" en="Back to LAB" />
       </a>
       <a href={`/lab/${next.slug}`}>
-        <Text {...next.title} /> →
+        <Text {...labInvitations[next.slug].title} /> →
       </a>
     </nav>
   </div>

@@ -1,0 +1,136 @@
+.lab-preview {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  isolation: isolate;
+  pointer-events: none;
+}
+.lab-preview > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.lab-preview-trails path {
+  stroke: var(--muted);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  opacity: 0.65;
+}
+.lab-preview-trails .lab-preview-trail-accent {
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  opacity: 1;
+}
+.lab-preview-shape {
+  fill: var(--accent);
+}
+.lab-preview-shape-outline {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+.lab-preview-carousel {
+  display: block;
+  position: absolute;
+  inset: 0;
+  perspective: 480px;
+}
+.lab-preview-carousel img {
+  display: block;
+  position: absolute;
+  left: 34%;
+  top: 12%;
+  width: 32%;
+  height: auto;
+  border-radius: 3px;
+  transform: translateX(var(--preview-card-x)) rotateY(var(--preview-card-tilt))
+    scale(var(--preview-card-scale));
+}
+.lab-preview-motion-track,
+.lab-preview-motion-target,
+.lab-preview-motion-arrow {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+.lab-preview-motion-target {
+  stroke-dasharray: 3 4;
+}
+.lab-preview-motion-arrow {
+  stroke: var(--muted);
+}
+.lab-preview-motion-move,
+.lab-preview-motion-scale,
+.lab-preview-motion-fade {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.lab-preview-motion-scale {
+  transform: scale(0.65);
+}
+.lab-preview-motion-fade {
+  opacity: 0.35;
+}
+.lab-preview-grid-cell {
+  fill: var(--surface-raised);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.lab-preview-grid-cell:nth-child(3n) {
+  fill: var(--accent-soft);
+}
+.lab-preview-grid-feature {
+  fill: var(--accent);
+  stroke: none;
+}
+
+/* 只在讀者指向或聚焦入口時作有限變化，不建立計時器、RAF 或常駐動畫 */
+@media (prefers-reduced-motion: no-preference) {
+  .lab-preview-trails {
+    transition: transform 700ms ease;
+  }
+  .lab-preview-shape {
+    transition: d 700ms ease;
+  }
+  .lab-preview-carousel {
+    transition: transform 650ms ease;
+  }
+  .lab-preview-motion-move,
+  .lab-preview-motion-scale {
+    transition: transform 900ms var(--preview-easing);
+  }
+  .lab-preview-motion-fade {
+    transition: opacity 900ms ease;
+  }
+  .lab-preview-grid-feature {
+    transition: transform 350ms ease;
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-trails {
+    transform: translate(-6px, 3px);
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-shape {
+    d: var(--preview-shape-b);
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-carousel {
+    transform: translateX(-8px);
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-motion-move {
+    transform: translateX(204px);
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-motion-scale {
+    transform: scale(1);
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-motion-fade {
+    opacity: 1;
+  }
+  .lab-index-row:is(:hover, :focus-visible, :focus-within) .lab-preview-grid-feature {
+    transform: translateY(-4px);
+  }
+}

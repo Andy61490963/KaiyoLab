@@ -4,6 +4,8 @@ async function openStudio(page: Page) {
   await page.goto('/lab/motion-studio');
   await page.getByRole('button', { name: 'English', exact: true }).click();
   await expect(page.locator('[data-motion-studio]')).toBeVisible();
+  await page.locator('[data-lab-advanced] > summary').click();
+  await expect(page.locator('[data-lab-advanced]')).toHaveAttribute('open');
 }
 
 test('動畫曲線支援驗證、預設、鍵盤調整、時間軸與可實際執行的 CSS', async ({ page }) => {
