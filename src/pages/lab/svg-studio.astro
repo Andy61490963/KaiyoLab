@@ -1,0 +1,9 @@
+---
+import Layout from '../../layouts/LabLayout.astro';
+import Demo from '../../components/lab/SvgStudio';
+import { experiments } from '../../lib/lab/experiments';
+---
+
+<Layout experiment={experiments[2]}>
+  <Demo client:load />
+</Layout>

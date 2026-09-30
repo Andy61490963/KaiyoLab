@@ -11,6 +11,7 @@ import {
   type FlowState,
 } from '../../lib/lab/flow-engine';
 import '../../styles/lab-flow.css';
+import ToolExport from './ToolExport';
 
 export default function FlowField() {
   const { t, reducedMotion, visible, theme } = useLabEnvironment();
@@ -38,6 +39,9 @@ export default function FlowField() {
   const [available, setAvailable] = useState(true);
   const [speed, setSpeed] = useState(1);
   const [polarity, setPolarity] = useState<1 | -1>(1);
+  const [density, setDensity] = useState(1100);
+  const [palette, setPalette] = useState('brand');
+  const [imageStatus, setImageStatus] = useState<'idle' | 'saved' | 'failed'>('idle');
   const running = playing && !reducedMotion && visible && inView;
   const runningRef = useRef(running);
   runningRef.current = running;
@@ -176,13 +180,13 @@ export default function FlowField() {
         probe.current.x *= ratio;
         engine.current.width *= ratio;
       }
-      engine.current.count = width < 600 ? 480 : 1100;
+      engine.current.count = width < 600 ? Math.min(density, 480) : density;
       drawStill();
     });
     resize.observe(element);
     const reset = () => {
       engine.current = createFlow(seedRef.current, 1100, size.current.width / size.current.height);
-      engine.current.count = size.current.width < 600 ? 480 : 1100;
+      engine.current.count = size.current.width < 600 ? Math.min(density, 480) : density;
       probe.current.active = false;
       probeInput.current = null;
       probe.current.x = engine.current.width / 2;
@@ -241,7 +245,7 @@ export default function FlowField() {
       refreshProbe.current = () => {};
       changePlayback.current = () => {};
     };
-  }, [theme]);
+  }, [theme, density, palette]);
 
   useEffect(() => {
     changePlayback.current(running);
@@ -292,7 +296,7 @@ export default function FlowField() {
       }}
     >
       <div className="flow-topline">
-        <span>{t('流函數 / 粒子追蹤', 'STREAM FUNCTION / PARTICLE ADVECTION')}</span>
+        <span>{t('粒子背景產生器', 'PARTICLE BACKGROUND GENERATOR')}</span>
         <span>∇ · v = 0</span>
       </div>
       <div className="flow-stage">
@@ -302,6 +306,7 @@ export default function FlowField() {
           aria-label={t('可互動粒子流場', 'Interactive flow field')}
           aria-describedby="flow-instructions"
           data-flow-canvas
+          data-palette={palette}
           onPointerDown={(event) => {
             if (!event.isPrimary) return;
             event.currentTarget.setPointerCapture(event.pointerId);
@@ -501,6 +506,82 @@ export default function FlowField() {
           )}
         </span>
       </p>
+      <div className="lab-tool-settings">
+        <label className="lab-field">
+          <span>
+            {t('粒子上限', 'Particle limit')} <output>{density}</output>
+          </span>
+          <input
+            type="range"
+            aria-label={t('粒子上限', 'Particle limit')}
+            min="120"
+            max="1100"
+            step="20"
+            value={density}
+            onChange={(event) => setDensity(Number(event.target.value))}
+          />
+        </label>
+        <label className="lab-field">
+          {t('背景配色', 'Background palette')}
+          <select
+            aria-label={t('背景配色', 'Background palette')}
+            value={palette}
+            onChange={(event) => setPalette(event.target.value)}
+          >
+            <option value="brand">{t('莓紅與炭灰', 'Berry & charcoal')}</option>
+            <option value="ocean">{t('藍灰與青綠', 'Slate & teal')}</option>
+            <option value="mono">{t('單色線條', 'Monochrome')}</option>
+          </select>
+        </label>
+        <button
+          className="lab-button"
+          disabled={!available}
+          onClick={() => {
+            try {
+              if (!canvas.current || !engine.current) throw new Error('Canvas 尚未就緒');
+              const link = document.createElement('a');
+              link.href = canvas.current.toDataURL('image/png');
+              link.download = `particle-background-${appliedSeed}.png`;
+              link.click();
+              setImageStatus('saved');
+            } catch {
+              setImageStatus('failed');
+            }
+          }}
+        >
+          {t('下載目前背景 PNG', 'Download background PNG')}
+        </button>
+      </div>
+      <p className="lab-note" role="status">
+        {imageStatus === 'failed'
+          ? t('背景匯出失敗，請重試', 'Could not export the background — retry')
+          : imageStatus === 'saved'
+            ? t(
+                '已下載目前畫面，可作為網站背景',
+                'Downloaded the current frame for use as a website background',
+              )
+            : t(
+                '手機最多顯示 480 個粒子，PNG 依目前畫布解析度匯出',
+                'Mobile displays up to 480 particles. PNG uses the current canvas resolution.',
+              )}
+      </p>
+      <ToolExport
+        code={JSON.stringify(
+          {
+            seed: appliedSeed,
+            particleLimit: density,
+            speed,
+            palette,
+            polarity,
+            integrationStep: FLOW_STEP,
+          },
+          null,
+          2,
+        )}
+        filename="particle-background.json"
+        mime="application/json"
+        label={{ zh: '背景參數 JSON', en: 'Background settings JSON' }}
+      />
     </div>
   );
 }

@@ -1,0 +1,291 @@
+.motion-studio {
+  border-block: 1px solid var(--border);
+}
+.motion-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+.motion-graph-panel {
+  padding: 20px 24px 20px 0;
+}
+.motion-settings {
+  border-left: 1px solid var(--border);
+  padding: 20px 0 20px 24px;
+}
+.motion-section-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font: 11px/1.6 var(--font-mono);
+}
+.motion-section-label code {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.motion-graph {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  overflow: visible;
+  touch-action: none;
+}
+.motion-graph text {
+  fill: var(--muted);
+  font: 11px var(--font-mono);
+}
+.motion-unit-square {
+  fill: var(--surface);
+}
+.motion-grid {
+  stroke: var(--border);
+  stroke-width: 0.8;
+}
+.motion-diagonal {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  opacity: 0.65;
+}
+.motion-control-line {
+  fill: none;
+  stroke: var(--accent);
+  opacity: 0.5;
+  stroke-width: 1.4;
+}
+.motion-curve {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2.5;
+}
+.motion-progress-guide {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.motion-progress-dot {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.motion-handle {
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.motion-handle:active {
+  cursor: grabbing;
+}
+.motion-handle-hit {
+  fill: transparent;
+}
+.motion-handle-ring {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.motion-handle text {
+  fill: var(--bg);
+  font-size: 11px;
+  pointer-events: none;
+}
+.motion-handle:focus-visible .motion-handle-hit {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.motion-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.motion-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-block: 20px;
+}
+.motion-presets .lab-button {
+  font: 11px/1.5 var(--font-mono);
+  padding-inline: 8px;
+}
+.motion-coordinates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.motion-coordinates input,
+.motion-duration input {
+  width: 100%;
+  font-family: var(--font-mono);
+}
+.motion-duration {
+  margin-top: 12px;
+}
+.motion-settings .lab-note {
+  margin-block: 12px;
+}
+.motion-model-note {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.motion-error {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--accent);
+}
+.motion-preview,
+.motion-export {
+  padding-block: 24px;
+  border-top: 1px solid var(--border);
+}
+.motion-preview > .motion-section-label {
+  margin-bottom: 24px;
+}
+.motion-preview-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 80px;
+}
+.motion-preview-label {
+  font: 12px var(--font-mono);
+  color: var(--muted);
+}
+.motion-travel-track {
+  position: relative;
+  height: 40px;
+  margin-inline: 12%;
+  border-bottom: 1px solid var(--border);
+}
+.motion-object {
+  display: block;
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.motion-preview-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.motion-static-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+}
+.motion-static-track .motion-object {
+  transform-origin: center;
+}
+.motion-playback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 20px;
+}
+.motion-scrub {
+  flex: 1;
+  min-width: 150px;
+}
+.motion-scrub input {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.motion-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 98px;
+  padding-block: 4px;
+  font: 12px/1.4 var(--font-mono);
+  text-align: right;
+  color: var(--muted);
+}
+.motion-readout > output {
+  color: var(--text);
+}
+.motion-export pre {
+  margin-block: 20px 12px;
+  padding: 18px;
+  overflow: auto;
+  background: var(--surface);
+  border-left: 2px solid var(--border);
+  font: 12px/1.8 var(--font-mono);
+  color: var(--text);
+}
+.motion-export pre code {
+  font: inherit;
+}
+.motion-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 700px) {
+  .motion-workspace {
+    grid-template-columns: 1fr;
+  }
+  .motion-graph-panel {
+    padding: 18px 0;
+  }
+  .motion-settings {
+    padding: 20px 0;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .motion-presets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .motion-coordinates {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .motion-coordinates .lab-field input {
+    padding-inline: 6px;
+  }
+  .motion-duration {
+    max-width: 180px;
+  }
+  .motion-preview-row {
+    grid-template-columns: 75px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .motion-preview-pair {
+    gap: 10px;
+  }
+  .motion-preview-pair .motion-preview-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .motion-playback {
+    gap: 8px;
+  }
+  .motion-playback .lab-button {
+    padding-inline: 12px;
+  }
+  .motion-scrub {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .motion-readout {
+    margin-left: auto;
+  }
+}

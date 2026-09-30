@@ -52,27 +52,26 @@
   stroke: var(--border);
   stroke-width: 0.5;
 }
-.lab-figure-price {
+.lab-figure-curve {
   stroke: var(--accent);
   stroke-width: 2;
 }
-.lab-figure-depth {
-  stroke: var(--text);
+.lab-figure-handle {
+  stroke: var(--accent);
   stroke-width: 1.3;
 }
-.lab-figure-ask {
+.lab-figure-reference {
   stroke: var(--muted);
   stroke-width: 1.3;
   stroke-dasharray: 3 3;
 }
 .lab-figure-point {
-  fill: var(--accent);
-}
-.lab-figure-cursor {
+  fill: var(--surface);
   stroke: var(--accent);
-  opacity: 0.45;
-  stroke-width: 0.7;
-  stroke-dasharray: 3 4;
+  stroke-width: 2;
+}
+.lab-figure-endpoint {
+  fill: var(--text);
 }
 .lab-index-figure text {
   fill: var(--muted);

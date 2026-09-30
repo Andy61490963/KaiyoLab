@@ -1,9 +1,3 @@
 ---
-import Layout from '../../layouts/LabLayout.astro';
-import Demo from '../../components/lab/MarketLab';
-import { experiments } from '../../lib/lab/experiments';
+return Astro.redirect('/lab/motion-studio', 301);
 ---
-
-<Layout experiment={experiments[0]}>
-  <Demo client:load />
-</Layout>

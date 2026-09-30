@@ -27,7 +27,7 @@ const [settings, result] = await Promise.all([
   settings={settings}
   title="LAB"
   titleKey="LAB"
-  description="Experiments, prototypes, and small tools."
+  description="Frontend tools for motion, responsive layouts, SVG shapes, 3D carousels and particle backgrounds."
 >
   <div class="page-shell lab-page lab-index">
     <header class="collection-header">
@@ -36,66 +36,75 @@ const [settings, result] = await Promise.all([
         <Ui text="LAB" />
       </h1>
       <p>
-        <Ui text="Experiments, prototypes, and small tools." />
+        <Text
+          zh="前端工具，調整、預覽，再帶回自己的專案"
+          en="Frontend tools to tune, preview and use in your own projects"
+        />
       </p>
     </header>
     <section
       class="lab-index-lead"
-      aria-label="Engineering experiments"
-      data-ui-label-en="Engineering experiments"
-      data-ui-label-zh="工程實驗"
+      aria-label="Frontend tools"
+      data-ui-label-en="Frontend tools"
+      data-ui-label-zh="前端工具"
     >
       <div>
-        <p class="lab-kicker">FIELD NOTES / INTERACTIVE SYSTEMS</p>
+        <p class="lab-kicker">FRONTEND / TOOLS & PLAYGROUNDS</p>
         <h2>
-          <Text zh="把抽象的規則，變成能操作的系統" en="Make the rules visible" />
+          <Text zh="調整細節，直接看見差異" en="Tune it. See the difference." />
         </h2>
         <p>
           <Text
-            zh="從一筆訂單到一萬條價格路徑，從手指的慣性到粒子的流動，五個可以拆開研究的工程實驗"
-            en="From one order to ten thousand price paths. From the momentum of a gesture to a field of particles. Five systems to explore from the inside."
+            zh="動畫曲線、響應式版面、SVG 造型、3D 輪播與粒子背景，五個可以操作，也能匯出程式碼或素材的前端工具"
+            en="Easing curves, responsive layouts, SVG shapes, 3D carousels and particle backgrounds. Five hands-on tools with code or asset exports."
           />
         </p>
-        <a class="lab-feature-link" href="/lab/market-replay">
-          <Text zh="進入撮合引擎" en="Open the matching engine" /> <span aria-hidden="true">↗</span>
+        <a class="lab-feature-link" href="/lab/motion-studio">
+          <Text zh="打開動畫曲線編輯器" en="Open motion studio" /> <span aria-hidden="true">↗</span>
         </a>
       </div>
       <div class="lab-index-figure" aria-hidden="true">
         <svg viewBox="0 0 320 250" fill="none">
           <path
-            d="M20 45H300M20 95H300M20 145H300M20 195H300M60 20V230M120 20V230M180 20V230M240 20V230"
+            d="M40 42H280M40 96H280M40 150H280M40 204H280M40 42V204M100 42V204M160 42V204M220 42V204M280 42V204"
             class="lab-figure-grid"
           />
-          <path
-            d="M24 133L42 127L61 135L80 111L98 118L116 89L133 95L151 81L169 133L186 151L204 192L222 173L240 158L258 139L277 145L298 113"
-            class="lab-figure-price"
-          />
-          <path d="M24 205H60V200H105V185H135V154H151V123H163V89H173" class="lab-figure-depth" />
-          <path d="M188 89H201V108H217V141H239V179H267V199H299" class="lab-figure-ask" />
-          <circle cx="151" cy="81" r="4" class="lab-figure-point" />
-          <path d="M151 28V217" class="lab-figure-cursor" />
-          <text x="20" y="17">
-            ORDER FLOW / EVENT 0284
+          <path d="M40 204L280 42" class="lab-figure-reference" />
+          <path d="M40 204L140 204M180 42L280 42" class="lab-figure-handle" />
+          <path d="M40 204C140 204 180 42 280 42" class="lab-figure-curve" />
+          <circle cx="40" cy="204" r="3" class="lab-figure-endpoint" />
+          <circle cx="280" cy="42" r="3" class="lab-figure-endpoint" />
+          <circle cx="140" cy="204" r="6" class="lab-figure-point" />
+          <circle cx="180" cy="42" r="6" class="lab-figure-point" />
+          <circle cx="160" cy="123" r="4" class="lab-figure-endpoint" />
+          <text x="148" y="220">
+            P1
           </text>
-          <text x="225" y="240">
-            100.00 → 78.00
+          <text x="165" y="29">
+            P2
+          </text>
+          <text x="20" y="17">
+            CONTROL POINTS / LIVE PREVIEW
+          </text>
+          <text x="66" y="246">
+            cubic-bezier(0.42, 0, 0.58, 1)
           </text>
         </svg>
-        <span>01—05 / ENGINEERING STUDIES</span>
+        <span>01—05 / FRONTEND TOOLKIT</span>
       </div>
     </section>
     <section
       class="lab-experiment-index"
-      aria-label="Experiment index"
-      data-ui-label-en="Experiment index"
-      data-ui-label-zh="實驗索引"
+      aria-label="Tool index"
+      data-ui-label-en="Tool index"
+      data-ui-label-zh="工具索引"
     >
       <div class="lab-index-caption">
         <span>
-          <Text zh="實驗索引" en="Experiment index" />
+          <Text zh="工具索引" en="Tool index" />
         </span>
         <span>
-          05 <Text zh="個系統" en="systems" />
+          05 <Text zh="個工具" en="tools" />
         </span>
       </div>
       {experiments.map((experiment) => (

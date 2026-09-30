@@ -44,6 +44,19 @@
 .flow-stage canvas:focus-visible {
   outline-offset: -4px;
 }
+.flow-stage canvas[data-palette='ocean'] {
+  --flow-accent: #276f88;
+  --flow-secondary: #52765e;
+}
+:root[data-theme='dark'] .flow-stage canvas[data-palette='ocean'] {
+  --flow-accent: #8ec6ce;
+  --flow-secondary: #a3ba9f;
+}
+.flow-stage canvas[data-palette='mono'],
+:root[data-theme='dark'] .flow-stage canvas[data-palette='mono'] {
+  --flow-accent: var(--flow-ink);
+  --flow-secondary: var(--flow-ink);
+}
 .flow-probe {
   position: absolute;
   left: 0;

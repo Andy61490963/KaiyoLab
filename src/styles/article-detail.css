@@ -1,11 +1,4 @@
-/* Article detail only: leave the home, collections, projects, and admin unchanged. */
-.public-site:has(.article-detail) {
-  max-width: 1720px;
-}
-.public-site .article-detail.page-shell,
-.public-site .article-related.page-shell {
-  max-width: none;
-}
+/* 文章沿用公開網站的外框與內容寬度，只在閱讀區內安排正文和目錄 */
 .public-site .article-detail {
   padding-block: 24px 16px;
 }
@@ -378,21 +371,14 @@
   color: var(--accent);
 }
 @media (min-width: 1024px) {
-  .public-site:has(.article-detail) .language-switch {
-    right: max(var(--page-gutter), calc((100vw - 1720px) / 2 + var(--page-gutter)));
-  }
   .public-site .article-detail .article-prose :where(h1, h2, h3, h4, h5, h6) {
     scroll-margin-top: 64px;
   }
 }
 @media (min-width: 1320px) {
-  .public-site:has(.article-detail) {
-    --page-gutter: clamp(28px, 3.6vw, 64px);
-    grid-template-columns: clamp(260px, 19vw, 304px) minmax(0, 1fr);
-  }
   .article-detail .article-grid {
-    grid-template-columns: minmax(0, 1fr) clamp(240px, 20vw, 292px);
-    gap: clamp(28px, 3vw, 48px);
+    grid-template-columns: minmax(0, 1fr) 232px;
+    gap: 28px;
     align-items: start;
   }
   .public-site .article-detail .article-rail {

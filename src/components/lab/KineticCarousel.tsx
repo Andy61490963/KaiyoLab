@@ -11,6 +11,12 @@ import {
   type KineticState,
 } from '../../lib/lab/kinetic-motion';
 import '../../styles/lab-kinetic.css';
+import ToolExport from './ToolExport';
+import {
+  defaultKineticOptions,
+  kineticSource,
+  type KineticOptions,
+} from '../../lib/lab/kinetic-export';
 
 const studies = [
   { image: 'wave', zh: '波的疊加', en: 'Superposition', formula: 'Σ sin(ωx + φ)' },
@@ -46,6 +52,9 @@ export default function KineticCarousel() {
   const [inView, setInView] = useState(false);
   const [failedImages, setFailedImages] = useState<number[]>([]);
   const [imageAttempt, setImageAttempt] = useState(0);
+  const [options, setOptions] = useState<KineticOptions>({ ...defaultKineticOptions });
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   useEffect(() => {
     // SSR 圖片可能在 React 掛載前就載入失敗，補讀完成狀態以免漏接早到的 error
@@ -66,7 +75,7 @@ export default function KineticCarousel() {
       const width = entry.contentRect.width;
       if (!width) return;
       const cardWidth = Math.min(304, width * 0.65);
-      geometry.current = { width, spacing: cardWidth * 0.91 };
+      geometry.current = { width, spacing: cardWidth * optionsRef.current.spacing };
       stage.current?.style.setProperty('--kinetic-card-width', `${cardWidth}px`);
       paint.current();
     });
@@ -92,15 +101,15 @@ export default function KineticCarousel() {
         if (!card) continue;
         const distance = cyclicDistance(index, state.position, studies.length);
         const depth = Math.min(2, Math.abs(distance));
-        const scale = reducedMotion ? 1 : 1 - depth * 0.12;
+        const scale = reducedMotion ? 1 : 1 - depth * options.scale;
         const tilt = reducedMotion
           ? 0
-          : Math.max(-23, Math.min(23, distance * -12 + state.velocity * -0.45));
-        card.style.transform = `translate3d(${distance * spacing}px, ${depth * (reducedMotion ? 0 : 16)}px, ${-depth * 95}px) rotateY(${tilt}deg) scale(${scale})`;
+          : Math.max(-35, Math.min(35, distance * -options.tilt + state.velocity * -0.45));
+        card.style.transform = `translate3d(${distance * spacing}px, ${depth * (reducedMotion ? 0 : 16)}px, ${-depth * options.depth}px) rotateY(${tilt}deg) scale(${scale})`;
         card.style.opacity = String(Math.max(0, 1 - Math.max(0, depth - 0.8) * 0.67));
         card.style.filter = reducedMotion
           ? 'none'
-          : `blur(${Math.min(width < 500 ? 0.7 : 2, Math.abs(state.velocity) * depth * 0.13)}px)`;
+          : `blur(${Math.min(width < 500 ? Math.min(0.7, options.blur) : options.blur, Math.abs(state.velocity) * depth * 0.13)}px)`;
         card.style.zIndex = String(10 - Math.round(depth * 3));
         card.setAttribute(
           'aria-hidden',
@@ -168,7 +177,12 @@ export default function KineticCarousel() {
       if (timer) clearTimeout(timer);
       wake.current = () => {};
     };
-  }, [visible, inView, reducedMotion, autoplay]);
+  }, [visible, inView, reducedMotion, autoplay, options]);
+
+  useEffect(() => {
+    geometry.current.spacing = Math.min(304, geometry.current.width * 0.65) * options.spacing;
+    paint.current();
+  }, [options.spacing]);
 
   const navigate = (direction: number) => {
     setAutoplay(false);
@@ -210,11 +224,12 @@ export default function KineticCarousel() {
       data-autoplay={autoplay && !reducedMotion}
     >
       <div className="kinetic-topline">
-        <span>{t('運動研究', 'MOTION STUDIES')}</span>
+        <span>{t('3D 輪播調校', '3D CAROUSEL TUNER')}</span>
         <span>01—06 / CONTINUOUS</span>
       </div>
       <div
         className="kinetic-stage"
+        style={{ perspective: `${options.perspective}px` }}
         ref={stage}
         tabIndex={0}
         role="group"
@@ -317,6 +332,43 @@ export default function KineticCarousel() {
         ))}
         <span className="kinetic-axis" aria-hidden="true" />
       </div>
+      <div className="lab-tool-settings">
+        {(
+          [
+            ['perspective', '透視距離', 'Perspective', 400, 1800, 50, 'px'],
+            ['spacing', '卡片間距', 'Card spacing', 0.6, 1.4, 0.05, '×'],
+            ['tilt', '側向旋轉', 'Side rotation', 0, 25, 1, '°'],
+            ['depth', '景深距離', 'Depth distance', 0, 180, 5, 'px'],
+            ['scale', '景深縮放', 'Depth scale', 0, 0.2, 0.01, ''],
+            ['blur', '速度模糊', 'Velocity blur', 0, 4, 0.1, 'px'],
+          ] as const
+        ).map(([key, zh, en, min, max, step, unit]) => (
+          <label className="lab-field" key={key}>
+            <span>
+              {t(zh, en)}{' '}
+              <output>
+                {options[key]}
+                {unit}
+              </output>
+            </span>
+            <input
+              type="range"
+              aria-label={t(zh, en)}
+              min={min}
+              max={max}
+              step={step}
+              value={options[key]}
+              onChange={(event) => {
+                setAutoplay(false);
+                setOptions((previous) => ({ ...previous, [key]: Number(event.target.value) }));
+              }}
+            />
+          </label>
+        ))}
+        <button className="lab-button" onClick={() => setOptions({ ...defaultKineticOptions })}>
+          {t('重設外觀', 'Reset appearance')}
+        </button>
+      </div>
       <div className="kinetic-caption" aria-live={autoplay ? 'off' : 'polite'} aria-atomic="true">
         <span className="kinetic-index">
           {String(active + 1).padStart(2, '0')}
@@ -405,6 +457,18 @@ export default function KineticCarousel() {
         </span>
         <span>m = 1 · k = 150 · c = 19</span>
       </div>
+      <p className="lab-note">
+        {t(
+          '匯出包含目前外觀參數與繪製函式，可接到自己的拖曳或動畫狀態，手機預覽會降低模糊量',
+          'Export the current appearance and renderer for your own gesture or animation state. Mobile preview limits blur.',
+        )}
+      </p>
+      <ToolExport
+        code={kineticSource(options)}
+        filename="carousel-renderer.js"
+        mime="text/javascript;charset=utf-8"
+        label={{ zh: '輪播 Renderer', en: 'Carousel renderer' }}
+      />
     </div>
   );
 }
