@@ -1,0 +1,198 @@
+.liquidity-story {
+  height: 360vh;
+  position: relative;
+}
+.story-stage {
+  position: sticky;
+  top: 28px;
+  padding-block: 14px;
+  background: var(--bg);
+}
+.story-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.story-clock {
+  font: 32px/1.2 var(--font-mono);
+  letter-spacing: -0.04em;
+}
+.story-clock small {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.story-canvas-wrap {
+  transform: rotate(var(--camera-tilt, 0deg));
+  transform-origin: 50% 70%;
+}
+.story-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: clamp(190px, 27vw, 310px);
+}
+.story-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.story-stats span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.story-stats strong {
+  font: 23px/1.6 var(--font-mono);
+}
+.story-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  min-height: 108px;
+  padding-block: 18px;
+}
+.story-chapter-number {
+  font: 24px var(--font-mono);
+  color: var(--accent);
+}
+.story-caption h2 {
+  font-size: 21px;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+.story-caption p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 650px;
+}
+.story-scrubber {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.story-scrubber input {
+  flex: 1;
+  width: 100%;
+}
+.story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.story-actions p {
+  margin-left: auto;
+}
+.story-chapters {
+  display: flex;
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+  padding-top: 6px;
+}
+.story-chapters button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 10px 4px;
+  min-height: 44px;
+  line-height: 1.4;
+}
+.story-chapters button > span:first-child {
+  display: block;
+  font: 10px/1.8 var(--font-mono);
+  color: var(--muted);
+}
+.story-chapters button > span:last-child {
+  font-size: 12px;
+}
+.story-chapters button[aria-current] {
+  color: var(--accent);
+  box-shadow: inset 0 2px var(--accent);
+}
+.story-model-note {
+  margin-top: 10px;
+  font-size: 11px;
+}
+@media (max-width: 1199px) {
+  .story-stage {
+    top: 80px;
+  }
+}
+@media (max-width: 650px) {
+  .liquidity-story {
+    height: 300vh;
+  }
+  .story-clock {
+    font-size: 24px;
+  }
+  .story-topline .lab-kicker {
+    font-size: 10px;
+  }
+  .story-canvas-wrap canvas {
+    height: 160px;
+  }
+  .story-caption {
+    gap: 12px;
+    min-height: 112px;
+    padding-block: 12px;
+  }
+  .story-caption h2 {
+    font-size: 18px;
+  }
+  .story-caption p {
+    font-size: 13px;
+  }
+  .story-stats strong {
+    font-size: 19px;
+  }
+  .story-actions p {
+    display: none;
+  }
+  .story-chapters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 8px;
+    margin-top: 12px;
+  }
+  .story-chapters button {
+    padding-block: 5px;
+  }
+  .story-chapters button > span:last-child {
+    font-size: 12px;
+  }
+  .story-model-note {
+    font-size: 11px;
+  }
+}
+@media (max-height: 760px) {
+  .story-canvas-wrap canvas {
+    height: 170px;
+  }
+  .story-caption {
+    min-height: 95px;
+    padding-block: 10px;
+  }
+  .story-chapters {
+    margin-top: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .liquidity-story {
+    height: auto;
+  }
+  .story-stage {
+    position: relative;
+    top: auto;
+  }
+  .story-canvas-wrap {
+    transform: none;
+  }
+}

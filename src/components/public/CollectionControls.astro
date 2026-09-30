@@ -7,8 +7,9 @@ interface Props {
   config: ListConfig;
   sort: string;
   pageSize: number;
+  anchor?: string;
 }
-const { config, sort, pageSize } = Astro.props;
+const { config, sort, pageSize, anchor = '' } = Astro.props;
 const labels: Record<string, UiKey> = {
   manual: 'Manual order',
   newest: 'Newest first',
@@ -21,7 +22,7 @@ const labels: Record<string, UiKey> = {
 <form
   class="collection-controls"
   method="get"
-  action={Astro.url.pathname}
+  action={`${Astro.url.pathname}${anchor ? `#${anchor}` : ''}`}
   {...uiLabel('List options')}
 >
   {['q', 'category', 'tag'].map(

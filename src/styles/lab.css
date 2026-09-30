@@ -1,0 +1,217 @@
+.lab-shell {
+  padding-block: 38px 64px;
+}
+.lab-kicker {
+  color: var(--muted);
+  font: 12px/1.6 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lab-heading {
+  margin: 20px 0;
+  max-width: 800px;
+  font-size: clamp(32px, 4.7vw, 60px);
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.lab-intro {
+  max-width: 650px;
+  color: var(--muted);
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.75;
+}
+.lab-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.lab-breadcrumb a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+}
+.lab-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0;
+  margin: 22px 0 32px;
+  font: 11px/1.8 var(--font-mono);
+  color: var(--muted);
+}
+.lab-tags li {
+  border-bottom: 1px solid var(--border);
+  padding-block: 3px;
+}
+.lab-demo {
+  margin-block: 28px 48px;
+  min-width: 0;
+}
+.lab-demo *,
+.lab-controls > * {
+  min-width: 0;
+}
+.lab-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 16px;
+}
+.lab-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+.lab-button:hover {
+  background: var(--surface-raised);
+}
+.lab-button[aria-pressed='true'],
+.lab-button.primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.lab-button:disabled {
+  opacity: 0.5;
+}
+.lab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.lab-field :is(input, select) {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 4px;
+  font-size: 16px;
+}
+.lab-demo input[type='range'] {
+  accent-color: var(--accent);
+  min-height: 44px;
+  max-width: 100%;
+}
+.lab-demo :is(canvas, svg) {
+  max-width: 100%;
+}
+.lab-panel {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px;
+  background: var(--surface);
+}
+.lab-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 16px;
+  margin-block: 20px;
+}
+.lab-metric {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.lab-metric :is(span, dt) {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.lab-metric :is(strong, dd) {
+  display: block;
+  font: 22px/1.6 var(--font-mono);
+  margin: 0;
+}
+.lab-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.lab-technical {
+  padding-block: 28px;
+  border-top: 1px solid var(--border);
+}
+.lab-technical h2 {
+  font-size: 22px;
+  margin-bottom: 28px;
+}
+.lab-technical-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.lab-technical h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+.lab-technical p {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--muted);
+}
+.lab-next {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+.lab-next a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent);
+}
+.lab-loading {
+  padding: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+@media (max-width: 650px) {
+  .lab-technical-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .lab-panel {
+    padding: 14px;
+  }
+  .lab-shell {
+    padding-top: 24px;
+  }
+  .lab-controls {
+    gap: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-demo *,
+  .lab-index * {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}

@@ -1,0 +1,9 @@
+---
+import Layout from '../../layouts/LabLayout.astro';
+import Demo from '../../components/lab/FlowField';
+import { experiments } from '../../lib/lab/experiments';
+---
+
+<Layout experiment={experiments[4]}>
+  <Demo client:load />
+</Layout>

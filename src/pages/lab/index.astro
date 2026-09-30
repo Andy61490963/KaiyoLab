@@ -10,6 +10,10 @@ import { uiLabel, uiPlaceholder } from '../../lib/ui-language';
 import { getSettings, listPublished } from '../../lib/content';
 import { listingHref, projectList, readListing } from '../../lib/listing';
 import { LAB_CATEGORY } from '../../lib/lab';
+import Text from '../../components/lab/LabText.astro';
+import { experiments } from '../../lib/lab/experiments';
+import '../../styles/lab.css';
+import '../../styles/lab-index.css';
 
 const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 200);
 const options = readListing(Astro.url.searchParams, projectList);
@@ -25,7 +29,7 @@ const [settings, result] = await Promise.all([
   titleKey="LAB"
   description="Experiments, prototypes, and small tools."
 >
-  <div class="page-shell lab-page">
+  <div class="page-shell lab-page lab-index">
     <header class="collection-header">
       <h1 class="page-title">
         <Icon name="flask" size={36} />
@@ -35,7 +39,102 @@ const [settings, result] = await Promise.all([
         <Ui text="Experiments, prototypes, and small tools." />
       </p>
     </header>
-    <form class="search-form" method="get" action="/lab" role="search">
+    <section
+      class="lab-index-lead"
+      aria-label="Engineering experiments"
+      data-ui-label-en="Engineering experiments"
+      data-ui-label-zh="工程實驗"
+    >
+      <div>
+        <p class="lab-kicker">FIELD NOTES / INTERACTIVE SYSTEMS</p>
+        <h2>
+          <Text zh="把抽象的規則，變成能操作的系統" en="Make the rules visible" />
+        </h2>
+        <p>
+          <Text
+            zh="從一筆訂單到一萬條價格路徑，從手指的慣性到粒子的流動，五個可以拆開研究的工程實驗"
+            en="From one order to ten thousand price paths. From the momentum of a gesture to a field of particles. Five systems to explore from the inside."
+          />
+        </p>
+        <a class="lab-feature-link" href="/lab/market-replay">
+          <Text zh="進入撮合引擎" en="Open the matching engine" /> <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+      <div class="lab-index-figure" aria-hidden="true">
+        <svg viewBox="0 0 320 250" fill="none">
+          <path
+            d="M20 45H300M20 95H300M20 145H300M20 195H300M60 20V230M120 20V230M180 20V230M240 20V230"
+            class="lab-figure-grid"
+          />
+          <path
+            d="M24 133L42 127L61 135L80 111L98 118L116 89L133 95L151 81L169 133L186 151L204 192L222 173L240 158L258 139L277 145L298 113"
+            class="lab-figure-price"
+          />
+          <path d="M24 205H60V200H105V185H135V154H151V123H163V89H173" class="lab-figure-depth" />
+          <path d="M188 89H201V108H217V141H239V179H267V199H299" class="lab-figure-ask" />
+          <circle cx="151" cy="81" r="4" class="lab-figure-point" />
+          <path d="M151 28V217" class="lab-figure-cursor" />
+          <text x="20" y="17">
+            ORDER FLOW / EVENT 0284
+          </text>
+          <text x="225" y="240">
+            100.00 → 78.00
+          </text>
+        </svg>
+        <span>01—05 / ENGINEERING STUDIES</span>
+      </div>
+    </section>
+    <section
+      class="lab-experiment-index"
+      aria-label="Experiment index"
+      data-ui-label-en="Experiment index"
+      data-ui-label-zh="實驗索引"
+    >
+      <div class="lab-index-caption">
+        <span>
+          <Text zh="實驗索引" en="Experiment index" />
+        </span>
+        <span>
+          05 <Text zh="個系統" en="systems" />
+        </span>
+      </div>
+      {experiments.map((experiment) => (
+        <a class="lab-index-row" href={`/lab/${experiment.slug}`}>
+          <span class="lab-row-number">{experiment.number}</span>
+          <div>
+            <p class="lab-kicker">
+              <Text {...experiment.category} />
+            </p>
+            <h3>
+              <Text {...experiment.title} />
+            </h3>
+            <p class="lab-row-description">
+              <Text {...experiment.description} />
+            </p>
+            <ul class="lab-tags">
+              {experiment.tags.map((tag) => (
+                <li>{tag}</li>
+              ))}
+            </ul>
+          </div>
+          <span class="lab-row-arrow" aria-hidden="true">
+            ↗
+          </span>
+        </a>
+      ))}
+    </section>
+    <section class="lab-published-heading" id="lab-published">
+      <h2>
+        <Text zh="站長作品" en="Published projects" />
+      </h2>
+      <p>
+        <Text
+          zh="從後台發布到 LAB 的實驗與工具"
+          en="Experiments and tools published from the CMS"
+        />
+      </p>
+    </section>
+    <form class="search-form" method="get" action="/lab#lab-published" role="search">
       <label class="sr-only" for="lab-search">
         <Ui text="Search LAB" />
       </label>
@@ -55,7 +154,12 @@ const [settings, result] = await Promise.all([
         <Ui text="Search" /> <Icon name="arrow" size={16} />
       </button>
     </form>
-    <CollectionControls config={projectList} sort={options.sort} pageSize={result.pageSize} />
+    <CollectionControls
+      config={projectList}
+      sort={options.sort}
+      pageSize={result.pageSize}
+      anchor="lab-published"
+    />
     <div class="collection-results">
       <span>
         <Ui
@@ -65,7 +169,7 @@ const [settings, result] = await Promise.all([
         {q && <Ui text=" matching “{query}”" values={{ query: q }} />}
       </span>
       {q && (
-        <a href={listingHref(Astro.url, { q: null, page: null })}>
+        <a href={`${listingHref(Astro.url, { q: null, page: null })}#lab-published`}>
           <Ui text="Clear filters" /> <Icon name="close" size={14} />
         </a>
       )}
@@ -90,6 +194,7 @@ const [settings, result] = await Promise.all([
       pages={result.pages}
       total={result.total}
       pageSize={result.pageSize}
+      anchor="lab-published"
     />
   </div>
 </PublicLayout>

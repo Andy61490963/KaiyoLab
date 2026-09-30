@@ -9,9 +9,10 @@ interface Props {
   pages: number;
   total?: number;
   pageSize?: number;
+  anchor?: string;
 }
-const { page, pages, total, pageSize = 12 } = Astro.props;
-const pageLink = (n: number) => listingHref(Astro.url, { page: n });
+const { page, pages, total, pageSize = 12, anchor = '' } = Astro.props;
+const pageLink = (n: number) => listingHref(Astro.url, { page: n }) + (anchor ? `#${anchor}` : '');
 const visible = pageNumbers(page, pages);
 const range = paginate(total || 0, page, pageSize);
 ---
@@ -24,22 +25,46 @@ const range = paginate(total || 0, page, pageSize);
 {pages > 1 && (
   <nav class="pagination" {...uiLabel('Content pagination')}>
     {page > 1 ? (
-      <a class="pagination-direction" rel="prev" href={pageLink(page - 1)} {...uiLabel('Previous page')}>
+      <a
+        class="pagination-direction"
+        rel="prev"
+        href={pageLink(page - 1)}
+        {...uiLabel('Previous page')}
+      >
         <Icon name="back" size={17} />
       </a>
     ) : (
-      <span class="pagination-direction disabled" aria-disabled="true" {...uiLabel('Previous page')}>
+      <span
+        class="pagination-direction disabled"
+        aria-disabled="true"
+        {...uiLabel('Previous page')}
+      >
         <Icon name="back" size={17} />
       </span>
     )}
-    {visible.map((n) => n === 'gap' ? <span class="pagination-gap" aria-hidden="true">…</span> : (
-      <a href={pageLink(n)} class:list={{ selected: n === page }}
-        {...uiLabel('Page {page}', { page: n })} aria-current={n === page ? 'page' : undefined}>
-        {n}
-      </a>
-    ))}
+    {visible.map((n) =>
+      n === 'gap' ? (
+        <span class="pagination-gap" aria-hidden="true">
+          …
+        </span>
+      ) : (
+        <a
+          href={pageLink(n)}
+          class:list={{ selected: n === page }}
+          {...uiLabel('Page {page}', { page: n })}
+          aria-current={n === page ? 'page' : undefined}
+        >
+          {n}
+        </a>
+      ),
+    )}
     {page < pages ? (
-      <a class="pagination-direction" rel="next" href={pageLink(page + 1)} {...uiLabel('Next page')}>
+      <a
+        class="pagination-direction"
+        rel="next"
+        href={pageLink(page + 1)}
+        {...uiLabel('Next page')}
+      >
         <Icon size={17} />
       </a>
     ) : (

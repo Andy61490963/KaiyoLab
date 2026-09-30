@@ -1,0 +1,98 @@
+---
+import PublicLayout from './PublicLayout.astro';
+import Text from '../components/lab/LabText.astro';
+import { getSettings } from '../lib/content';
+import { experiments, type LabExperiment } from '../lib/lab/experiments';
+import '../styles/lab.css';
+interface Props {
+  experiment: LabExperiment;
+}
+const { experiment } = Astro.props;
+const settings = await getSettings();
+const next =
+  experiments[
+    (experiments.findIndex((item) => item.slug === experiment.slug) + 1) % experiments.length
+  ];
+---
+
+<PublicLayout
+  settings={settings}
+  title={experiment.title.en}
+  titleTranslations={experiment.title}
+  description={experiment.description.en}
+>
+  <div class="page-shell lab-shell">
+    <nav class="lab-breadcrumb" aria-label="LAB">
+      <a href="/lab">← LAB</a>
+      <span aria-hidden="true">/</span>
+      <span>{experiment.number}</span>
+    </nav>
+    <header>
+      <p class="lab-kicker">
+        <Text {...experiment.category} />
+      </p>
+      <h1 class="lab-heading">
+        <Text {...experiment.title} />
+      </h1>
+      <p class="lab-intro">
+        <Text {...experiment.description} />
+      </p>
+      <ul
+        class="lab-tags"
+        aria-label="Technologies"
+        data-ui-label-en="Technologies"
+        data-ui-label-zh="使用技術"
+      >
+        {experiment.tags.map((tag) => (
+          <li>{tag}</li>
+        ))}
+      </ul>
+    </header>
+    <section
+      class="lab-demo"
+      aria-label="Interactive experiment"
+      data-ui-label-en="Interactive experiment"
+      data-ui-label-zh="互動實驗"
+    >
+      <slot />
+      <noscript>
+        <p class="lab-loading">
+          <Text
+            zh="啟用 JavaScript 即可操作實驗，下方技術說明仍可直接閱讀"
+            en="Enable JavaScript to run this experiment. Technical notes remain available below."
+          />
+        </p>
+      </noscript>
+    </section>
+    <section class="lab-technical">
+      <h2>
+        <Text zh="技術筆記" en="Under the surface" />
+      </h2>
+      <div class="lab-technical-grid">
+        {experiment.notes.map((note) => (
+          <article>
+            <h3>
+              <Text {...note.title} />
+            </h3>
+            <p>
+              <Text {...note.body} />
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+    <nav
+      class="lab-next"
+      aria-label="Experiments"
+      data-ui-label-en="Experiments"
+      data-ui-label-zh="實驗導覽"
+    >
+      <a href="/lab">
+        <Text zh="回到實驗索引" en="Back to the index" />
+      </a>
+      <a href={`/lab/${next.slug}`}>
+        <Text {...next.title} /> →
+      </a>
+    </nav>
+  </div>
+</PublicLayout>

@@ -1,0 +1,164 @@
+.kinetic-lab {
+  overflow: hidden;
+  min-width: 0;
+  border-block: 1px solid var(--border);
+}
+.kinetic-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  color: var(--muted);
+  font: 0.7rem var(--font-mono);
+  letter-spacing: 0.09em;
+}
+.kinetic-stage {
+  --kinetic-card-width: 280px;
+  position: relative;
+  height: clamp(330px, 45vw, 460px);
+  perspective: 950px;
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  isolation: isolate;
+}
+.kinetic-stage[data-dragging] {
+  cursor: grabbing;
+}
+.kinetic-stage:focus-visible {
+  outline-offset: -3px;
+}
+.kinetic-card {
+  position: absolute;
+  top: 18px;
+  left: calc(50% - var(--kinetic-card-width) / 2);
+  width: var(--kinetic-card-width);
+  aspect-ratio: 4 / 5;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  backface-visibility: hidden;
+  box-shadow: 0 8px 22px rgb(20 18 20 / 13%);
+  pointer-events: none;
+}
+.kinetic-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+.kinetic-image-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 20px;
+  text-align: center;
+}
+.kinetic-image-fallback code {
+  font-size: 12px;
+}
+.kinetic-image-fallback small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.kinetic-image-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-block: 16px;
+}
+.kinetic-axis {
+  position: absolute;
+  z-index: 20;
+  bottom: 0;
+  left: 50%;
+  height: 17px;
+  width: 1px;
+  background: var(--accent);
+}
+.kinetic-caption {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.2rem 0;
+  min-height: 96px;
+}
+.kinetic-caption h2 {
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+.kinetic-caption p {
+  font: 0.75rem var(--font-mono);
+  color: var(--muted);
+  margin-top: 0.35rem;
+}
+.kinetic-index {
+  font: 2rem var(--font-mono);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.kinetic-index > span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.kinetic-controls {
+  border-top: 1px solid var(--border);
+  padding-block: 1rem;
+}
+.kinetic-direction {
+  display: flex;
+  gap: 0.5rem;
+}
+.kinetic-direction .lab-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.kinetic-readout {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  padding-block: 1rem;
+  color: var(--muted);
+  font: 0.7rem var(--font-mono);
+}
+.kinetic-readout output {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+  min-width: 4.2ch;
+}
+.kinetic-readout small {
+  font-size: inherit;
+}
+@media (max-width: 600px) {
+  .kinetic-stage {
+    height: clamp(270px, 90vw, 400px);
+  }
+  .kinetic-topline {
+    font-size: 0.63rem;
+  }
+  .kinetic-readout {
+    font-size: 0.64rem;
+  }
+  .kinetic-controls {
+    gap: 0.5rem;
+  }
+  .kinetic-caption {
+    padding-block: 0.85rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-card {
+    will-change: auto;
+  }
+}

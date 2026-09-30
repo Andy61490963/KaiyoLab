@@ -1,10 +1,18 @@
 import type { APIRoute } from 'astro';
 import { getSettings, allPublished } from '../lib/content';
 import { escapeXml as x } from '../lib/xml';
+import { experiments } from '../lib/lab/experiments';
 export const GET: APIRoute = async () => {
   const s = await getSettings();
   const all = await allPublished();
-  const pages = ['/', '/articles', '/projects', '/lab', '/about']
+  const pages = [
+    '/',
+    '/articles',
+    '/projects',
+    '/lab',
+    '/about',
+    ...experiments.map((experiment) => `/lab/${experiment.slug}`),
+  ]
     .map((p) => `<url><loc>${x(new URL(p, s.siteUrl).href)}</loc></url>`)
     .join('');
   const content = all
