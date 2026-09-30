@@ -1,30 +1,21 @@
 # KaiyoLab
 
-**自行部署的文章與作品管理系統**
+**自行部署的文章、作品與前端工具網站，附私人管理後台**
 
-KaiyoLab 是可以自行部署的個人內容管理系統，結合公開文章網站與私人管理後台。前後台共用奶油白、炭灰與莓紅色票，桌面保留固定側欄，手機使用收合導覽。透過 Markdown 管理內容，發布後立即呈現在網站。
+[![持續整合](https://github.com/Andy61490963/KaiyoLab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Andy61490963/KaiyoLab/actions/workflows/ci.yml)
+[![正式部署驗證](https://github.com/Andy61490963/KaiyoLab/actions/workflows/deployment.yml/badge.svg)](https://github.com/Andy61490963/KaiyoLab/actions/workflows/deployment.yml)
 
-[快速開始](#快速開始) · [功能](#功能) · [正式部署](docs/deployment.md) · [Zeabur 與 CI/CD](docs/zeabur.md) · [備份與還原](docs/backup-restore.md) · [參與開發](CONTRIBUTING.md)
+用 Markdown 寫文章、整理作品與編輯首頁，發布後立即更新網站，不必重新建置內容
 
-![KaiyoLab 公開首頁](docs/screenshots/home-dark.png)
+前後台沿用奶油白、炭灰與莓紅配色，支援明暗主題與中英文介面，後台預設繁體中文
 
-![KaiyoLab 作品頁：奶油白背景與文字卡片](docs/screenshots/projects-light-1440.png)
+[線上網站](https://kaiyo.zeabur.app) · [體驗 LAB](https://kaiyo.zeabur.app/lab) · [快速開始](#快速開始) · [功能](#功能) · [部署與維運](#部署與維運) · [開發與測試](#開發與測試) · [文件索引](#文件索引)
 
-![KaiyoLab 私人管理後台](docs/screenshots/admin.png)
-
-![文章列表直接拖曳整列，顯示插入位置並在放開後儲存](docs/screenshots/admin-sortable-list.png)
-
-![KaiyoLab 手機版文章編輯器](docs/screenshots/editor-mobile.png)
-
-![發布前檢查與內容差異，沿用現有後台樣式](docs/screenshots/publish-review.png)
-
-![手機版版本比較與還原草稿](docs/screenshots/history-mobile.png)
-
-以上截圖由本機端到端測試資料產生，用來展示有文章與作品時的畫面；正式網站的內容由站長自行建立。
+![KaiyoLab 公開首頁，桌面側欄與文章列表](docs/screenshots/readme-home-light.png)
 
 ## 快速開始
 
-需要已啟動的 Docker Engine 或 Docker Desktop（Linux 容器），以及 Docker Compose v2.24.4 以上。第一次啟動需要網路以下載依賴與映像。
+需要已啟動的 Docker Engine 或 Docker Desktop（Linux 容器），以及 Docker Compose v2.24.4 以上，首次建置需要網路下載依賴與映像
 
 下載專案並進入目錄：
 
@@ -33,275 +24,307 @@ git clone https://github.com/Andy61490963/KaiyoLab.git
 cd KaiyoLab
 ```
 
-**一行啟動網站、後台與資料庫：**
+**一行啟動前台、後台與資料庫：**
 
 ```bash
 docker compose up -d
 ```
 
-第一次會自動建置應用程式、產生隨機密鑰、建立 PostgreSQL 資料庫並執行 migration，不需要先建立 `.env`。
+不必先建立 `.env`，首次啟動會建置應用程式、產生隨機密鑰、啟動 PostgreSQL 並執行資料庫 migration，之後啟動不會重設帳號或內容
 
-1. 執行 `docker compose logs app`，取得「一次性初始化碼」。
-2. 開啟 [http://localhost:4321/setup](http://localhost:4321/setup)，輸入初始化碼、站長 Email、密碼與網站名稱。
-3. 完成後前往 [私人後台](http://localhost:4321/admin)，開始新增文章與作品。
+1. 執行 `docker compose logs app`，取得「一次性初始化碼」
+2. 開啟 [首次設定](http://localhost:4321/setup)，填入初始化碼、顯示名稱、網站名稱、Email 與密碼
+3. 前往 [私人後台](http://localhost:4321/admin)，新增文章與作品
 
-初始化只允許建立一位站長，完成後關閉註冊入口。網站只綁定本機 `127.0.0.1`；其他人需要透過你的正式網域與 HTTPS 存取，請參考[正式部署](docs/deployment.md)。
+| 入口     | 本機網址                      |
+| -------- | ----------------------------- |
+| 公開網站 | <http://localhost:4321>       |
+| 私人後台 | <http://localhost:4321/admin> |
+| 登入     | <http://localhost:4321/login> |
+| 首次設定 | <http://localhost:4321/setup> |
+| LAB 工具 | <http://localhost:4321/lab>   |
 
-確認狀態：
+初始化只允許建立一位站長，完成後關閉初始化及註冊入口，預設網站只綁定 `127.0.0.1`，對外提供服務請接著看[正式部署](docs/deployment.md)
+
+檢查啟動狀態：
 
 ```bash
 docker compose ps -a
-docker compose logs --tail=100 app
+docker compose logs --tail=100 app db
 ```
 
-`init-secrets` 顯示 `Exited (0)` 表示一次性初始化服務成功；`app` 與 `db` 應持續執行並通過健康檢查。
+`init-secrets` 顯示 `Exited (0)` 是正常狀態，`app` 與 `db` 應持續執行並通過健康檢查，`backup-scheduler` 在應用程式就緒後啟動
 
 ## 功能
 
-| 公開網站                              | 私人後台                               |
-| ------------------------------------- | -------------------------------------- |
-| 首頁、文章、作品與關於我              | 真實內容數量與最近修改總覽             |
-| 分類、標籤、中文關鍵字搜尋與分頁      | Markdown 編輯、格式工具列、即時預覽    |
-| 文章目錄、閱讀時間、程式碼高亮與複製  | 自動儲存、編輯衝突提示、草稿預覽       |
-| 精選文章、作品展示與相關文章          | 發布、發布更新、下架、置頂及垃圾桶還原 |
-| 明暗主題、響應式排版與減少動態        | 分類、標籤、媒體庫與替代文字管理       |
-| RSS、sitemap、canonical 與 Open Graph | 網站品牌、社群連結、SEO 與密碼管理     |
+### 公開網站與閱讀
 
-文章的「正在編輯的草稿」與「公開版本」分開保存。修改已發布文章時，訪客會繼續看到上一個發布版本，直到你按下「發布更新」。未發布內容、私人預覽與管理 API 都要求站長登入。
+| 範圍       | 已提供的功能                                                                     |
+| ---------- | -------------------------------------------------------------------------------- |
+| 內容頁面   | 首頁、文章、作品、關於我及 LAB，首頁自介可整塊使用 Markdown 編輯                 |
+| 尋找內容   | 分類、標籤、中文搜尋、多關鍵字與引號片語、分頁、手動／日期／標題排序             |
+| 閱讀       | 文章目錄、閱讀時間、程式碼高亮與複製、Mermaid 流程圖與循序圖、相關文章及系列導覽 |
+| 版面       | 明暗主題、桌面側欄、手機收合導覽、鍵盤操作及減少動態                             |
+| 分享與索引 | RSS、sitemap、canonical、SEO、Open Graph，無封面時產生含中文標題的分享圖         |
+| 發布資訊   | 分開保留首次發布與最後更新日期，修改已發布內容的網址後自動轉址                   |
 
-公開網站以簡潔個人開發者網站為設計方向：桌面以固定側欄呈現品牌與導覽，手機則收合導覽；首頁從文字自介、最新文章與精選作品展開。作品卡清楚呈現介紹、技術標籤、展示與原始碼連結。後台使用相同色票，總覽提供內容數量、最近編輯與草稿入口。明暗主題首次依系統偏好，切換結果會保留。
+文章列表與內頁使用相同的網站外框及左側導覽寬度，進入文章時不再把整個網站撐寬，桌面右欄的**目錄與相關文章一起固定**，手機改用折疊目錄
 
-後台、登入與首次設定預設使用繁體中文，右上角的「中文／EN」可即時切換英文，瀏覽器會記住選擇並同步到其他後台分頁，與公開網站的語言偏好分開保存
+首頁介紹在「後台 → 關於我 → 首頁自我介紹（Markdown）」編輯，網站描述仍獨立用於搜尋引擎摘要，介面語言切換不會翻譯或改寫站長輸入的內容
 
-切換會更新導覽、表單、編輯器、錯誤提示與日期格式，文章、分類名稱及輸入中的內容保持原文，也不會重新載入頁面；停用瀏覽器儲存時，當前分頁仍可切換語言
+### 編輯、發布與復原
 
-文章與作品列表可直接按住整列拖曳排序，沿用原本表格，不必先進入排序畫面
+| 範圍     | 已提供的功能                                                                     |
+| -------- | -------------------------------------------------------------------------------- |
+| 編輯器   | CodeMirror、Markdown 工具列、即時預覽、圖片插入、封面焦點、摘要、網址及 SEO 欄位 |
+| 草稿     | 自動儲存、儲存狀態、本機草稿復原、失敗重試與多分頁編輯衝突提示                   |
+| 發布     | 草稿與公開快照分離、發布前檢查、發布更新、下架、置頂                             |
+| 版本紀錄 | 歷史快照、文字差異比較與還原成草稿，還原後仍需確認發布                           |
+| 差異檢查 | Git 風格差異區塊，只顯示修改處及前後各 3 行，含舊新行號與增刪標記                |
+| 垃圾桶   | 文章與作品可還原或確認永久刪除，永久刪除後無法從後台復原                         |
+| 管理     | 內容總覽、分類標籤、媒體庫、品牌與社群設定、密碼變更                             |
 
-- 桌面按住文章標題或列內空白拖曳，手機長按後拖曳；鄰近列會讓出位置，放開即儲存，按 Esc 可取消
-- 短按標題仍會開啟編輯器，編輯、下架及刪除等按鈕保持原本操作
-- 跨頁可拖到「上一頁末端／下一頁開頭」，或停留在頁碼上翻頁後放到指定列
-- 在「全部」且依手動順序顯示、沒有搜尋或分類篩選時可直接拖曳；其他檢視會提示切回完整手動列表，垃圾桶不提供排序
-- 鍵盤可聚焦列前的排序把手操作；保留「調整順序」中的上移、下移與「移至…」，可直接輸入全站同類內容的位置
-- 每次移動立即儲存，前後台文章／作品列表預設依手動順序顯示；日期、標題排序仍可自行選擇，首頁「最新文章」與 RSS 維持發布時間順序
-- 排序不會發布草稿，也不改動正文、內容版本與更新日期；另一分頁變更順序時會提示重新讀取，連線失敗可重試
-- 順序會隨資料庫備份與完整內容匯出保存；匯入時保留來源相對順序，追加到既有同類內容末尾
+**自動儲存不等於發布**：修改已發布文章時，訪客繼續看到上一個公開版本，直到按下「發布更新」並確認，草稿、私人預覽與管理 API 都要求站長登入
 
-文章與作品的「垃圾桶」提供「還原」及「永久刪除」操作，永久刪除前會顯示內容標題並要求確認
+Markdown 支援表格、任務清單與程式碼區塊，渲染結果經 HTML 清理，不執行內容中的 JavaScript 或 MDX，使用「插入流程圖」可插入 Mermaid 範例，預覽與公開文章共用渲染流程，詳見 [Markdown 流程圖](docs/markdown-diagrams.md)
 
-- 永久刪除會移除草稿、發布快照、版本紀錄與舊網址轉址，無法再從後台還原
-- 圖片保留在媒體庫；確認沒有其他內容使用後，可另外刪除圖片
-- 內容若已在另一分頁還原或修改，系統會拒絕過期的刪除操作，請重新整理列表再確認
-- 刪除後保留搜尋與排序條件，最後一頁沒有資料時會回到有效頁碼
-- 既有備份與先前下載的匯出檔仍保存當時的內容，依各自的保留方式管理
+永久刪除會一併移除該內容的草稿、發布快照、版本紀錄與舊網址轉址，圖片仍保留在媒體庫，既有備份及先前下載的匯出檔也不會被回溯刪除
 
-到「後台 → 關於我」的「首頁自我介紹（Markdown）」可一次編輯首頁標題、段落、連結與圖片，儲存後立即更新。升級前的網站會先依目前顯示名稱、短介紹和網站描述產生相同的三段文字；首次儲存後，首頁文字便可獨立編輯。網站描述仍用於搜尋引擎摘要。
+### 拖曳排序與媒體
 
-升級舊版時，資料庫 migration 只會更新與舊版預設文案完全相同的網站介紹；站長自行編寫的介紹、文章和已上傳圖片不會被替換。
+- **直接拖曳整列**：文章／作品列表可按住標題或空白處拖曳，手機長按啟動，放開即儲存，短按標題仍可開啟編輯器
+- **跨頁排序**：拖至上一頁末端／下一頁開頭，或停留在頁碼上翻頁，再放到指定列，也提供鍵盤排序及「移至…」指定全站位置
+- **同步前後台**：完整列表預設依手動順序顯示，搜尋、分類篩選與其他排序下需先切回完整手動列表，首頁「最新文章」及 RSS 維持發布時間順序
+- **圖片與動畫**：支援 JPEG、PNG、WebP、GIF，每張上限 10 MiB，統一儲存為 WebP，動畫保留影格時間與循環，縮圖與內容搬移也保留動畫
+- **媒體管理**：批次上傳、搜尋、替代文字、使用位置及不同尺寸縮圖，仍被內容使用的圖片不可刪除
 
-Markdown 支援表格、任務清單與程式碼區塊，文章不執行 JavaScript 或 MDX。圖片保存於 Docker volume，媒體庫會防止刪除仍被內容使用的圖片。
+排序不會發布草稿，也不修改正文、內容版本或更新日期，另一分頁變更順序時會要求重新讀取，圖片動畫最多 200 幀，合計最多 4,000 萬解碼像素
 
-Markdown 也支援 Mermaid 流程圖與循序圖，編輯器的 **Insert flowchart** 可插入範例，預覽和公開文章共用圖表渲染；文章目錄獨立固定在右欄，相關閱讀與標籤保留原位置，避免長卡片把目錄推到畫面外。使用方式見[Markdown 流程圖](docs/markdown-diagrams.md)
+### 語言、搬家與系統狀態
 
-編輯器增加版本紀錄、文字差異、還原草稿與發布前檢查；文章可設定系列和封面焦點。發布更新保留首次發布日期，舊網址自動轉向新的公開網址。媒體庫支援批次上傳與不同尺寸縮圖。
+後台、登入及首次設定預設繁體中文，「中文／EN」可切換英文，選擇會保存並同步到其他後台分頁，與公開網站的語言偏好分開，切換時保留正在輸入的內容
 
-文章與作品的封面、正文圖片及媒體庫支援 JPEG、PNG、WebP、GIF，每張上限 10 MB；GIF 與動態 WebP 會保留影格、播放時間與循環，統一儲存為 WebP，縮圖與完整內容匯出／匯入也保留動畫
+- **內容搬家**：匯出文章、作品、版本紀錄、分類標籤、網站內容及圖片，匯入前預覽名稱與網址調整，匯入項目皆成為私人草稿，不覆蓋既有內容
+- **系統狀態**：查看版本、資料庫連線、圖片目錄，以及已記錄的備份與還原驗證時間
+- **維運**：Compose 每日完整備份、備份逾時與失敗提示、選用的加密異地副本，GitHub Actions 提供站外監測
 
-動畫最多 200 幀，所有影格合計上限 4,000 萬解碼像素；圖片超過處理限制時會顯示錯誤，可縮小尺寸或減少影格後重試
+內容搬家不包含帳號憑證及部署密鑰，來源站網址與舊網址別名僅供改寫內容連結，不會直接啟用原站轉址，需要完整保留登入與部署資料時，請使用[備份與還原](docs/backup-restore.md)，搬家流程及限制見[內容搬移](docs/content-transfer.md)
 
-公開導覽的 **LAB** 連到 `/lab`，收錄五個可調整、預覽並匯出結果的前端工具
+## LAB 前端工具
 
-| 工具            | 操作與輸出                                                    |
-| --------------- | ------------------------------------------------------------- |
-| 動畫曲線編輯器  | 拖拉 Bézier 控制點、逐格預覽位移／縮放／透明度，複製 CSS 動畫 |
-| Grid 版面編排器 | 拖拉區塊、調整行列與跨度、預覽容器寬度，複製響應式 HTML／CSS  |
-| SVG 形狀工作台  | 生成輪廓、拖拉節點、預覽 A／B 變形，複製或下載目前 SVG        |
-| 3D 輪播調校     | 調整透視、景深、間距與模糊，匯出參數與 renderer 函式          |
-| 粒子背景產生器  | 調整種子、粒子數、配色與作用力，下載目前 PNG 與設定 JSON      |
+[LAB](https://kaiyo.zeabur.app/lab) 收錄五個可直接操作、預覽並匯出結果的前端工具，工具在瀏覽器執行，不會修改網站內容
 
-工具沿用明暗與中英文切換，支援鍵盤、觸控與減少動態，使用既有 CSS、SVG、Canvas 與 React，沒有新增動畫套件，操作只在瀏覽器執行
+| 工具                                                           | 操作                                                         | 輸出                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------- |
+| [動畫曲線編輯器](https://kaiyo.zeabur.app/lab/motion-studio)   | 拖拉 Bézier 控制點、播放或拖動時間軸，預覽位移／縮放／透明度 | CSS 動畫                   |
+| [Grid 版面編排器](https://kaiyo.zeabur.app/lab/grid-studio)    | 拖拉區塊、調整行列與跨度、切換容器寬度                       | 響應式 HTML／CSS           |
+| [SVG 形狀工作台](https://kaiyo.zeabur.app/lab/svg-studio)      | 生成輪廓、編輯節點與控制柄、預覽 A／B 變形                   | 目前形狀的靜態 SVG         |
+| [3D 輪播調校器](https://kaiyo.zeabur.app/lab/kinetic-carousel) | 拖拉輪播、調整透視、景深、間距與模糊                         | 外觀參數及繪製函式         |
+| [粒子背景產生器](https://kaiyo.zeabur.app/lab/flow-field)      | 調整種子、粒子數、配色及吸引／排斥作用力                     | 目前畫面的 PNG 與設定 JSON |
 
-輪播輸出是繪製函式，整合時需自行提供卡片與手勢控制；粒子 PNG 是當下畫面，JSON 是設定而非完整動態 runtime；SVG 輸出為透明背景的靜態形狀
+輪播輸出需自行整合卡片與手勢控制，粒子 JSON 是設定，並非完整動畫程式，SVG 不包含變形動畫，工具狀態不會自動保存，離開前請複製或下載結果
 
-在「後台 → 作品」新增內容並選擇 **LAB** 分類，發布後會顯示於 LAB 的「站長作品」區，展示網址可連到可操作的工具，原始碼網址可連到專案儲存庫；搜尋及分頁後會直接定位至該區
+所有工具沿用明暗與中英文切換，支援鍵盤、觸控及減少動態，使用 CSS、SVG、Canvas 與 React，完整說明見 [LAB 工具架構與驗證](docs/lab-engineering.md)
 
-架構、輸出界線與驗證方式見 [LAB 前端工具](docs/lab-engineering.md)
+要加入自己的實驗，可在「後台 → 作品」選擇 **LAB** 分類並發布，內容會出現在 LAB 的「站長作品」區，也保留在作品列表，支援草稿、手動排序、搜尋、分頁與詳細頁
 
-![LAB 前端工具索引，沿用網站側欄與配色](docs/screenshots/lab-index.png)
+## 實際畫面
 
-![動畫曲線編輯器：編輯 Bézier 曲線與逐格預覽](docs/screenshots/lab-motion.png)
+首頁截圖取自正式網站，其餘功能截圖使用本機測試資料，文章、作品及站長資料可自行替換
 
-![Grid 版面編排器：調整區塊與預覽不同容器寬度](docs/screenshots/lab-grid.png)
+<details>
+<summary>公開網站、後台與編輯流程</summary>
 
-![SVG 形狀工作台：節點編輯、變形預覽與原始碼輸出](docs/screenshots/lab-svg.png)
+![深色首頁](docs/screenshots/readme-home-dark.png)
 
-![粒子背景產生器：配色、作用力與背景匯出](docs/screenshots/lab-flow.png)
+![文章列表整列拖曳排序](docs/screenshots/admin-sortable-list.png)
 
-LAB 沿用作品的草稿隔離、手動順序、搜尋、分頁與詳細頁，作品列表仍會包含這些內容；舊版內建 K 圖示已停用，未設定作者頭像時只顯示作者文字，自訂圖片維持原設定
+![發布前檢查與 Git 風格差異](docs/screenshots/publish-review.png)
 
-發布前檢查與版本紀錄採用 Git 風格的差異區塊，只列出修改位置及前後各 3 行內容，搭配 `−`／`+`、舊新行號與變更行數；相隔較遠的修改會分段顯示，不再把中間整篇原文一起列入比較
+</details>
 
-標題、摘要、網址等設定只列出有變更的欄位，沒有修改時會明確提示；超大內容或預覽裁切會顯示限制說明，差異檢查不會修改已公開內容，仍需按「確認發布」才會更新網站
+<details>
+<summary>LAB 工具與預覽</summary>
 
-後台的 **Content transfer** 可完整匯出內容與圖片，再預覽匯入為私人草稿；**System status** 顯示版本、資料庫、圖片儲存與已記錄的備份／還原驗證時間。GitHub Actions 提供站外監測與失敗通知設定。操作方式見[內容搬移](docs/content-transfer.md)與[內容復原及維運](docs/maintenance.md)。
+![LAB 工具索引](docs/screenshots/lab-index.png)
 
-文章搜尋支援空白分隔的多關鍵字與引號片語，手機可展開標籤篩選；清單與內頁共用閱讀時間。文章與作品的內容語言獨立於介面語言，沒有封面時自動產生含中文標題的 PNG 分享圖
+![動畫曲線編輯器](docs/screenshots/lab-motion.png)
 
-發布前檢查會提示流程圖語法及失效的章節連結；匯入時同步調整改名文章、作品與舊網址的 Markdown 連結，預覽會列出變更。網站設定加入版本保護，兩個分頁衝突時保留尚未儲存內容，並可下載副本
+![Grid 版面編排器](docs/screenshots/lab-grid.png)
 
-Compose 預設每天備份資料庫、圖片與密鑰，後台會顯示超時或最近失敗狀態；另提供可自行設定目的地的加密異地副本，操作方式見[備份與還原](docs/backup-restore.md)
+![SVG 形狀工作台](docs/screenshots/lab-svg.png)
 
-第一版適合**一個網站、一位站長**。不包含公開註冊、留言、電子報、多租戶、排程發布或拖拉版面。版本紀錄從升級時開始累積，不提供每次按鍵的完整編輯歷程。
+![粒子背景產生器](docs/screenshots/lab-flow.png)
+
+</details>
 
 ## 技術架構
 
-| 層次         | 使用技術                                                 |
-| ------------ | -------------------------------------------------------- |
-| 伺服器與路由 | Astro 7、TypeScript、官方 Node adapter，SSR 即時讀取內容 |
-| 互動介面     | React islands、Tailwind CSS、Radix UI、Lucide            |
-| 編輯器與文章 | CodeMirror、remark／rehype、Shiki                        |
-| 資料         | PostgreSQL 18、Drizzle ORM、可重複執行的 migration       |
-| 驗證         | Better Auth Email／密碼、資料庫 Session、單站長初始化    |
-| 執行環境     | Node.js 24、Docker Compose                               |
-| 品質驗證     | Astro check、Vitest、PostgreSQL 整合測試、Playwright     |
+| 層級       | 技術                                                                  |
+| ---------- | --------------------------------------------------------------------- |
+| 應用程式   | Astro 7、TypeScript、官方 Node adapter、SSR                           |
+| 互動介面   | React islands、Tailwind CSS、Radix UI、Lucide、dnd-kit                |
+| 內容渲染   | CodeMirror、remark／rehype、Shiki、Mermaid                            |
+| 資料       | PostgreSQL 18、Drizzle ORM、版本化 SQL migration                      |
+| 登入       | Better Auth Email／密碼、資料庫 Session、單一站長                     |
+| 執行與部署 | Node.js 24、Docker Compose、非 root 應用程式程序                      |
+| 品質驗證   | Astro check、Vitest、PostgreSQL 整合測試、Playwright、Docker 備份還原 |
 
 ```text
-瀏覽器 ── HTTPS／本機 HTTP ── Astro 應用程式
-                              ├─ 公開網站
-                              ├─ 私人後台與 API
-                              ├─ PostgreSQL 容器 → pg_data volume
-                              └─ 圖片檔案 → uploads volume
+瀏覽器 → Astro 應用程式容器 → PostgreSQL 容器 → pg_data volume
+           前台／後台／API  → 圖片檔案 → uploads volume
 首次初始化服務 → secrets volume → 應用程式與資料庫
+backup-scheduler → 資料庫、圖片、密鑰 → 主機 backups/ 目錄
 ```
 
-前台、後台與 API 由同一個應用程式容器提供。資料庫連接埠不對主機公開；應用程式以非 root 使用者執行。PostgreSQL 18 的持久化掛載點為 `/var/lib/postgresql`。
+前台、後台與 API 由同一個應用程式容器提供，資料庫不對主機公開連接埠，應用程式根檔案系統唯讀，圖片與密鑰獨立持久化，PostgreSQL 18 掛載於 `/var/lib/postgresql`
 
-主要公開路由：`/`、`/articles`、`/articles/[slug]`、`/projects`、`/projects/[slug]`、`/about`、`/rss.xml`、`/sitemap.xml`。私人後台為 `/admin`，登入與首次設定分別為 `/login`、`/setup`。
+| 類型       | 路由                                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| 公開內容   | `/`、`/articles`、`/articles/[slug]`、`/projects`、`/projects/[slug]`、`/about`                                 |
+| 前端工具   | `/lab`、`/lab/motion-studio`、`/lab/grid-studio`、`/lab/svg-studio`、`/lab/kinetic-carousel`、`/lab/flow-field` |
+| 索引與健康 | `/rss.xml`、`/sitemap.xml`、`/api/health`                                                                       |
+| 管理與登入 | `/admin/*`、`/login`、`/setup`                                                                                  |
+| API        | `/api/auth/*`、`/api/admin/*`、`/api/setup`                                                                     |
 
-## 設定與操作
+## 部署與維運
 
-本機預設無須修改環境變數。需要自訂時，將 `.env.example` 複製為 `.env`。
+### 環境設定
 
-| 設定                      | 預設值                         | 用途                                               |
-| ------------------------- | ------------------------------ | -------------------------------------------------- |
-| `SITE_URL`                | `http://localhost:4321`        | 建置及執行期的完整網址；變更後須 `--build`         |
-| `APP_PORT`                | `4321`                         | 本機對應連接埠；變更時也要同步 `SITE_URL`          |
-| `DOMAIN`                  | 無                             | 正式部署的唯一網域來源，建置及執行統一為 HTTPS     |
-| `DATABASE_URL`            | 由容器密鑰組成                 | 本機 npm 開發時指定 PostgreSQL 連線                |
-| `BETTER_AUTH_SECRET`      | 首次隨機產生                   | 本機 npm 開發須自行設定隨機值                      |
-| `SETUP_TOKEN`             | 首次隨機產生                   | 首次設定用的一次性初始化碼                         |
-| `UPLOAD_DIR`              | 容器 `/app/data/uploads`       | 圖片儲存目錄；本機開發可使用 `./data/uploads`      |
-| `SECRETS_DIR`             | `/run/kaiyo-secrets`           | 容器密鑰檔案目錄                                   |
-| `OPERATIONS_DIR`          | Compose `/app/data/operations` | 唯讀維運紀錄目錄，未設定時不顯示完成時間           |
-| `BACKUP_INTERVAL_SECONDS` | `86400`                        | Compose 自動備份週期，範圍 60 至 2678400 秒        |
-| `BACKUP_RETENTION_DAYS`   | `14`                           | 本機完整備份保留天數，清理不會刪除不完整或無關目錄 |
-| `BACKUP_MAX_AGE_HOURS`    | `36`                           | 後台標示備份超時的門檻，應大於備份週期             |
+本機 Compose 預設不需 `.env`，自訂時可複製 [.env.example](.env.example)，以下變數會由 Compose 讀取：
 
-Compose 不會將 `.env` 中的全部值自動傳給容器；Docker 的資料庫密碼、Auth 密鑰與初始化碼以 named volume 保存。上表的本機開發變數僅供 `npm` 工作流程使用。
+| 變數                      | 預設值                  | 用途                                                                  |
+| ------------------------- | ----------------------- | --------------------------------------------------------------------- |
+| `SITE_URL`                | `http://localhost:4321` | 建置及執行期的完整網址，變更後須重新建置                              |
+| `APP_PORT`                | `4321`                  | 本機對應連接埠，變更時同步更新 `SITE_URL`                             |
+| `DOMAIN`                  | 無                      | 使用 `compose.production.yaml` 時指定 HTTPS 網域，統一覆寫 `SITE_URL` |
+| `BACKUP_INTERVAL_SECONDS` | `86400`                 | 自動備份週期，範圍 60–2678400 秒                                      |
+| `BACKUP_RETENTION_DAYS`   | `14`                    | 本機完整備份保留天數                                                  |
+| `BACKUP_MAX_AGE_HOURS`    | `36`                    | 後台標示備份逾時的門檻，應大於備份週期                                |
 
-停止並保留資料：
+直接使用 Node 開發或自行管理容器時，還需設定 `DATABASE_URL`、`BETTER_AUTH_SECRET`、`SETUP_TOKEN`、`UPLOAD_DIR`，維運紀錄使用選填的 `OPERATIONS_DIR`，範例見[本機開發](docs/development.md)與 [Zeabur 部署](docs/zeabur.md)
+
+Compose 不會把 `.env` 全部變數自動傳進容器，預設密鑰由 `secrets` volume 提供，掛載於 `/run/kaiyo-secrets`，圖片位於 `/app/data/uploads`，不要只替換資料庫或密鑰其中一個 volume
+
+### 公開網域與 CI/CD
+
+正式部署需設定網域、HTTPS 與可信代理來源，使用隨附 Caddy 時，在 `.env` 設定 `DOMAIN=你的網域`，確認 DNS 及 80／443 連接埠後執行：
 
 ```bash
-docker compose down
+docker compose -f compose.yaml -f compose.production.yaml up -d --build --wait
 ```
 
-再次啟動：
+更換網域後必須重新建置，建置時與執行期的站點網址需一致，已有代理及 Zeabur 的設定步驟見[正式部署](docs/deployment.md)與 [Zeabur 與 CI/CD](docs/zeabur.md)
 
-```bash
-docker compose up -d
-```
+- PR 與 `main`：型別、核心規則、資料庫、Docker 全新啟動、瀏覽器流程、容器重建及備份還原驗證
+- 正式部署：設定 `PRODUCTION_URL` 後，驗證指定 commit 已上線、公開頁面及私人 API 邊界
+- 外部監測：設定 `PRODUCTION_URL` 後定期檢查網站，通知依 GitHub Actions 通知設定，排程可能延遲
+- 版本發布：推送 `v*` 標籤，通過驗證後建立 GHCR 的 amd64／arm64 映像
 
-`pg_data`、`uploads`、`secrets` 都會保留。**不要在仍需要資料時執行 `docker compose down -v`**；它會永久刪除這個 Compose 專案的資料庫、圖片與密鑰 volumes。
+通用 GHCR 映像以本機 HTTP 網址建置，**自己的 HTTPS 網域仍須從原始碼建置**，可用版本以實際發布紀錄為準，驗證結果請查看 [GitHub Actions](https://github.com/Andy61490963/KaiyoLab/actions)
 
-### 密碼復原
+### 資料保存、備份與復原
 
-不需要配置 Email 寄信。擁有部署主機操作權限的人可執行：
+| 操作           | 指令／行為                                             |
+| -------------- | ------------------------------------------------------ |
+| 停止並保留資料 | `docker compose down`                                  |
+| 再次啟動       | `docker compose up -d`                                 |
+| 立即完整備份   | `docker compose --profile maintenance run --rm backup` |
+| 查看排程備份   | `docker compose logs --tail=100 backup-scheduler`      |
+| 復原站長密碼   | `docker compose exec app npm run account:recover`      |
 
-```bash
-docker compose exec app npm run account:recover
-```
+`pg_data`、`uploads`、`secrets` 保存在 Docker volumes，重建容器仍保留資料，**`docker compose down -v` 會刪除這些 volumes**，主機 `backups/` 目錄中的既有備份不會隨之刪除
 
-指令會產生新的隨機密碼並讓所有既有 Session 登出；使用新密碼登入後，請在後台變更為自己的密碼。請勿將這段終端機輸出貼到公開 issue。
+Compose 預設每 24 小時備份資料庫、圖片及密鑰到 `backups/`，保留約 14 天，同機備份無法處理整台主機遺失，異地加密副本需另行設定目的地，Zeabur 不會自動執行 Compose 的排程容器，請依[備份與還原](docs/backup-restore.md)設定適用的備份方式
 
-### 更新與回復
+密碼復原會產生新隨機密碼並使既有 Session 失效，不需寄信服務，登入後可在後台變更密碼，請勿公開復原輸出或包含帳號、私人內容與密鑰的備份
 
-1. 依照[備份說明](docs/backup-restore.md)保存資料庫、圖片與密鑰。
-2. 更新到所需的版本標籤或 commit。
-3. 執行 `docker compose up -d --build --wait`，啟動時會自動執行 migration。
-4. 檢查首頁、登入、圖片與 `/api/health`。
+### 升級與回復
 
-Migration 失敗時應用程式不會開始服務，請先查看日誌並修正原因。回退程式版本不會自動逆轉資料庫結構；若新版 migration 不相容，請把更新前的完整備份還原到新的 Compose 專案，再切換流量。
+1. 建立包含資料庫、圖片與密鑰的完整備份
+2. 更新到指定版本標籤或 commit
+3. 執行 `docker compose up -d --build --wait`，正式 Caddy 部署需保留相同的 `-f` 參數
+4. 檢查 `/api/health`、首頁、登入與圖片
 
-## 開發
+Migration 失敗會阻止應用程式啟動，先查看日誌，回退程式不會自動逆轉資料庫結構，遇到不相容變更時，將更新前的備份還原到新的 Compose 專案，驗證後再切換流量，詳見[備份與還原](docs/backup-restore.md)
 
-需要 Node.js 24 與 PostgreSQL 18。建立本機專用資料庫、設定 `DATABASE_URL`、`BETTER_AUTH_SECRET`、`SETUP_TOKEN` 和 `SITE_URL=http://localhost:4321`，不要使用正式資料庫進行測試。
+## 開發與測試
+
+需要 Node.js 24 與 PostgreSQL 18，建立專用開發資料庫，將 `.env.example` 複製為 `.env`，設定資料庫連線、獨立隨機密鑰、初始化碼、圖片目錄與 `SITE_URL=http://localhost:4321`
 
 ```bash
 npm ci
 node --env-file=.env scripts/migrate.mjs
-node --env-file=.env node_modules/astro/bin/astro.mjs dev --host 127.0.0.1 --ignore-lock
+npm run dev
 ```
 
-伺服器端讀取 `process.env`，上述指令使用 Node 24 的 `--env-file` 明確載入 `.env`，並以前景模式啟動開發伺服器。資料庫維護指令也使用相同設定：
+`npm run dev` 會載入 `.env` 並以前景模式啟動，按 Ctrl+C 停止，修改資料結構時新增 migration，不修改已發布的 migration
 
-```bash
-node --env-file=.env scripts/migrate.mjs
-```
-
-獨立啟動本機開發資料庫的範例，密碼請替換為自己產生的隨機值：
-
-```bash
-docker run -d --name kaiyolab-dev-db -p 127.0.0.1:5432:5432 -e POSTGRES_USER=kaiyo -e POSTGRES_DB=kaiyolab -e POSTGRES_PASSWORD=請替換成隨機密碼 -v kaiyolab_dev_pg:/var/lib/postgresql postgres:18-bookworm
-```
-
-新增資料結構變更時，請加入新的版本化 migration，不修改已發布的 migration。正式啟動會先執行 migration，成功後才啟動 Astro。
-
-檢查與測試：
+型別、核心規則、資料庫與正式建置：
 
 ```bash
 npm run check
 npm test
-npm run test:integration
-npm run build
-npx playwright install chromium
-npm run test:e2e
+node --env-file=.env node_modules/vitest/vitest.mjs run tests/integration
+node --env-file=.env node_modules/astro/bin/astro.mjs build
 ```
 
-整合測試需要 `DATABASE_URL` 及可建立測試資料庫的 PostgreSQL 帳號，未提供連線時會略過；瀏覽器測試需要獨立的空白測試站或對應站長帳號。可直接執行的跨平台指令、Astro 前景模式與測試環境設定見[本機開發與測試](docs/development.md)。CI 會在 Linux 上驗證 Docker 全新啟動、瀏覽器操作、容器重建與備份還原；版本標籤 `v*` 會觸發 amd64／arm64 映像發布至 GHCR。工作流程存在不代表該次驗證已成功，請以 GitHub Actions 的執行結果為準。
+整合測試需要 `DATABASE_URL` 與可建立測試資料庫的帳號，缺少連線設定時會略過，不應視為已通過資料庫驗證
+
+瀏覽器測試另建 `.env.test`，使用**獨立的空白測試資料庫與圖片目錄**，設定 `E2E_EMAIL`、`E2E_PASSWORD`，並先停止占用 4321 的開發網站：
+
+```bash
+node --env-file=.env.test scripts/migrate.mjs
+npx playwright install chromium
+node --env-file=.env.test node_modules/@playwright/test/cli.js test
+```
+
+瀏覽器測試會建立站長、文章、作品並操作設定，不可對正式網站執行，沿用已初始化測試站時，測試帳密需與站長相符，環境範例及完整指令見[本機開發與測試](docs/development.md)
 
 ## 常見問題
 
-**第一次無法立即打開網站？**
+**管理頁面在哪裡？**
 
-映像建置與套件下載需要時間。先執行 `docker compose ps -a` 與 `docker compose logs --tail=100 app db`。Docker Desktop 必須已啟動並使用 Linux containers。
+在自己的網站網址後加 `/admin`，未登入會轉到 `/login`，尚未初始化時先開 `/setup`
 
 **初始化碼在哪裡？**
 
-`docker compose logs app` 會在首次設定前顯示初始化碼；完成設定後，重啟不再顯示。若初始化後忘記密碼，請使用帳號復原指令。
+本機執行 `docker compose logs app`，Zeabur 則查看應用程式服務的執行日誌，初始化完成後重啟不再顯示代碼，忘記密碼請使用帳號復原指令
 
-**換了本機 port 後無法登入？**
+**第一次啟動後打不開？**
 
-把 `APP_PORT` 與 `SITE_URL` 同步，例如 `APP_PORT=8080`、`SITE_URL=http://localhost:8080`，再執行 `docker compose up -d`。瀏覽器網址必須與設定的來源一致。
+確認 Docker Engine 已啟動且使用 Linux 容器，等待映像建置完成，再以 `docker compose ps -a` 與 `docker compose logs --tail=100 app db` 查看狀態，不要刪除 volumes 排錯
 
-**為什麼編輯文章後前台沒有變？**
+**更換本機 port 後無法登入？**
 
-自動儲存保留草稿；按下「發布更新」才更新公開版本。
+同步設定 `APP_PORT=8080` 與 `SITE_URL=http://localhost:8080`，再執行 `docker compose up -d --build --wait`，瀏覽器網址需與設定來源一致
 
-**怎麼讓別人看到網站？**
+**文章編輯後為什麼還沒公開？**
 
-使用自己的網域與 [Caddy HTTPS 部署](docs/deployment.md)，將 DNS 指向主機並開放 80／443。預設 4321 僅接受本機連線。
+自動儲存只更新草稿，已發布內容需按「發布更新」並確認，歷史版本還原與內容匯入也不會自動發布
 
-**資料庫出現密碼驗證錯誤？**
+**為什麼不能拖曳排序或刪除圖片？**
 
-既有 PostgreSQL volume 的密碼不會因環境變數變更而重設。請確認資料庫與 `secrets` 是同一份部署／備份，勿只刪除密鑰 volume 再重啟。
+拖曳需使用「全部」且依手動順序顯示，先清除搜尋與分類篩選，垃圾桶不提供排序，圖片若仍被內容引用，需先移除引用後再刪除
 
-**如何完整備份？**
+## 文件索引
 
-資料庫備份不含圖片，請一併備份 `uploads` 與 `secrets`。[備份與還原文件](docs/backup-restore.md)提供可直接執行的步驟。
+| 目的                     | 文件                                         |
+| ------------------------ | -------------------------------------------- |
+| HTTPS、網域與代理        | [正式部署](docs/deployment.md)               |
+| Zeabur、版本驗證與監測   | [Zeabur 與 CI/CD](docs/zeabur.md)            |
+| 備份、異地副本與災難復原 | [備份與還原](docs/backup-restore.md)         |
+| 匯出、匯入與搬家限制     | [內容搬移](docs/content-transfer.md)         |
+| 版本紀錄與系統狀態       | [內容復原及維運](docs/maintenance.md)        |
+| Mermaid 範例與限制       | [Markdown 流程圖](docs/markdown-diagrams.md) |
+| LAB 架構、匯出與驗證     | [LAB 前端工具](docs/lab-engineering.md)      |
+| 開發環境與測試           | [本機開發與測試](docs/development.md)        |
+| 回報問題與貢獻           | [貢獻指南](CONTRIBUTING.md)                  |
 
-## 開源與素材
+## 範圍與授權
 
-程式碼採 [MIT 授權](LICENSE)，保留原有授權聲明。歡迎閱讀[貢獻指南](CONTRIBUTING.md)。
+目前適合**一個網站、一位站長**，不提供公開註冊、留言、電子報、多租戶、排程發布或拖拉式頁面編排，歷史版本從功能啟用後累積，不會補回升級前的文字，也不保存每一次按鍵
 
-目前公開網站的排版與色彩參考 [Tania Rascia 的作品頁](https://www.taniarascia.com/projects/)，介面自行實作，保留 KaiyoLab 的品牌與內容，未使用對方的文章、圖像或程式碼。初版視覺曾參考 [Codfisher 的 cod-aquarium](https://github.com/Codfisher/cod-aquarium)，相關歷史素材來源仍保留記錄。字體及套件適用各自授權；詳見[素材與第三方授權](docs/credits.md)及[視覺素材來源](docs/assets.md)。
+程式碼採 [MIT 授權](LICENSE)，保留原有授權聲明，字體及第三方套件依各自授權，字體隨專案提供，不依賴第三方字體 CDN
 
-相關官方文件：[Astro Node adapter](https://docs.astro.build/en/guides/integrations-guide/node/)、[PostgreSQL 容器](https://hub.docker.com/_/postgres)、[Compose 啟動順序](https://docs.docker.com/compose/how-tos/startup-order/)。
+公開網站的排版與色彩參考 [Tania Rascia 的作品頁](https://www.taniarascia.com/projects/)，介面自行實作，未使用對方的文章、圖像或程式碼，初版視覺曾參考 [cod-aquarium](https://github.com/Codfisher/cod-aquarium)，素材來源及授權詳見[素材與第三方授權](docs/credits.md)及[視覺素材來源](docs/assets.md)
