@@ -14,7 +14,11 @@ export function diagramProblem(source: string): string | null {
     return 'Use a flowchart or sequenceDiagram without configuration frontmatter';
   if (
     /%%\s*\{|(?:^|;)\s*(?:click|link|links|style|classDef|linkStyle)\s|url\s*\(|@\{|<|>/m.test(
-      source.replace(/<<-->>|<<->>|<-->|-->>|->>|<--|-->|->|--\)|-\)|--x|-x|--o|-o/g, ''),
+      source
+        // Mermaid 的純換行標記不是可執行 HTML；只在政策檢查副本中略過。
+        // 不接受屬性，不改寫原文；渲染仍使用 strict、SVG 文字與 DOMPurify。
+        .replace(/<br[ \t]*\/?>/gi, '')
+        .replace(/<<-->>|<<->>|<-->|-->>|->>|<--|-->|->|--\)|-\)|--x|-x|--o|-o/g, ''),
     )
   )
     return 'Diagram links, HTML, custom styles and configuration are not supported';
