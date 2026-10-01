@@ -38,12 +38,14 @@ describe('Mermaid plain line breaks', () => {
     expect(diagramProblem(`flowchart TB\n A[${'<br/>'.repeat(2500)}]`)).not.toBeNull();
   });
 
-  it('Markdown preserves the exact original line-break source as escaped text', async () => {
+  it('Markdown preserves line-break markers and source lines as escaped text', async () => {
     const result = await renderMarkdown(diagramFence(guidFlowchart));
     const dom = new JSDOM(result.html);
     try {
       const source = dom.window.document.querySelector('[data-diagram-source] code');
-      expect(source?.textContent?.trimEnd()).toBe(guidFlowchart);
+      // Pretty-code pads empty lines with a space; preserve all non-empty lines verbatim.
+      const renderedSource = source?.textContent?.replace(/^[ \t]+$/gm, '').trimEnd();
+      expect(renderedSource).toBe(guidFlowchart);
       expect(source?.querySelector('br')).toBeNull();
       expect(dom.window.document.querySelector('script, img, iframe')).toBeNull();
     } finally {
