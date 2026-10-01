@@ -3,6 +3,7 @@ import { editorMessages, editorMessage } from './admin-messages-editor';
 import { toolsMessages, toolsMessage } from './admin-messages-tools';
 import { errorMessages, adminErrorMessage } from './admin-messages-errors';
 import { orderMessages } from './admin-messages-order';
+import { draftBodyMessages } from './admin-messages-draft-body';
 
 export const ADMIN_LANGUAGE_KEY = 'kaiyo-admin-language';
 export type AdminLanguage = 'zh-TW' | 'en';
@@ -30,6 +31,7 @@ const messages: Record<string, string> = {
   ...toolsMessages,
   ...errorMessages,
   ...orderMessages,
+  ...draftBodyMessages,
   Admin: '管理後台',
   Yes: '是',
   No: '否',
