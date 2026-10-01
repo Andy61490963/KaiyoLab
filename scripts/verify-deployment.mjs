@@ -8,6 +8,7 @@ const revision = process.env.EXPECTED_REVISION;
 if (!/^[a-f0-9]{40}$/.test(revision || '')) throw new Error('缺少完整的預期 Git 版本。');
 const deadline = Date.now() + 20 * 60 * 1000;
 let ready = false;
+let contentReceipt = null;
 let lastStatus = '尚未收到回應';
 while (Date.now() < deadline) {
   try {
@@ -20,6 +21,7 @@ while (Date.now() < deadline) {
     const health = response.ok ? await response.json() : null;
     if (health?.status === 'ok' && health.revision === revision) {
       ready = true;
+      contentReceipt = health.contentSeed;
       break;
     }
     if (health?.status === 'ok') lastStatus += '，執行版本與預期不符';
@@ -32,6 +34,20 @@ while (Date.now() < deadline) {
 }
 if (!ready)
   throw new Error(`指定版本未在 20 分鐘內健康上線（${lastStatus}），請先檢查容器事件與映像下載，再查看應用程式記錄。`);
+if (origin.origin === 'https://kaiyo.zeabur.app') {
+  if (contentReceipt?.batch !== 'commit-stories-20261001' ||
+      !['applied', 'already-applied'].includes(contentReceipt.status))
+    throw new Error('正式版本已上線，但尚未取得五篇文章的一次性建立完成回執');
+  if (contentReceipt.status === 'applied' &&
+      (!Number.isInteger(contentReceipt.created) || !Number.isInteger(contentReceipt.preserved) ||
+       contentReceipt.created < 0 || contentReceipt.preserved < 0 ||
+       contentReceipt.created + contentReceipt.preserved !== 5))
+    throw new Error('文章建立回執的筆數不正確');
+  // Log only the fixed batch result, not arbitrary JSON returned by a remote service.
+  console.log(`文章建立驗證：commit-stories-20261001 ${contentReceipt.status}` +
+    (contentReceipt.status === 'applied'
+      ? `; created=${contentReceipt.created}; preserved=${contentReceipt.preserved}` : ''));
+}
 for (const path of ['/', '/articles', '/projects', '/about', '/rss.xml', '/sitemap.xml']) {
   const response = await fetch(new URL(path, origin), {
     signal: AbortSignal.timeout(15000),

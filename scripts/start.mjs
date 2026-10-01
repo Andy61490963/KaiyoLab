@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { seedCommitStories } from './seed-commit-stories.mjs';
 
 const secretsDirectory = process.env.SECRETS_DIR || '/run/kaiyo-secrets';
 // 平台沒有 Compose 初始化服務時，以獨立持久硬碟初始化一次。
@@ -59,12 +60,20 @@ if (maintenance[0] === 'recover') {
   await run(process.execPath, ['scripts/migrate.mjs']);
   const { default: pg } = await import('pg');
   const database = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  // Only the committed result of this startup may populate the deployment receipt.
+  delete process.env.KAIYO_CONTENT_SEED_RECEIPT;
   try {
     await database.connect();
     const result = await database.query('SELECT setup_complete FROM system_state WHERE id = 1');
     if (!result.rows[0]?.setup_complete) {
       console.log(`首次設定網址：${process.env.SITE_URL}/setup`);
       console.log(`一次性初始化碼：${process.env.SETUP_TOKEN}`);
+    }
+    const receipt = await seedCommitStories(database, process.env.SITE_URL);
+    if (receipt) {
+      process.env.KAIYO_CONTENT_SEED_RECEIPT =
+        `${receipt.batch}:${receipt.status}:${receipt.created ?? 0}:${receipt.preserved ?? 0}`;
+      console.log(`Content seed: ${JSON.stringify(receipt)}`);
     }
   } finally {
     await database.end();
