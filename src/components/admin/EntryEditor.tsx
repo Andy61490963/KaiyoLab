@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminLanguage } from './AdminLanguage';
 import { editorCodeMirrorPhrases } from '../../lib/admin-messages-editor';
 import { LAB_CATEGORY } from '../../lib/lab';
+import {
+  bodyClearConfirmationMessage,
+  needsBodyClearConfirmation,
+} from '../../lib/draft-body-safety';
 import { readRecovery, type DraftRecovery } from './draft-recovery';
 import EntryHistory from './EntryHistory';
 import PublishReview from './PublishReview';
@@ -167,6 +171,10 @@ export default function EntryEditor({
             ? await api<Entry>('/api/admin/entries', json('POST', { kind }))
             : await api<Entry>(`/api/admin/entries/${id}`);
         if (!active) return;
+        if (typeof result?.content?.body !== 'string')
+          throw new Error(
+            'The server did not return a valid draft body. Editing has been stopped to protect your content.',
+          );
         if (id === 'new') window.history.replaceState({}, '', editorUrl(result));
         currentEntry.current = result;
         current.current = result.content;
@@ -214,7 +222,7 @@ export default function EntryEditor({
     setNotice('');
     if (!blocked.current) setSaveState(serialize(next) === stored.current ? 'saved' : 'pending');
   }
-  async function persist(): Promise<Entry | null> {
+  async function persist(confirmedSnapshot?: string): Promise<Entry | null> {
     if (saving.current) return saving.current;
     if (blocked.current || recovery) return null;
     const task = async () => {
@@ -225,10 +233,24 @@ export default function EntryEditor({
           serialize(current.current) !== stored.current
         ) {
           const snapshot = structuredClone(current.current);
+          const clearsBody = needsBodyClearConfirmation(
+            currentEntry.current.content.body,
+            snapshot.body,
+          );
+          // Approval applies only to the exact snapshot explicitly confirmed by the author.
+          const confirmEmptyBody = clearsBody && serialize(snapshot) === confirmedSnapshot;
+          if (clearsBody && !confirmEmptyBody) {
+            setSaveState('pending');
+            return null;
+          }
           setSaveState('saving');
           const result = await api<Entry>(
             `/api/admin/entries/${currentEntry.current.id}`,
-            json('PATCH', { version: currentEntry.current.version, content: snapshot }),
+            json('PATCH', {
+              version: currentEntry.current.version,
+              content: snapshot,
+              ...(confirmEmptyBody ? { confirmEmptyBody: true } : {}),
+            }),
           );
           currentEntry.current = result;
           stored.current = serialize(snapshot);
@@ -259,6 +281,68 @@ export default function EntryEditor({
       saving.current = null;
     }
   }
+  async function saveDraft() {
+    if (actionInFlight.current || editorLocked || recovery || blocked.current) return;
+    if (!current.current || !currentEntry.current || currentEntry.current.deletedAt) return;
+    actionInFlight.current = true;
+    setActing(true);
+    try {
+      // Wait for an earlier autosave before deciding which persisted body would be cleared.
+      if (saving.current) await saving.current;
+      if (blocked.current || !current.current || !currentEntry.current) return;
+      const snapshot = serialize(current.current);
+      if (
+        needsBodyClearConfirmation(currentEntry.current.content.body, current.current.body) &&
+        !window.confirm(
+          t(
+            'Save an empty draft body? The previous body will be kept in version history. The public version will not change.',
+          ),
+        )
+      )
+        return;
+      await persist(snapshot);
+    } finally {
+      actionInFlight.current = false;
+      setActing(false);
+    }
+  }
+  async function restoreBody() {
+    if (actionInFlight.current || editorLocked || recovery || blocked.current) return;
+    if (
+      !current.current ||
+      !currentEntry.current ||
+      currentEntry.current.deletedAt ||
+      current.current.body.trim() ||
+      currentEntry.current.content.body.trim()
+    )
+      return;
+    actionInFlight.current = true;
+    setActing(true);
+    setError('');
+    setNotice('');
+    try {
+      // Save pending metadata first. The recovery endpoint replaces only the stored body.
+      const saved = await persist();
+      if (!saved) return;
+      const result = await api<Entry>(
+        `/api/admin/entries/${saved.id}/restore-body`,
+        json('POST', { version: saved.version }),
+      );
+      restoreVersion(result);
+      setNotice(
+        'Published body restored to the draft. Draft settings and the public version have not changed.',
+      );
+    } catch (e) {
+      setError(errorMessage(e));
+      if (e instanceof ApiError && e.status === 409) {
+        blocked.current = true;
+        setConflict(true);
+      }
+    } finally {
+      actionInFlight.current = false;
+      setActing(false);
+    }
+  }
   useEffect(() => {
     if (
       !content ||
@@ -283,12 +367,13 @@ export default function EntryEditor({
     const shortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        if (!acting && !conflict && !recovery && !currentEntry.current?.deletedAt) void persist();
+        if (!editorLocked && !conflict && !recovery && !currentEntry.current?.deletedAt)
+          void saveDraft();
       }
     };
     document.addEventListener('keydown', shortcut);
     return () => document.removeEventListener('keydown', shortcut);
-  }, [acting, conflict, recovery]);
+  }, [editorLocked, conflict, recovery, language]);
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
       if (current.current && serialize(current.current) !== stored.current) {
@@ -523,6 +608,12 @@ export default function EntryEditor({
         )}
       </>
     );
+  const bodyClearPending = needsBodyClearConfirmation(entry.content.body, content.body);
+  const bodyRecoveryAvailable =
+    !entry.deletedAt &&
+    !entry.content.body.trim() &&
+    !content.body.trim() &&
+    !!entry.published?.body.trim();
   const publicUrl = `/${kind === 'article' ? 'articles' : 'projects'}/${encodeURIComponent(entry.published?.slug || content.slug)}`;
   const fieldLimits: Partial<Record<keyof EntryContent, number>> = {
     slug: 160,
@@ -587,7 +678,13 @@ export default function EntryEditor({
             ) : (
               <span className="admin-status-dot" />
             )}
-            {t(recovery ? 'Recovery decision required' : labels[saveState])}
+            {t(
+              recovery
+                ? 'Recovery decision required'
+                : bodyRecoveryAvailable && saveState === 'saved'
+                  ? 'Saved draft body is empty'
+                  : labels[saveState],
+            )}
           </span>
           {entry.deletedAt ? (
             <button
@@ -602,7 +699,7 @@ export default function EntryEditor({
               <button
                 className="admin-button"
                 disabled={editorLocked || conflict || !!recovery}
-                onClick={() => void persist()}
+                onClick={() => void saveDraft()}
                 title={t('Save draft (Ctrl/Cmd+S)')}
                 aria-keyshortcuts="Control+s Meta+s"
               >
@@ -623,6 +720,42 @@ export default function EntryEditor({
       </div>
       <Alert message={error} />
       <Alert message={notice} success />
+      {bodyClearPending && !recovery && !entry.deletedAt && (
+        <div className="admin-recovery" role="alert">
+          <p>{t(bodyClearConfirmationMessage)}</p>
+          <button
+            className="admin-button small"
+            type="button"
+            disabled={editorLocked || conflict}
+            onClick={() => {
+              update('body', entry.content.body);
+              if (error === bodyClearConfirmationMessage) setError('');
+            }}
+          >
+            {t('Keep saved body')}
+          </button>
+        </div>
+      )}
+      {bodyRecoveryAvailable && !recovery && (
+        <div className="admin-recovery" role="status">
+          <div>
+            <strong>{t('Saved draft body is empty')}</strong>
+            <p>
+              {t(
+                'The published version still has a body. Restore only that body while keeping your current title, slug, tags and other draft settings. This does not publish changes.',
+              )}
+            </p>
+          </div>
+          <button
+            className="admin-button primary small"
+            type="button"
+            disabled={editorLocked || conflict}
+            onClick={() => void restoreBody()}
+          >
+            <RefreshCw size={15} /> {t('Restore published body')}
+          </button>
+        </div>
+      )}
       {backupUnavailable && (
         <div className="admin-alert admin-storage-warning" role="status">
           {t(

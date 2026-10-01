@@ -7,6 +7,10 @@ import { z } from 'zod';
 import { db, entries, taxonomies, media } from '../../../lib/db';
 import { json, body, HttpError, errorResponse, contentSchema } from '../../../lib/http';
 import { serializeEntry, listTaxonomies } from '../../../lib/content';
+import {
+  bodyClearConfirmationMessage,
+  needsBodyClearConfirmation,
+} from '../../../lib/draft-body-safety';
 import { getSettingsSnapshot, saveSettingsSnapshot } from '../../../lib/settings';
 import { persistMediaFile } from '../../../lib/media-persistence';
 import { imageLimits, processUploadImage } from '../../../lib/image-processing';
@@ -274,7 +278,11 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
         const input =
           method === 'PATCH'
             ? z
-                .object({ version: versionSchema, content: contentSchema })
+                .object({
+                  version: versionSchema,
+                  content: contentSchema,
+                  confirmEmptyBody: z.boolean().optional(),
+                })
                 .parse(await body(request))
             : z
                 .object({
@@ -298,10 +306,15 @@ export const ALL: APIRoute = async ({ request, params, url }) => {
           };
           if ('content' in input) {
             if (old.deletedAt) throw new HttpError(409, 'Restore this content before editing.');
+            const clearsBody = needsBodyClearConfirmation(old.content.body, input.content.body);
+            if (clearsBody && input.confirmEmptyBody !== true)
+              throw new HttpError(422, bodyClearConfirmationMessage);
             await assertAvailableSlug(database, old.kind, input.content.slug, id);
             await ensureMedia(database, input.content);
             await syncTaxonomies(database, input.content);
-            await checkpointDraft(database, old);
+            // A confirmed destructive change must always have a recovery point.
+            if (clearsBody) await recordRevision(database, old, 'draft');
+            else await checkpointDraft(database, old);
             changes.content = input.content;
           } else if (input.action === 'publish') {
             if (old.deletedAt) throw new HttpError(409, 'Restore this content first.');
