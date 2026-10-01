@@ -7,7 +7,13 @@ import { emptyContent } from '../../src/lib/defaults';
 import type { Entry, EntryContent } from '../../src/lib/types';
 import { cleanupTestDatabase } from '../helpers/database-cleanup';
 
- describe.skipIf(!process.env.DATABASE_URL)('draft body protection and recovery', () => {
+// Route-level tests provide only the context fields these handlers consume.
+// Authentication and the complete Astro request lifecycle are covered by E2E tests.
+function routeContext(context: Pick<APIContext, 'request' | 'params' | 'url'>): APIContext {
+  return context as unknown as APIContext;
+}
+
+describe.skipIf(!process.env.DATABASE_URL)('draft body protection and recovery', () => {
   const originalDatabaseUrl = process.env.DATABASE_URL;
   const originalSiteUrl = process.env.SITE_URL;
   let admin: pg.Pool;
@@ -90,7 +96,7 @@ import { cleanupTestDatabase } from '../helpers/database-cleanup';
   }
   async function call(method: string, path: string, payload?: unknown) {
     const url = new URL(`/api/admin/${path}`, 'http://localhost:4321');
-    return await legacy.ALL({
+    return await legacy.ALL(routeContext({
       request: new Request(url, {
         method,
         headers: { 'Content-Type': 'application/json', Origin: url.origin },
@@ -98,11 +104,11 @@ import { cleanupTestDatabase } from '../helpers/database-cleanup';
       }),
       params: { path },
       url,
-    } as APIContext);
+    }));
   }
   async function restore(id: string, payload: unknown = { version: 17 }) {
     const url = new URL(`/api/admin/entries/${id}/restore-body`, 'http://localhost:4321');
-    return await restoreRoute.POST({
+    return await restoreRoute.POST(routeContext({
       request: new Request(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Origin: url.origin },
@@ -110,7 +116,7 @@ import { cleanupTestDatabase } from '../helpers/database-cleanup';
       }),
       params: { id },
       url,
-    } as APIContext);
+    }));
   }
   async function stored() {
     const [row] = await database.db().select().from(database.entries);

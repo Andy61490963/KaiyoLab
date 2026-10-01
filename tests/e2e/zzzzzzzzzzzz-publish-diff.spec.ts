@@ -277,6 +277,19 @@ test('首次發布顯示新增、清空正文顯示刪除，HTML 在比較區維
   await bodyEditor.press('ControlOrMeta+A');
   await bodyEditor.press('Backspace');
   await expect(bodyEditor).toHaveText('');
+  // Clearing a saved body now requires an explicit save and confirmation.
+  // Keep every diff/XSS/publication assertion below; do not weaken the safety gate.
+  expect((await currentEntry(page.request, entry.id)).content.body).toBe(body);
+  const confirmationPromise = page.waitForEvent('dialog');
+  const savePromise = page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  const confirmation = await confirmationPromise;
+  const confirmationType = confirmation.type();
+  const confirmationMessage = confirmation.message();
+  await confirmation.accept();
+  await savePromise;
+  expect(confirmationType).toBe('confirm');
+  expect(confirmationMessage).toContain('Save an empty draft body?');
+  await expect.poll(async () => (await currentEntry(page.request, entry.id)).content.body).toBe('');
   ({ dialog } = await openReview(page));
   await expect(dialog.locator('[data-diff-range] code')).toHaveText('@@ -1,3 +0,0 @@');
   await expect(dialog.locator('[data-diff-kind="remove"] [data-diff-text]')).toHaveText(lines);
